@@ -1083,6 +1083,8 @@ useEffect(() => {
     setIsEditing(false);
     setOriginalInvoiceNo('');
     setActiveTopAction('add');
+     setPartyBalance('0.00');
+  setLastBillAmount('0.00');
     fetchNextBillNo();
   };
 
@@ -2621,7 +2623,7 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         customerName: billDetails.custName || "",
         customercode: billDetails.custCode || "",
         compCode: compCode,
-        billAmount: Number(roundedTotalAmount) + Number(addLessAmount || 0),
+        billAmount: netAmountRounded,
         balanceAmount: 0,
         userCode: userCode,
         barcode: "",
