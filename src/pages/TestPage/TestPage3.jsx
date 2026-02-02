@@ -1,9 +1,11 @@
 import React, { useRef, useState } from "react";
+import QRCode from "qrcode";
+import logo from "../../assets/logo1.jpeg";
 
 // Dynamic content data
 const contentList = [
   { name: "message", value: "Hello user" },
-  { name: "scrap_bill", value: "Scrap Bill Details" },
+  { name: "salesinvoice", value: "Scrap Bill Details" },
   // Add more content objects as needed
 ];
 
@@ -37,7 +39,7 @@ const scrapBillData = {
   ]
 };
 
-function renderDynamicContent(selectedName) {
+function renderDynamicContent(selectedName, qrcodeRef) {
   const item = contentList.find((c) => c.name === selectedName);
   if (!item) return null;
   
@@ -45,7 +47,7 @@ function renderDynamicContent(selectedName) {
     return <div>{item.value}</div>;
   }
 
-  if (item.name === "scrap_bill") {
+  if (item.name === "salesinvoice") {
     // Calculate total dynamically
     const totalAmount = scrapBillData.items.reduce(
       (sum, item) => sum + item.amount, 
@@ -70,7 +72,7 @@ function renderDynamicContent(selectedName) {
             </div>
           </div>
           <div>
-            <div>QR</div>
+            <div ref={qrcodeRef} style={{ display: "flex", justifyContent: "center", width: "50px", height: "50px" }}></div>
           </div>
         </div>
 
@@ -179,7 +181,29 @@ function renderDynamicContent(selectedName) {
 
 export default function TestPage3() {
   const printRef = useRef(null);
+  const qrcodeRef = useRef(null);
   const [selectedContent, setSelectedContent] = useState(contentList[0].name);
+  // Initialize QR code when content changes or ref is set
+      useEffect(() => {
+      if (selectedContent === "salesinvoice" && qrcodeRef.current) {
+        qrcodeRef.current.innerHTML = "";
+    
+        QRCode.toString(
+          scrapBillData.billNo,
+          {
+            type: "svg",
+            width: 50,        // 👈 slightly bigger = better scan
+            margin: 0,
+            errorCorrectionLevel: "H"
+          },
+          (err, svg) => {
+            if (!err) {
+              qrcodeRef.current.innerHTML = svg;
+            }
+          }
+        );
+      }
+    }, [selectedContent]);
 
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
@@ -411,7 +435,7 @@ export default function TestPage3() {
           <hr className="dashed" />
 
           {/* Dynamic Content (Scrap Bill) */}
-          {renderDynamicContent(selectedContent)}
+          {renderDynamicContent(selectedContent, qrcodeRef)}
 
           <hr className="dashed" />
 
