@@ -122,7 +122,7 @@ const TagPrint = () => {
       minHeight: 0,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
-      paddingBottom: screenSize.isMobile ? '120px' : '100px',
+      paddingBottom: screenSize.isMobile ? '300px' : '250px',
     },
     filterRow: {
       display: 'flex',
@@ -334,9 +334,9 @@ const TagPrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       padding: '8px 6px',
       textAlign: 'center',
-      border: '1px solid #4CAF50',
-      color: '#4CAF50',
-      backgroundColor: '#E8F5E9',
+      border: '1px solid #ccc',
+      color: '#333',
+      backgroundColor: '#f5f5f5',
       cursor: 'pointer',
       transition: 'background-color 0.2s ease',
     },
@@ -346,9 +346,9 @@ const TagPrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       padding: '8px 6px',
       textAlign: 'center',
-      border: '1px solid #f44336',
-      color: '#f44336',
-      backgroundColor: '#FFEBEE',
+      border: '1px solid #ccc',
+      color: '#333',
+      backgroundColor: '#f5f5f5',
       cursor: 'pointer',
       transition: 'background-color 0.2s ease',
     },
@@ -482,6 +482,31 @@ const TagPrint = () => {
     paginationInfo: {
       fontSize: TYPOGRAPHY.fontSize.sm,
       color: '#666',
+    },
+    previewSection: {
+      backgroundColor: 'white',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'auto',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '20px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? 'calc(100vh - 500px)' : screenSize.isTablet ? 'calc(100vh - 550px)' : 'calc(100vh - 600px)',
+    },
+    previewLabel: {
+      padding: screenSize.isMobile ? '8px 12px' : '12px 16px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      backgroundColor: '#f5f5f5',
+      borderBottom: '1px solid #e0e0e0',
+      color: '#333',
     },
   };
 
@@ -714,17 +739,8 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
 
   // Update print items based on selections
   const updatePrintItems = (itemsList) => {
-    const selectedItems = itemsList.filter(item => item.selected && item.print === 'Y');
-    const printArray = [];
-    
-    selectedItems.forEach(item => {
-      const printCount = Math.max(1, Math.floor(item.qty || 1));
-      for (let i = 0; i < printCount; i++) {
-        printArray.push({ ...item, printIndex: i + 1 });
-      }
-    });
-    
-    setPrintItems(printArray);
+    const selectedItems = itemsList.filter(item => item.print === 'Y');
+    setPrintItems(selectedItems);
   };
 
   // Handle select all checkbox
@@ -1006,21 +1022,21 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                       <td style={styles.td}>{item.barcode}</td>
                       <td style={styles.td}>{item.itemName}</td>
                       <td style={styles.td}>
-                        {/* Editable Qty field */}
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={item.qty}
                           onChange={(e) => handleQtyChange(idx, e.target.value)}
-                          step="0.01"
-                          min="0"
                           style={{
                             width: '100%',
-                            padding: '2px',
-                            border: '1px solid #ddd',
-                            borderRadius: '3px',
-                            fontSize: TYPOGRAPHY.fontSize.sm,
-                            textAlign: 'center',
-                            outline: 'none'
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            padding: '4px 2px',
+                            fontSize: 'inherit',
+                            fontFamily: 'inherit',
+                            textAlign: 'right',
+                            outline: 'none',
+                            cursor: 'text'
                           }}
                         />
                       </td>
@@ -1051,6 +1067,57 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
         </div>
       </div>
 
+        {/* Preview Section - Shows print items before actual footer */}
+        {hasSearched && (
+          <div style={styles.previewSection}>
+            <div style={styles.previewLabel}>
+              Print Preview - Items to Print
+            </div>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={{...styles.th, width: '50px'}}>No.</th>
+                  <th style={{...styles.th, width: '120px'}}>Item Name</th>
+                  <th style={{...styles.th, width: '80px'}}>Prefix</th>
+                  <th style={{...styles.th, width: '80px'}}>Short Name</th>
+                  <th style={{...styles.th, width: '80px'}}>W.P</th>
+                  <th style={{...styles.th, width: '80px'}}>R.P</th>
+                  <th style={{...styles.th, width: '80px'}}>Qty</th>
+                  <th style={{...styles.th, width: '80px'}}>Pcs</th>
+                  <th style={{...styles.th, width: '80px'}}>Print</th>
+                  <th style={{...styles.th, width: '80px'}}>BARCODE</th>
+                  <th style={{...styles.th, width: '80px'}}>CP</th>
+                  <th style={{...styles.th, width: '100px'}}>SI No</th>
+                </tr>
+              </thead>
+              <tbody>
+                {printItems.length === 0 ? (
+                  <tr>
+                    <td colSpan="12" style={styles.td}>&nbsp;</td>
+                  </tr>
+                ) : (
+                  printItems.map((item, idx) => (
+                    <tr key={idx}>
+                      <td style={styles.td}>{idx + 1}</td>
+                      <td style={styles.td}>{item.itemName || 'N/A'}</td>
+                      <td style={styles.td}>{prefix || 'N/A'}</td>
+                      <td style={styles.td}>{item.hsn || 'N/A'}</td>
+                      <td style={styles.td}>₹{item.mrp?.toFixed(2) || '0.00'}</td>
+                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
+                      <td style={styles.td}>{item.qty || '0'}</td>
+                      <td style={styles.td}>Y</td>
+                      <td style={styles.td}>Y</td>
+                      <td style={styles.td}>{item.barcode || 'N/A'}</td>
+                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
+                      <td style={styles.td}>{item.sNo || idx + 1}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
       {/* Footer Section */}
       <div style={styles.footer}>
         <div style={styles.footerLeft}>
@@ -1066,7 +1133,6 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
               Select All
             </span>
           </div>
-          
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: TYPOGRAPHY.fontSize.sm, fontWeight: TYPOGRAPHY.fontWeight.medium }}>
               No of Prints:
@@ -1079,7 +1145,6 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
               min="1"
             />
           </div>
-          
           <div style={{ fontSize: TYPOGRAPHY.fontSize.sm, color: '#666' }}>
             Selected for printing: {printItems.length} items ({printItems.length * noOfPrints} tags)
           </div>
