@@ -1345,31 +1345,56 @@ const handleCustomerSelect = async (customer) => {
 
   setCustomerPopupOpen(false);
 
-  // ✅ FETCH PARTY BALANCE (NEW API)
   try {
     const customerCode = customer.code;
-    const companyCode = compCode; // already from getCompCode()
+    const companyCode = compCode;
 
     if (customerCode && companyCode) {
-      const resp = await axiosInstance.get(
+      // ✅ 1. FETCH PARTY BALANCE
+      const balanceResp = await axiosInstance.get(
         API_ENDPOINTS.sales_return.getCustomerBalance(
           customerCode,
           companyCode
         )
       );
 
-      // API RESPONSE:
-      // { amount: "1300.00", amount1: "Cr" }
-      const amount = resp?.data?.amount || "0.00";
-      const type = resp?.data?.amount1 || "";
-
+      const amount = balanceResp?.data?.amount || "0.00";
+      const type = balanceResp?.data?.amount1 || "";
       setPartyBalance(`${amount} ${type}`);
+
+      // ✅ 2. FETCH LAST BILL AMOUNT - USE THE LEDGER API
+      try {
+        // Get today's date and date 1 year ago for default range
+        const today = new Date();
+        const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+        
+        const fromDate = oneYearAgo.toISOString().split('T')[0]; // YYYY-MM-DD
+        const toDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // Call ledger API - same API used in customer history
+        const ledgerResp = await axiosInstance.get(
+          API_ENDPOINTS.sales_return.getLedger(customerCode, companyCode, fromDate, toDate)
+        );
+        
+        // Extract last bill amount from ledger response
+        const lastAmt = ledgerResp?.data?.latestBillAmount ?? 
+                       ledgerResp?.data?.lastBillAmount ?? 
+                       "0.00";
+        
+        setLastBillAmount(Number(lastAmt).toFixed(2));
+        console.log("Last bill amount fetched:", lastAmt);
+      } catch (lastBillErr) {
+        console.error("Last bill fetch failed:", lastBillErr);
+        setLastBillAmount("0.00");
+      }
     } else {
       setPartyBalance("0.00");
+      setLastBillAmount("0.00");
     }
   } catch (error) {
-    console.error("Failed to fetch party balance:", error);
+    console.error("Failed to fetch customer details:", error);
     setPartyBalance("0.00");
+    setLastBillAmount("0.00");
   }
 
   // ✅ FOCUS TO FIRST BARCODE
@@ -1377,7 +1402,6 @@ const handleCustomerSelect = async (customer) => {
     document
       .querySelector('input[data-row="0"][data-field="barcode"]')
       ?.focus();
-
     ignoreNextEnterRef.current = false;
   }, 300);
 };
@@ -1406,6 +1430,9 @@ const handleCustomerSelect = async (customer) => {
     }, 200);
   };
 
+
+  
+
 // 🔄 Open Customer History Modal
 const openCustomerHistory = async (customerName) => {
   try {
@@ -1433,9 +1460,13 @@ const openCustomerHistory = async (customerName) => {
       API_ENDPOINTS.sales_return.getLedger(customerCode, compCode, fromDate, toDate)
     );
     
-    if (response && response.data) {
+    if (response?.data) {
+      // ✅ SET LAST BILL AMOUNT HERE
+      const lastAmt = response.data.latestBillAmount ?? 0;
+      setLastBillAmount(Number(lastAmt).toFixed(2));
+
       setCustomerHistoryData({
-        customerName: customerName,
+        customerName,
         ...response.data
       });
     } else {
@@ -1449,6 +1480,7 @@ const openCustomerHistory = async (customerName) => {
     setCustomerHistoryOpen(true);
   }
 };
+
 
 // Handle item selection
 const handleItemSelect = async (item) => {
@@ -3893,56 +3925,56 @@ const itemsData = validItems.map(item => {
       />
     </div>
 
-    {/* Last Bill Amount + History */}
-    <div style={{
-      ...styles.formField,
-      gridColumn: screenSize.isMobile ? 'span 1' : ''
-    }}>
-      <label style={{
-        ...styles.inlineLabel,
-        fontSize: screenSize.isMobile ? '12px' : ''
-      }}>Last Bill Amt:</label>
+ {/* Last Bill Amount + History */}
+<div style={{
+  ...styles.formField,
+  gridColumn: screenSize.isMobile ? 'span 1' : ''
+}}>
+  <label style={{
+    ...styles.inlineLabel,
+    fontSize: screenSize.isMobile ? '12px' : ''
+  }}>Last Bill Amt:</label>
 
-      <div style={{ position: 'relative', width: '100%' }}>
-        <input
-          type="text"
-          value={lastBillAmount || '0.00'}
-          readOnly
-          tabIndex={-1}
-          style={{
-            ...styles.inlineInput,
-            fontWeight: '600',
-            paddingRight: screenSize.isMobile ? '30px' : '36px',
-            fontSize: screenSize.isMobile ? '13px' : '',
-            cursor: 'default'
-          }}
-        />
+  <div style={{ position: 'relative', width: '100%' }}>
+    <input
+      type="text"
+      value={lastBillAmount || '0.00'}
+      readOnly
+      tabIndex={-1}
+      style={{
+        ...styles.inlineInput,
+        fontWeight: '600',
+        paddingRight: screenSize.isMobile ? '30px' : '36px',
+        fontSize: screenSize.isMobile ? '13px' : '',
+        cursor: 'default'
+      }}
+    />
 
-        {/* 🔁 History Icon */}
-        <div
-          onClick={() => {
-            if (billDetails.custName && billDetails.custName.trim() !== '') {
-              openCustomerHistory(billDetails.custName);
-            } else {
-              toast.warning('Please select a customer first', { autoClose: 1500 });
-            }
-          }}
-          title="View Customer History"
-          style={{
-            position: 'absolute',
-            right: screenSize.isMobile ? '6px' : '8px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            cursor: 'pointer',
-            color: '#4d7cfe',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          <HistoryIcon />
-        </div>
-      </div>
+    {/* 🔁 History Icon */}
+    <div
+      onClick={() => {
+        if (billDetails.custName && billDetails.custName.trim() !== '') {
+          openCustomerHistory(billDetails.custName);
+        } else {
+          toast.warning('Please select a customer first', { autoClose: 1500 });
+        }
+      }}
+      title="View Customer History"
+      style={{
+        position: 'absolute',
+        right: screenSize.isMobile ? '6px' : '8px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        cursor: 'pointer',
+        color: '#4d7cfe',
+        display: 'flex',
+        alignItems: 'center'
+      }}
+    >
+      <HistoryIcon />
     </div>
+  </div>
+</div>
 
     <div style={{
       marginLeft: screenSize.isMobile ? '0' : '80px',
