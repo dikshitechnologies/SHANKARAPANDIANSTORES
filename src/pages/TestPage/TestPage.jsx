@@ -225,6 +225,7 @@ export default function TestPage() {
           .cust-name {
             text-align: right;
             font-size: 8pt;
+            font-weight: bold;
             margin-bottom: 1mm;
           }
           .bill {
