@@ -179,7 +179,7 @@ export default function TestPage() {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
+            font-family: 'Courier New', monospace;
           }
 
           body {
@@ -187,7 +187,7 @@ export default function TestPage() {
             padding: 0;
             font-size: 10pt;
             width: 80mm;
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 13px;
             font-weight: 500;
             letter-spacing: 0.3px;
