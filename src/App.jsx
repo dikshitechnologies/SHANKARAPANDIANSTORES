@@ -161,7 +161,7 @@ function App() {
           <Route path="/reports/account-payable" element={<ProtectedRoute><LayoutWithNavbar><AccountPayables /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/day-sales" element={<ProtectedRoute><LayoutWithNavbar><DaySales /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Billcollectorreport" element={<ProtectedRoute><LayoutWithNavbar><TenderReport /></LayoutWithNavbar></ProtectedRoute>} />
-          
+          <Route path="/reports/Itemwisestock" element={<ProtectedRoute><LayoutWithNavbar><Itemwisestock /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/embed/design" element={<Design />} />
           <Route path="/embed/scrap" element={<ScrapPage />} />
           <Route path="/embed/brand" element={<BrandPage />} />
