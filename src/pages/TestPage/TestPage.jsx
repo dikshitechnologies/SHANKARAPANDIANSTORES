@@ -51,14 +51,19 @@ function renderDynamicContent(selectedName) {
         <div className="scrap-title">
             <h3>SCRAP BILL</h3>
         </div>
-        <div className="cust-name"><h6>{scrapBillData.customername}</h6></div>
+        <div className="cust-name"><h6>Salesman: {scrapBillData.customername}</h6></div>
         
         {/* Bill number and date */}
-        <div className="bill-info">
+        <div className="bill">
+          <div className="bill-info">
+            <div>
+              <div>No. {scrapBillData.billNo}</div>
+              <div>Date {scrapBillData.date}</div>
+              <div>Time: {scrapBillData.time}</div>
+            </div>
+          </div>
           <div>
-            <div>No. {scrapBillData.billNo}</div>
-            <div>Date {scrapBillData.date}</div>
-            <div>Time: {scrapBillData.time}</div>
+            <div>QR</div>
           </div>
         </div>
 
@@ -73,10 +78,10 @@ function renderDynamicContent(selectedName) {
         <table className="items">
           <thead>
             <tr>
-              <th style={{ textAlign: "left", width: "38%" }}>Particulars</th>
-              <th style={{ textAlign: "center", width: "15%" }}>Rate</th>
-              <th style={{ textAlign: "center", width: "15%" }}>Qty</th>
-              <th style={{ textAlign: "right", width: "32%" }}>Amount</th>
+              <th style={{ textAlign: "left", width: "38%", fontWeight: "bold" }}>Particulars</th>
+              <th style={{ textAlign: "center", width: "15%", fontWeight: "bold" }}>Rate</th>
+              <th style={{ textAlign: "center", width: "15%", fontWeight: "bold" }}>Qty</th>
+              <th style={{ textAlign: "right", width: "32%", fontWeight: "bold" }}>Amount</th>
             </tr>
           </thead>
           
@@ -219,6 +224,12 @@ export default function TestPage() {
           }
           .cust-name {
             text-align: right;
+            font-size: 8pt;
+            margin-bottom: 1mm;
+          }
+          .bill {
+            display: flex;
+            justify-content: space-between;
             margin-bottom: 1mm;
           }
           .bill-info {
