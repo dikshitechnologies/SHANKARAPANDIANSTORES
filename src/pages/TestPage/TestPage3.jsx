@@ -1,9 +1,11 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import QRCode from "qrcode";
+import logo from "../../assets/logo1.jpeg";
 
 // Dynamic content data
 const contentList = [
   { name: "message", value: "Hello user" },
-  { name: "scrap_bill", value: "Scrap Bill Details" },
+  { name: "salesinvoice", value: "Scrap Bill Details" },
   // Add more content objects as needed
 ];
 
@@ -12,13 +14,13 @@ const scrapBillData = {
   billNo: "RS/SCR/25-26/0129/003",
   date: "29-Jan-2026",
   time: "12:59 PM",
-  customerId: "RS6385666140",
+  customerNo: "9876543210",
   customerName: "David",
   items: [
-    { name: "STEEL", hsn: "7208", tax: "18%", rate: 45000, qty: 1, amount: 45000.00 },
-    { name: "ALUMINIUM", hsn: "7601", tax: "18%", rate: 17500, qty: 0.78, amount: 13650.00 },
-    { name: "THARA O.T", hsn: "7602", tax: "18%", rate: 4900, qty: 0.235, amount: 1151.50 },
-    { name: "THARA O.T", hsn: "7602", tax: "18%", rate: 1000, qty: 0.235, amount: 235.00 },
+    { name: "STEEL", hsn: "7208", tax: "18", rate: 45000, qty: 1, amount: 45000.00,description: "test" },
+    { name: "ALUMINIUM", hsn: "7601", tax: "18", rate: 17500, qty: 0.78, amount: 13650.00,description: "test" },
+    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 4900, qty: 0.235, amount: 1151.50,description: "test" },
+    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 1000, qty: 0.235, amount: 235.00 ,description: "test"},
   ],
   modeofPayment: [
     {method : "CARD", amount: 0.00},
@@ -37,7 +39,7 @@ const scrapBillData = {
   ]
 };
 
-function renderDynamicContent(selectedName) {
+function renderDynamicContent(selectedName, qrcodeRef) {
   const item = contentList.find((c) => c.name === selectedName);
   if (!item) return null;
   
@@ -45,7 +47,7 @@ function renderDynamicContent(selectedName) {
     return <div>{item.value}</div>;
   }
 
-  if (item.name === "scrap_bill") {
+  if (item.name === "salesinvoice") {
     // Calculate total dynamically
     const totalAmount = scrapBillData.items.reduce(
       (sum, item) => sum + item.amount, 
@@ -64,13 +66,13 @@ function renderDynamicContent(selectedName) {
         <div className="bill">
           <div className="bill-info">
             <div>
-              <div>No. {scrapBillData.billNo}</div>
-              <div>Date {scrapBillData.date}</div>
+              <div>Bill No: {scrapBillData.billNo}</div>
+              <div>Date: {scrapBillData.date}</div>
               <div>Time: {scrapBillData.time}</div>
             </div>
           </div>
           <div>
-            <div>QR</div>
+            <div ref={qrcodeRef} style={{ display: "flex", justifyContent: "center", width: "50px", height: "50px" }}></div>
           </div>
         </div>
 
@@ -79,7 +81,7 @@ function renderDynamicContent(selectedName) {
         {/* Customer Info */}
         <div className="customer-info">
           <p>Customer: {scrapBillData.customerName}</p>
-            <p style={{marginLeft: "50pt"}}>{scrapBillData.customerId}</p>
+            <p style={{marginLeft: "46pt"}}>{scrapBillData.customerNo}</p>
         </div>
         <hr className="dashed" />
         
@@ -87,7 +89,8 @@ function renderDynamicContent(selectedName) {
         <table className="items">
           <thead>
             <tr>
-              <th style={{ textAlign: "left", width: "40%" }} colSpan="3">Particulars</th>              
+              <th style={{ textAlign: "left"}} colSpan="3">Particulars</th>
+              <th style={{ textAlign: "left"}} colSpan="3"></th>
             </tr>
             <tr>
               <th style={{ textAlign: "center", width: "20%",paddingLeft: "10pt" }}>HSN</th>
@@ -108,7 +111,10 @@ function renderDynamicContent(selectedName) {
             {scrapBillData.items.map((item, index) => (
               <React.Fragment key={index}>
                 <tr>
-                  <td style={{ textAlign: "left" }} colSpan="3">{item.name}</td>
+                  <td style={{ textAlign: "left" }} colSpan="5">{item.name}</td>
+                </tr>
+                <tr>
+                  <td style={{ textAlign: "left", paddingLeft: "10pt" }} colSpan="5">{item.description}</td>
                 </tr>
                 <tr>
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.hsn}</td>
@@ -179,7 +185,29 @@ function renderDynamicContent(selectedName) {
 
 export default function TestPage3() {
   const printRef = useRef(null);
+  const qrcodeRef = useRef(null);
   const [selectedContent, setSelectedContent] = useState(contentList[0].name);
+  // Initialize QR code when content changes or ref is set
+      useEffect(() => {
+      if (selectedContent === "salesinvoice" && qrcodeRef.current) {
+        qrcodeRef.current.innerHTML = "";
+    
+        QRCode.toString(
+          scrapBillData.billNo,
+          {
+            type: "svg",
+            width: 50,        // 👈 slightly bigger = better scan
+            margin: 0,
+            errorCorrectionLevel: "H"
+          },
+          (err, svg) => {
+            if (!err) {
+              qrcodeRef.current.innerHTML = svg;
+            }
+          }
+        );
+      }
+    }, [selectedContent]);
 
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
@@ -195,7 +223,7 @@ export default function TestPage3() {
         <title>Sales Invoice Receipt</title>
         <style>
           @page {
-            size: 80mm auto;
+            size: 110mm auto;
             margin: 0;
             padding: 0;
           }
@@ -204,17 +232,17 @@ export default function TestPage3() {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace;
+            font-family: Arial, sans-serif;
           }
 
           body {
             margin: 0;
             padding: 0;
             font-size: 10pt;
-            width: 80mm;
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 12px;
-            font-weight: 900;
+            width: 110mm;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
           }
@@ -222,7 +250,7 @@ export default function TestPage3() {
           .receipt {
             padding: 2mm 3mm;
             width: 100%;
-            max-width: 80mm;
+            max-width: 110mm;
           }
 
           .header {
@@ -238,26 +266,26 @@ export default function TestPage3() {
           }
 
           .company-name {
-            font-size: 12pt;
+            font-size: 13pt;
             font-weight: bold;
             letter-spacing: 0.5pt;
             margin: 1mm 0;
           }
 
           .company-address {
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.2;
             margin-bottom: 1mm;
           }
 
           .gst-number {
-            font-size: 8pt;
+            font-size: 9pt;
             font-weight: bold;
             margin-bottom: 1mm;
           }
 
           .contact {
-            font-size: 7pt;
+            font-size: 8pt;
             margin-bottom: 1mm;
           }
 
@@ -270,15 +298,14 @@ export default function TestPage3() {
           .scrap-title {
             text-align: center;
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 11pt;
             margin: 2mm 0;
             background-color: #0a0a0a;
             color: #ffffff;
           }
           .cust-name {
             text-align: right;
-            font-size: 12pt;
-            font-weight: bold;
+            font-size: 13pt;
             margin-bottom: 1mm;
           }
           .bill {
@@ -289,20 +316,19 @@ export default function TestPage3() {
           .bill-info {
             display: flex;
             justify-content: space-between;
-            font-size: 8pt;
-            font-weight: bold;
+            font-size: 9pt;
             margin-bottom: 1mm;
           }
 
           .customer-info {
-            font-size: 8pt;
+            font-size: 9pt;
             margin-bottom: 2mm;
           }
 
           table.items {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8pt;
+            font-size: 9pt;
           }
 
           table.items th {
@@ -317,6 +343,7 @@ export default function TestPage3() {
 
           table.items td {
             padding: 1mm 0;
+            font-size: 9pt;
           }
 
           table.items td:first-child {
@@ -331,12 +358,12 @@ export default function TestPage3() {
 
           .total-row {
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 10pt;
             padding-top: 2mm;
           }
           .total-info {
             margin-top: 2mm;
-            font-size: 8pt;
+            font-size: 9pt;
             display: flex;
             flex-direction: row;
             gap: 5mm;
@@ -347,7 +374,7 @@ export default function TestPage3() {
           }
           .terms {
             text-align: center;
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.3;
             margin-top: 2mm;
           }
@@ -355,7 +382,7 @@ export default function TestPage3() {
           .thank-you {
             text-align: center;
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 10pt;
             margin-top: 3mm;
           }
         </style>
@@ -391,7 +418,7 @@ export default function TestPage3() {
         ))}
       </select>
       <button onClick={handlePrint} style={{ padding: "5px 15px", marginLeft: "10px" }}>
-        Print 80mm Receipt
+        Print 110mm Receipt
       </button>
 
       {/* HIDDEN PRINT CONTENT */}
@@ -411,7 +438,7 @@ export default function TestPage3() {
           <hr className="dashed" />
 
           {/* Dynamic Content (Scrap Bill) */}
-          {renderDynamicContent(selectedContent)}
+          {renderDynamicContent(selectedContent, qrcodeRef)}
 
           <hr className="dashed" />
 

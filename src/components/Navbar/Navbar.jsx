@@ -254,6 +254,12 @@ const Navbar = () => {
       icon: <MoneyCollectOutlined />,
       permission: "BILL_COLLECTOR",
     },
+     {
+      name: "Tag Print",
+      path: "/transactions/Tag-Print",
+      icon: <DollarOutlined />,
+      permission: "TAG_PRINT",
+    },
   ];
 
   const reportItems = [ 

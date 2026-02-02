@@ -14,18 +14,19 @@ const DailyReport = () => {
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
+  const openingBalanceRef = useRef(null);
+  const closingBalanceRef = useRef(null);
   const searchButtonRef = useRef(null);
 
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
+  const [openingBalance, setOpeningBalance] = useState(0.00);
+  const [closingBalance, setClosingBalance] = useState(17362349.75);
   const [showReport, setShowReport] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Report data states
-  const [openingCash, setOpeningCash] = useState(19800912.33);
-
   // Auto-focus on fromDate when component mounts
   useEffect(() => {
     if (fromDateRef.current) {
@@ -192,6 +193,104 @@ const DailyReport = () => {
       flex: 1,
       minWidth: screenSize.isMobile ? '100%' : '100px',
     },
+    balanceInputContainer: {
+      display: 'flex',
+      alignItems: 'stretch',
+      width: '100%',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      overflow: 'hidden',
+      border: '1px solid #ddd',
+      backgroundColor: 'white',
+      transition: 'all 0.2s ease',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
+    },
+    balanceInputContainerFocused: {
+      display: 'flex',
+      alignItems: 'stretch',
+      width: '100%',
+      borderRadius: screenSize.isMobile ? '3px' : '4px',
+      overflow: 'hidden',
+      border: '2px solid #1B91DA',
+      backgroundColor: 'white',
+      transition: 'all 0.2s ease',
+      height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
+    },
+    balanceInput: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: 'none',
+      borderRadius: '0',
+      boxSizing: 'border-box',
+      transition: 'all 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      flex: 1,
+      backgroundColor: 'transparent',
+    },
+    balanceInputFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
+      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      paddingRight: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
+      border: 'none',
+      borderRadius: '0',
+      boxSizing: 'border-box',
+      transition: 'all 0.2s ease',
+      outline: 'none',
+      width: '100%',
+      flex: 1,
+      backgroundColor: 'transparent',
+    },
+    balanceDropdown: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '0 8px' : screenSize.isTablet ? '0 10px' : '0 12px',
+      border: 'none',
+      borderLeft: '1px solid #ddd',
+      borderRadius: '0',
+      backgroundColor: '#f0f0f0',
+      color: '#666',
+      cursor: 'default',
+      minWidth: '50px',
+      textAlign: 'center',
+      height: '100%',
+      boxSizing: 'border-box',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    balanceDropdownFocused: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.semibold,
+      lineHeight: TYPOGRAPHY.lineHeight.normal,
+      padding: screenSize.isMobile ? '0 8px' : screenSize.isTablet ? '0 10px' : '0 12px',
+      border: 'none',
+      borderLeft: '1px solid #1B91DA',
+      borderRadius: '0',
+      backgroundColor: '#e8f4fd',
+      color: '#1B91DA',
+      cursor: 'default',
+      minWidth: '50px',
+      textAlign: 'center',
+      height: '100%',
+      boxSizing: 'border-box',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     leftSide: {
       display: 'flex',
       alignItems: screenSize.isMobile || screenSize.isTablet ? 'stretch' : 'center',
@@ -248,7 +347,7 @@ const DailyReport = () => {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    tableContainer: {
+    mainTableContainer: {
       backgroundColor: 'white',
       borderRadius: 10,
       overflowX: 'auto',
@@ -257,19 +356,21 @@ const DailyReport = () => {
       border: '1px solid #e0e0e0',
       margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
       marginTop: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
-      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      marginBottom: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '20px',
       WebkitOverflowScrolling: 'touch',
       width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
       boxSizing: 'border-box',
       flex: 'none',
       display: 'flex',
       flexDirection: 'column',
+      maxHeight: screenSize.isMobile ? 'calc(100vh - 250px)' : screenSize.isTablet ? 'calc(100vh - 280px)' : 'calc(100vh - 300px)',
+      minHeight: '300px',
     },
     table: {
-      width: '100%',
+      width: 'max-content',
       minWidth: '100%',
       borderCollapse: 'collapse',
-      fontSize: TYPOGRAPHY.fontSize.sm,
+      tableLayout: 'fixed',
     },
     th: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -278,65 +379,80 @@ const DailyReport = () => {
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       backgroundColor: '#1B91DA',
       color: 'white',
-      padding: screenSize.isMobile ? '4px 2px' : screenSize.isTablet ? '6px 3px' : '8px 4px',
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px',
       textAlign: 'center',
       letterSpacing: '0.5px',
       position: 'sticky',
       top: 0,
       zIndex: 10,
-      border: '1px solid #e0e0e0',
+      border: '1px solid white',
       borderBottom: '2px solid white',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       whiteSpace: 'nowrap',
-      minWidth: '70px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.normal,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: screenSize.isMobile ? '3px 2px' : screenSize.isTablet ? '4px 3px' : '6px 4px',
+      padding: '8px 6px',
       textAlign: 'center',
-      border: '1px solid #e0e0e0',
+      border: '1px solid #ccc',
       color: '#333',
-      backgroundColor: 'white',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-    sectionTd: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.sm,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      padding: screenSize.isMobile ? '3px 2px' : screenSize.isTablet ? '4px 3px' : '6px 4px',
-      textAlign: 'left',
-      border: '1px solid #e0e0e0',
-      backgroundColor: '#f8f9fa',
-      color: '#333',
-    },
-    openingCashTd: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.base,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      padding: screenSize.isMobile ? '10px 6px' : screenSize.isTablet ? '12px 8px' : '14px 10px',
-      textAlign: 'center',
-      border: '1px solid #e0e0e0',
-      backgroundColor: '#f0f8ff',
-      color: '#1B91DA',
-    },
-    drLabelTd: {
-      fontFamily: TYPOGRAPHY.fontFamily,
-      fontSize: TYPOGRAPHY.fontSize.base,
-      fontWeight: TYPOGRAPHY.fontWeight.bold,
-      padding: screenSize.isMobile ? '10px 6px' : screenSize.isTablet ? '12px 8px' : '14px 10px',
-      textAlign: 'left',
-      border: '1px solid #e0e0e0',
-      backgroundColor: '#f0f8ff',
-      color: '#333',
-      width: '50px',
+    totalRow: {
+      background: '#e6f7ff',
+      fontWeight: 700,
+      color: '#096dd9',
     },
     emptyMsg: {
       textAlign: 'center',
       color: '#888',
-      fontSize: TYPOGRAPHY.fontSize.base,
-      padding: '40px 0',
+      fontSize: '16px',
+      padding: '32px 0',
     },
+    headerTitle: {
+      fontSize: TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      color: '#1B91DA',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+    },
+  };
+
+  // Sample data matching the image
+  const sampleData = [
+    // Sales data
+    { billNo: 'B00001AA', name: 'TEST 1234', grossWt: '100.000', netWt: '100.000', pure: '92.000', rateCut: '100.000', amount: '30961.00', rightBillNo: 'B00001AA', rightName: 'Sales' },
+    { billNo: 'B00005AA', name: 'TEST 1234', grossWt: '344.000', netWt: '234.000', pure: '53.820', rateCut: '324.000', amount: '1162433.00', rightBillNo: 'B00005AA', rightName: 'Sales' },
+    { billNo: 'B00007AA', name: 'TEST 1234', grossWt: '234.000', netWt: '3.000', pure: '0.690', rateCut: '34.000', amount: '12283.00', rightBillNo: 'B00007AA', rightName: 'Sales' },
+    { billNo: 'B00008AA', name: 'TEST 1234', grossWt: '345.000', netWt: '455.000', pure: '154.700', rateCut: '', amount: '5344156.00', rightBillNo: 'B00008AA', rightName: 'Sales' },
+    { billNo: 'C00002AA', name: 'SHEETAL SOLLITAIRELL', grossWt: '5.000', netWt: '5.000', pure: '1.000', rateCut: '', amount: '17003.00', rightBillNo: 'C00002AA', rightName: 'Sales' },
+    { billNo: 'C00002AA', name: 'ABI', grossWt: '100.000', netWt: '100.000', pure: '', rateCut: '', amount: '14788280.00', rightBillNo: 'C00002AA', rightName: 'Sales' },
+    { billNo: 'C00004AA', name: 'TEST', grossWt: '100.000', netWt: '100.000', pure: '', rateCut: '', amount: '24788280.00', rightBillNo: 'C00004AA', rightName: 'Sales' },
+    { billNo: 'C00006AA', name: 'AISHU', grossWt: '8.000', netWt: '8.000', pure: '', rateCut: '', amount: '37412.00', rightBillNo: 'C00006AA', rightName: 'Sales' },
+    { billNo: 'C00007AA', name: 'AISHU', grossWt: '8.000', netWt: '8.000', pure: '', rateCut: '', amount: '13000.00', rightBillNo: 'C00007AA', rightName: 'Sales' },
+    { billNo: 'C00008AA', name: 'AISHU', grossWt: '8.000', netWt: '8.000', pure: '', rateCut: '', amount: '129000.00', rightBillNo: 'C00008AA', rightName: 'Sales' },
+    { billNo: 'C00009AA', name: 'AISHU', grossWt: '5.000', netWt: '5.000', pure: '', rateCut: '', amount: '66000.00', rightBillNo: 'C00009AA', rightName: 'Sales' },
+    { billNo: 'C00101AA', name: 'AISHU', grossWt: '2.000', netWt: '2.000', pure: '', rateCut: '', amount: '32520.00', rightBillNo: 'C00101AA', rightName: 'Sales' },
+    { billNo: 'C00102AA', name: 'YMCA PURASWAKKAM', grossWt: '15.000', netWt: '10.000', pure: '', rateCut: '', amount: '16549.00', rightBillNo: 'C00102AA', rightName: 'Sales' },
+    { billNo: 'C00103AA', name: 'AISHU', grossWt: '10.000', netWt: '10.000', pure: '', rateCut: '', amount: '223101.00', rightBillNo: 'C00103AA', rightName: 'Sales' },
+    { billNo: 'C00104AA', name: 'TEST 1234', grossWt: '15.000', netWt: '10.000', pure: '', rateCut: '', amount: '189000.00', rightBillNo: 'C00104AA', rightName: 'Sales' },
+    { billNo: 'C00105AA', name: 'AISHU', grossWt: '9.254', netWt: '9.254', pure: '', rateCut: '', amount: '17500.00', rightBillNo: 'C00105AA', rightName: 'Sales' },
+  ];
+
+  // Totals
+  const totals = {
+    grossWt: '4773.254',
+    netWt: '2082.254',
+    pure: '301.360',
+    amount: '22586590.00'
   };
 
   // Handlers
@@ -350,7 +466,6 @@ const DailyReport = () => {
       
       // For demo purposes, always show the report
       setShowReport(true);
-      setOpeningCash(19800912.33);
     //   toast.success('Daily report loaded successfully');
       
     } catch (error) {
@@ -364,11 +479,9 @@ const DailyReport = () => {
   const handleRefresh = () => {
     setFromDate(new Date().toISOString().split('T')[0]);
     setToDate(new Date().toISOString().split('T')[0]);
+    setOpeningBalance(0.00);
+    setClosingBalance(17362349.75);
     setShowReport(false);
-  };
-
-  const handleExport = () => {
-    toast.success('Export functionality will be implemented');
   };
 
   // Keyboard navigation handlers
@@ -382,6 +495,20 @@ const DailyReport = () => {
   const handleToDateKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      openingBalanceRef.current?.focus();
+    }
+  };
+
+  const handleOpeningBalanceKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      closingBalanceRef.current?.focus();
+    }
+  };
+
+  const handleClosingBalanceKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
       searchButtonRef.current?.focus();
     }
   };
@@ -393,11 +520,11 @@ const DailyReport = () => {
 
   return (
     <div style={styles.container}>
-      {/* Header Section with Date Filters */}
+      {/* Header Section */}
       <div style={styles.headerSection}>
         <form onSubmit={handleSearch}>
           <div style={styles.filterRow}>
-            {/* LEFT SIDE: Date fields */}
+            {/* LEFT SIDE: Search fields */}
             <div style={styles.leftSide}>
               {/* From Date */}
               <div style={styles.formField}>
@@ -428,6 +555,50 @@ const DailyReport = () => {
                   onBlur={() => setFocusedField('')}
                 />
               </div>
+
+              {/* Opening Balance */}
+              <div style={styles.formField}>
+                <label style={styles.label}>Opening Bal:</label>
+                <div style={focusedField === 'openingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
+                  <input
+                    ref={openingBalanceRef}
+                    type="number"
+                    step="0.01"
+                    style={focusedField === 'openingBalance' ? styles.balanceInputFocused : styles.balanceInput}
+                    value={openingBalance}
+                    onChange={e => setOpeningBalance(parseFloat(e.target.value) || 0)}
+                    onKeyDown={handleOpeningBalanceKeyDown}
+                    onFocus={() => setFocusedField('openingBalance')}
+                    onBlur={() => setFocusedField('')}
+                    placeholder="0.00"
+                  />
+                  <div style={focusedField === 'openingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
+                    DR
+                  </div>
+                </div>
+              </div>
+
+              {/* Closing Balance */}
+              <div style={styles.formField}>
+                <label style={styles.label}>Closing Bal:</label>
+                <div style={focusedField === 'closingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
+                  <input
+                    ref={closingBalanceRef}
+                    type="number"
+                    step="0.01"
+                    style={focusedField === 'closingBalance' ? styles.balanceInputFocused : styles.balanceInput}
+                    value={closingBalance}
+                    onChange={e => setClosingBalance(parseFloat(e.target.value) || 0)}
+                    onKeyDown={handleClosingBalanceKeyDown}
+                    onFocus={() => setFocusedField('closingBalance')}
+                    onBlur={() => setFocusedField('')}
+                    placeholder="0.00"
+                  />
+                  <div style={focusedField === 'closingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
+                    CR
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* RIGHT SIDE: Buttons */}
@@ -441,154 +612,138 @@ const DailyReport = () => {
 
       {/* Table Section */}
       <div style={styles.tableSection}>
-        {/* Show empty message only when report is not loaded */}
-        {!showReport ? (
-          <div style={styles.emptyMsg}>
-            {/* Select date range and click "Search" to view daily report */}
-          </div>
-        ) : isLoading ? (
-          <div style={styles.emptyMsg}>
-            Loading...
-          </div>
-        ) : (
-          <div style={styles.tableContainer}>
-            <table style={styles.table}>
-              <thead>
+        {/* Main Table */}
+        <div style={styles.mainTableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                {/* Left side headers - 7 columns */}
+                <th style={styles.th}>BillNo</th>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Gross Wt</th>
+                <th style={styles.th}>Net Wt</th>
+                <th style={styles.th}>Pure</th>
+                <th style={styles.th}>Rate Cut</th>
+                <th style={styles.th}>Amount</th>
+                
+                {/* Right side headers - 6 columns */}
+                <th style={styles.th}>BillNo</th>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Gross Wt</th>
+                <th style={styles.th}>Net Wt</th>
+                <th style={styles.th}>Pure</th>
+                <th style={styles.th}>Rate Cut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!showReport ? (
                 <tr>
-                  {/* Left side headers - 7 columns */}
-                  <th style={styles.th}>Bill No</th>
-                  <th style={styles.th}>Name</th>
-                  <th style={styles.th}>Gross Wt</th>
-                  <th style={styles.th}>Net Wt</th>
-                  <th style={styles.th}>Pure</th>
-                  <th style={styles.th}>Rate Cut</th>
-                  <th style={styles.th}>Amount</th>
-                  
-                  {/* Right side headers - 6 columns */}
-                  <th style={styles.th}>Bill No</th>
-                  <th style={styles.th}>Name</th>
-                  <th style={styles.th}>Gross Wt</th>
-                  <th style={styles.th}>Net Wt</th>
-                  <th style={styles.th}>Pure</th>
-                  <th style={styles.th}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* Opening Cash Row */}
-                <tr>
-                  <td style={styles.openingCashTd} colSpan="7">
-                    Opening Cash: {openingCash.toLocaleString('en-IN', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
+                  <td colSpan="13" style={styles.emptyMsg}>
+                    {/* Select date range and click "Search" to view daily report */}
                   </td>
-                  <td style={styles.drLabelTd} colSpan="6">DR</td>
                 </tr>
+              ) : isLoading ? (
+                <tr>
+                  <td colSpan="13" style={styles.emptyMsg}>
+                    Loading...
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {/* Sales Data Rows */}
+                  {sampleData.map((item, index) => (
+                    <tr key={index}>
+                      <td style={styles.td}>{item.billNo}</td>
+                      <td style={{...styles.td, textAlign: 'left'}}>{item.name}</td>
+                      <td style={styles.td}>{item.grossWt}</td>
+                      <td style={styles.td}>{item.netWt}</td>
+                      <td style={styles.td}>{item.pure}</td>
+                      <td style={styles.td}>{item.rateCut}</td>
+                      <td style={styles.td}>{item.amount}</td>
+                      
+                      <td style={styles.td}>{item.rightBillNo}</td>
+                      <td style={{...styles.td, textAlign: 'left'}}>{item.rightName}</td>
+                      <td style={styles.td}></td>
+                      <td style={styles.td}></td>
+                      <td style={styles.td}></td>
+                      <td style={styles.td}></td>
+                    </tr>
+                  ))}
 
-                {/* Sales Row */}
-                <tr>
-                  <td style={styles.sectionTd} colSpan="7">Sales</td>
-                  <td style={styles.sectionTd} colSpan="6">Mode of Payment</td>
-                </tr>
-                
-                {/* Sample Sales Data Row */}
-                <tr>
-                  <td style={styles.td}>SL001</td>
-                  <td style={styles.td}>Gold Ring</td>
-                  <td style={styles.td}>5.000</td>
-                  <td style={styles.td}>4.500</td>
-                  <td style={styles.td}>4.140</td>
-                  <td style={styles.td}>5500/-</td>
-                  <td style={styles.td}>22,770.00</td>
-                  
-                  {/* Right side - Cash payment */}
-                  <td style={styles.td}></td>
-                  <td style={styles.td}>Cash</td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}>22,770.00</td>
-                </tr>
+                  {/* Total Row */}
+                  <tr style={styles.totalRow}>
+                    <td style={styles.td}><strong>Total</strong></td>
+                    <td style={styles.td}></td>
+                    <td style={styles.td}><strong>{totals.grossWt}</strong></td>
+                    <td style={styles.td}><strong>{totals.netWt}</strong></td>
+                    <td style={styles.td}><strong>{totals.pure}</strong></td>
+                    <td style={styles.td}></td>
+                    <td style={styles.td}><strong>{totals.amount}</strong></td>
+                    
+                    <td style={styles.td}></td>
+                    <td style={styles.td}></td>
+                    <td style={styles.td}></td>
+                    <td style={styles.td}></td>
+                    <td style={styles.td}></td>
+                    <td style={styles.td}></td>
+                  </tr>
 
-                {/* Balance in Purchase Row */}
-                <tr>
-                  <td style={styles.sectionTd} colSpan="7">Balance in Purchase</td>
-                  <td style={styles.sectionTd} colSpan="6">Purchase</td>
-                </tr>
-                
-                {/* Sample Purchase Data Row */}
-                <tr>
-                  <td style={styles.td}>DC001</td>
-                  <td style={styles.td}>Gold Bar</td>
-                  <td style={styles.td}>20.000</td>
-                  <td style={styles.td}>19.000</td>
-                  <td style={styles.td}>17.480</td>
-                  <td style={styles.td}>5800/-</td>
-                  <td style={styles.td}>110,240.00</td>
-                  
-                  {/* Right side - Purchase data */}
-                  <td style={styles.td}>DC001</td>
-                  <td style={styles.td}>Gold Bar</td>
-                  <td style={styles.td}>20.000</td>
-                  <td style={styles.td}>19.000</td>
-                  <td style={styles.td}>17.480</td>
-                  <td style={styles.td}>110,240.00</td>
-                </tr>
+                  {/* Balance in Purchase Row */}
+                  <tr style={styles.totalRow}>
+                    <td style={{...styles.td, textAlign: 'left'}} colSpan="7">
+                      Balance in Purchase
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      P00014AA
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      BANK(OCCC)
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      8.920
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      16825.00
+                    </td>
+                    <td style={{...styles.td, textAlign: 'left'}} colSpan="6">
+                      P00014AA
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      BANK(OCCC)
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      122.000
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      122.000
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      104.920
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      96.000
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      16825.00
+                    </td>
+                  </tr>
 
-                {/* Old Purchase Row */}
-                <tr>
-                  <td style={styles.td} colSpan="7"></td>
-                  <td style={styles.sectionTd} colSpan="6">Old Purchase</td>
-                </tr>
-                
-                {/* Sample Old Purchase Data Row */}
-                <tr>
-                  <td style={styles.td} colSpan="7"></td>
-                  <td style={styles.td}>OP001</td>
-                  <td style={styles.td}>Old Gold</td>
-                  <td style={styles.td}>15.000</td>
-                  <td style={styles.td}>14.000</td>
-                  <td style={styles.td}>12.880</td>
-                  <td style={styles.td}>85,680.00</td>
-                </tr>
-
-                {/* Voucher Receipts Row */}
-                <tr>
-                  <td style={styles.td} colSpan="7"></td>
-                  <td style={styles.sectionTd} colSpan="6">Voucher Receipts</td>
-                </tr>
-                
-                {/* Sample Voucher Receipts Data Row */}
-                <tr>
-                  <td style={styles.td} colSpan="7"></td>
-                  <td style={styles.td}>VR001</td>
-                  <td style={styles.td}>Advance</td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}>50,000.00</td>
-                </tr>
-
-                {/* Voucher Payments Row */}
-                <tr>
-                  <td style={styles.td} colSpan="7"></td>
-                  <td style={styles.sectionTd} colSpan="6">Voucher Payments</td>
-                </tr>
-                
-                {/* Sample Voucher Payments Data Row */}
-                <tr>
-                  <td style={styles.td} colSpan="7"></td>
-                  <td style={styles.td}>VP001</td>
-                  <td style={styles.td}>Rent</td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}></td>
-                  <td style={styles.td}>25,000.00</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
+                  {/* Purchase Row */}
+                  <tr style={styles.totalRow}>
+                    <td style={styles.td} colSpan="7"></td>
+                    <td style={{...styles.td, textAlign: 'left'}} colSpan="6">
+                      Purchase
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      P00014AA
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      BANK(OCCC)
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      122.000
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      122.000
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      104.920
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      96.000
+                      &nbsp;&nbsp;&nbsp;&nbsp;
+                      16825.00
+                    </td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

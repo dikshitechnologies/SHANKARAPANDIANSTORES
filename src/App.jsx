@@ -8,6 +8,7 @@ import Login from './pages/Login/Login'
 import { useAuth } from './context/AuthContext'
 import TestPage from './pages/TestPage/TestPage'
 import TestPage4 from './pages/TestPage/TestPage4'
+import TestPage3 from './pages/TestPage/TestPage3'
 import  Company  from './pages/company/Company'
 import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
 import LedgerGroupCreation from './pages/Ledgergroupcreation/Ledgergroupcreation'
@@ -16,6 +17,7 @@ import Administration from './pages/Administration/Admistration'
 import SalesReturn from './pages/SalesReturn/Salesreturn'
 import UserCreation from './pages/UserCreation/UserCreation'
 import ScrapRateFix from './pages/ScrapRateFix/scrapratefix'
+import TagPrint from './pages/TagPrint/TagPrint'
 // import Scrap from './pages/Scrap/scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
@@ -111,6 +113,7 @@ function App() {
       {/* Protected Routes with Navbar */}
       <Route path="/home" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
       <Route path="/test" element={<ProtectedRoute><LayoutWithNavbar><TestPage /></LayoutWithNavbar></ProtectedRoute>} />
+      <Route path="/test3" element={<ProtectedRoute><LayoutWithNavbar><TestPage3 /></LayoutWithNavbar></ProtectedRoute>} />
       <Route path="/test4" element={<ProtectedRoute><LayoutWithNavbar><TestPage4 /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/company-creation" element={<ProtectedRoute><LayoutWithNavbar><Company /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
@@ -143,6 +146,7 @@ function App() {
           <Route path="/transactions/amount-issue" element={<ProtectedRoute><LayoutWithNavbar><AmountIssue /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/payment-voucher" element={<ProtectedRoute><LayoutWithNavbar><PaymentVoucher /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/transactions/receipt-voucher" element={<ProtectedRoute><LayoutWithNavbar><Receiptvoucher /></LayoutWithNavbar></ProtectedRoute>} />
+            <Route path="/transactions/Tag-Print" element={<ProtectedRoute><LayoutWithNavbar><TagPrint /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/route-creation" element={<ProtectedRoute><LayoutWithNavbar><RouteCreationPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/sales-register" element={<ProtectedRoute><LayoutWithNavbar><SalesRegister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
