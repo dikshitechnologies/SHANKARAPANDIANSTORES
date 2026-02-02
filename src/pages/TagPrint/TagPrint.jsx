@@ -95,7 +95,7 @@ const TagPrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
-      height: '100vh',
+      height: '93vh',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -1071,7 +1071,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                             padding: '4px 2px',
                             fontSize: 'inherit',
                             fontFamily: 'inherit',
-                            textAlign: 'right',
+                            textAlign: 'center',
                             outline: 'none',
                             cursor: 'text'
                           }}
