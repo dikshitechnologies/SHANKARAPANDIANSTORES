@@ -1614,7 +1614,7 @@ const requestData = {
     salesMansCode: (billDetails.salesmanCode || "").toString(),
     compCode: (userData?.companyCode || "").toString(),
     userCode: (userData?.userCode || "001").toString(),
-    billAMT: totalAmount.toFixed(2).toString(),
+    billAMT: netAmount.toFixed(2).toString(),
     refNo: (billDetails.newBillNo || "").toString(),
     discount: discountPercent.toString(),
     discountAMT: parseFloat(discountAmount || 0).toFixed(2).toString(),
@@ -1734,7 +1734,7 @@ const requestData = {
     salesMansCode: (billDetails.salesmanCode || "002").toString(),
     compCode: (userData?.companyCode || "").toString(),
     userCode: (userData?.userCode || "").toString(),
-    billAMT: Number(totalAmount || 0).toFixed(2),          // string
+     billAMT: netAmount.toFixed(2).toString(),         // string
     refNo: (billDetails.newBillNo || "").toString(),
     discount: (discountPercent || 0).toString(),
     discountAMT: Number(discountAmount || 0).toFixed(2),  // string
@@ -1775,7 +1775,7 @@ const requestData = {
       // ✅ ONLY NUMBERS
       fSlNo: item.fserialno ? parseInt(item.fserialno, 10) : 0,
       taxamt: Number(taxAmt.toFixed(2)),
-
+       
       // ❗ MUST BE NUMBER (not string)
             desc: (item.fdesc || "").toString()
     };
@@ -1957,6 +1957,8 @@ const fetchSalesReturnDetails = async (voucherNo, companyCode) => {
   }
 };
 
+// ... (previous code remains the same until the loadVoucherForEditing function) ...
+
 // ==================== LOAD VOUCHER FOR EDITING ====================
 const loadVoucherForEditing = async (voucherNo) => {
   try {
@@ -1986,6 +1988,29 @@ const loadVoucherForEditing = async (voucherNo) => {
         formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
       }
     }
+    
+    // ==================== GST MODE HANDLING ====================
+    let fetchedGstMode = 'Exclusive'; // Default
+    
+    // Check for GST mode in header
+    if (header.gstRate !== undefined && header.gstRate !== null) {
+      // Direct gstRate field
+      fetchedGstMode = (header.gstRate.toString().trim().toUpperCase() === 'I') ? 'Inclusive' : 'Exclusive';
+    } else if (header.gstRrate !== undefined && header.gstRrate !== null) {
+      // Alternative field name
+      fetchedGstMode = (header.gstRrate.toString().trim().toUpperCase() === 'I') ? 'Inclusive' : 'Exclusive';
+    } else if (header.fmode !== undefined && header.fmode !== null) {
+      // fmode field
+      fetchedGstMode = (header.fmode.toString().trim().toUpperCase() === 'I') ? 'Inclusive' : 'Exclusive';
+    } else if (header.gstMode !== undefined && header.gstMode !== null) {
+      // gstMode field
+      fetchedGstMode = header.gstMode;
+    }
+    
+    console.log("🔍 DEBUG - Fetched GST Mode:", fetchedGstMode);
+    
+    // Set GST mode FIRST before calculating anything
+    setGstMode(fetchedGstMode);
     
     // ==================== IMPROVED DISCOUNT FETCHING ====================
     let discountPercentValue = 0;
@@ -2140,9 +2165,30 @@ const loadVoucherForEditing = async (voucherNo) => {
     
     if (itemsArray && itemsArray.length > 0) {
       const updatedItems = itemsArray.map((item, index) => {
-        // Calculate net amount per item for display
-        const itemAmount = parseFloat(item.amount || 0);
-        const itemNetAmount = parseFloat(item.netAmount || item.netamount || 0);
+        // Get item values
+        const qty = Math.abs(parseFloat(item.qty || 0));
+        const sRate = parseFloat(item.srate || item.sRate || item.rate || 0);
+        const tax = parseFloat(item.tax || 0);
+        
+        // Calculate amount based on fetched GST mode
+        const calculatedAmount = calculateAmount(qty, sRate, tax);
+        
+        // Use calculated amount (respecting GST mode)
+        const finalAmount = typeof calculatedAmount === 'string' 
+          ? calculatedAmount 
+          : (parseFloat(calculatedAmount.amount) || 0).toFixed(2);
+        
+        // Calculate tax amount based on GST mode
+        let taxAmount = 0;
+        if (fetchedGstMode === 'Inclusive') {
+          // Extract tax from inclusive price
+          const total = qty * sRate;
+          taxAmount = tax === 0 ? 0 : (total * tax) / (100 + tax);
+        } else {
+          // Exclusive: tax on top of rate
+          const base = qty * sRate;
+          taxAmount = (base * tax) / 100;
+        }
         
         return {
           id: index + 1,
@@ -2154,14 +2200,13 @@ const loadVoucherForEditing = async (voucherNo) => {
           uom: item.uom || "",
           hsn: item.hsn || "",
           tax: item.tax || "0",
-          sRate: item.srate || item.sRate || "0",
-          qty: Math.abs(parseFloat(item.qty || 0)).toString(),
-          amount: itemAmount.toFixed(2),
+          sRate: sRate.toString(),
+          qty: qty.toString(),
+          amount: finalAmount,
           itemCode: item.itemCode || `0000${index + 1}`,
-          taxAmount: item.taxamt !== null && item.taxamt !== undefined ? item.taxamt.toString() : "0.00",
+          taxAmount: taxAmount.toFixed(2),
           fserialno: item.fSlNo || item.fslno || item.serialNo || "",
           fdesc: item.desc !== null && item.desc !== undefined ? item.desc.toString() : "",
-          netAmount: itemNetAmount.toFixed(2) // Store net amount per item
         };
       });
       
@@ -2186,10 +2231,14 @@ const loadVoucherForEditing = async (voucherNo) => {
     
     setShouldFocusBillDate(true);
     
-    // Show discount info
+    // Show GST mode info
+    // toast.success(`Voucher loaded with ${fetchedGstMode} GST mode`, {
+    //   autoClose: 2000,
+    // });
+    
+    // Show discount info if any
     if (discountPercentValue > 0 || discountAmountValue > 0) {
-      // toast.success(`Voucher loaded with ${discountPercentValue}% discount (₹${discountAmountValue.toFixed(2)}) - 
-      // : ₹${netAmountValue.toFixed(2)}`, {
+      // toast.success(`Discount: ${discountPercentValue}% (₹${discountAmountValue.toFixed(2)})`, {
       //   autoClose: 3000,
       // });
     } else {
@@ -2203,6 +2252,8 @@ const loadVoucherForEditing = async (voucherNo) => {
     setLoading(false);
   }
 };
+
+// ... (rest of the code remains the same) ...
 
 useEffect(() => {
   const total = parseFloat(totalAmount || 0);
