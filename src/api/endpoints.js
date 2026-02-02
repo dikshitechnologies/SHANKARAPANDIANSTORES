@@ -429,4 +429,15 @@ PAYMENTVOUCHER: {
       `TenderRecord/GetTenderRecords?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&fCompCode=${encodeURIComponent(compCode)}&searchInvoiceNo=${searchInvoiceNo}&pageNo=${pageNumber}&pageSize=${pageSize}`,
   },
 
+  TAG_PRINT: {
+  GET_TAG_PRINT_LIST: (params) =>
+    `tagprint/TagPrintList?fromDate=${params.fromDate}
+    &toDate=${params.toDate}
+    &search=${params.search}
+    &fcompcode=${params.fcompcode}
+    &page=${params.page}
+    &pageSize=${params.pageSize}`,
+},
+
+
 };

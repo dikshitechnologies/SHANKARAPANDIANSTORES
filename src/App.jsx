@@ -16,6 +16,7 @@ import Administration from './pages/Administration/Admistration'
 import SalesReturn from './pages/SalesReturn/Salesreturn'
 import UserCreation from './pages/UserCreation/UserCreation'
 import ScrapRateFix from './pages/ScrapRateFix/scrapratefix'
+import TagPrint from './pages/TagPrint/TagPrint'
 // import Scrap from './pages/Scrap/scrap'
 import ExampleUsage from './pages/test'
 import SalesInvoice from './pages/SalesInvoice/SaleInvoice'
@@ -143,6 +144,7 @@ function App() {
           <Route path="/transactions/amount-issue" element={<ProtectedRoute><LayoutWithNavbar><AmountIssue /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/payment-voucher" element={<ProtectedRoute><LayoutWithNavbar><PaymentVoucher /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/transactions/receipt-voucher" element={<ProtectedRoute><LayoutWithNavbar><Receiptvoucher /></LayoutWithNavbar></ProtectedRoute>} />
+            <Route path="/transactions/Tag-Print" element={<ProtectedRoute><LayoutWithNavbar><TagPrint /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/route-creation" element={<ProtectedRoute><LayoutWithNavbar><RouteCreationPage /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/sales-register" element={<ProtectedRoute><LayoutWithNavbar><SalesRegister /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/Tax-Creation" element={<ProtectedRoute><LayoutWithNavbar><TaxCreation /></LayoutWithNavbar></ProtectedRoute>} />
