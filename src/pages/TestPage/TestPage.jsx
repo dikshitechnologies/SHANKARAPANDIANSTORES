@@ -33,62 +33,7 @@ if (item.name === "table") {
   };
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th style={{ ...th, textAlign: "left", width: "42%" }}>Particulars</th>
-          <th style={{ ...th, textAlign: "center", width: "10%" }}>HSN</th>
-          <th style={{ ...th, textAlign: "center", width: "8%" }}>Tax</th>
-          <th style={{ ...th, textAlign: "center", width: "8%" }}>Qty</th>
-          <th style={{ ...th, textAlign: "right", width: "16%" }}>Rate</th>
-          <th style={{ ...th, textAlign: "right", width: "16%" }}>Amount</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {/* ITEM 1 */}
-        <tr>
-          <td colSpan={6} style={{ ...td, fontWeight: "bold", paddingTop: 2 }}>
-            ROYAL BERO STAND
-          </td>
-        </tr>
-        <tr>
-          <td style={{ ...td, paddingLeft: 6 }}>PLASTIC</td>
-          <td style={{ ...td, textAlign: "center" }}>9403</td>
-          <td style={{ ...td, textAlign: "center" }}>18</td>
-          <td style={{ ...td, textAlign: "center" }}>1</td>
-          <td style={{ ...td, textAlign: "right" }}>160.00</td>
-          <td style={{ ...td, textAlign: "right" }}>160.00</td>
-        </tr>
-
-        {/* ITEM 2 */}
-        <tr>
-          <td colSpan={6} style={{ ...td, fontWeight: "bold", paddingTop: 2 }}>
-            LOCAL UMBRELLA
-          </td>
-        </tr>
-        <tr>
-          <td style={{ ...td, paddingLeft: 6 }}>PLASTIC RAINBOW</td>
-          <td style={{ ...td, textAlign: "center" }}>6601</td>
-          <td style={{ ...td, textAlign: "center" }}>5</td>
-          <td style={{ ...td, textAlign: "center" }}>1</td>
-          <td style={{ ...td, textAlign: "right" }}>190.00</td>
-          <td style={{ ...td, textAlign: "right" }}>190.00</td>
-        </tr>
-
-        {/* TOTAL */}
-        
-<tr>
-  <td colSpan={6} style={{ ...td, fontWeight: "bold", paddingTop: 4, padding: 0 }}>
-    <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-      <span>Grand Total</span>
-      <span>350.00</span>
-    </div>
-  </td>
-</tr>
-
-      </tbody>
-    </table>
+    <div></div>
   );
 }
 

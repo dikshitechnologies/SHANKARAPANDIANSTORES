@@ -165,6 +165,17 @@ export const API_ENDPOINTS = {
 
   getCustomer: (pageNumber = 1, pageSize = 10) =>
     `Salesinvoices/GetPartyByParent?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+
+
+
+  getLedger: (accountCode, compCode, fromDate, toDate) =>
+    `ledger/GetLedger?accountCode=${accountCode}&compCode=${compCode}&fromDate=${encodeURIComponent(
+      fromDate
+    )}&toDate=${encodeURIComponent(toDate)}`,
+
+
+
+
   },
   //ScrapRateFixing/getFullScrapRateFixing
   SCRAP_RATE_FIXING: {
