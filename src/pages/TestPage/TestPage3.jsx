@@ -14,13 +14,13 @@ const scrapBillData = {
   billNo: "RS/SCR/25-26/0129/003",
   date: "29-Jan-2026",
   time: "12:59 PM",
-  customerId: "RS6385666140",
+  customerNo: "9876543210",
   customerName: "David",
   items: [
-    { name: "STEEL", hsn: "7208", tax: "18%", rate: 45000, qty: 1, amount: 45000.00 },
-    { name: "ALUMINIUM", hsn: "7601", tax: "18%", rate: 17500, qty: 0.78, amount: 13650.00 },
-    { name: "THARA O.T", hsn: "7602", tax: "18%", rate: 4900, qty: 0.235, amount: 1151.50 },
-    { name: "THARA O.T", hsn: "7602", tax: "18%", rate: 1000, qty: 0.235, amount: 235.00 },
+    { name: "STEEL", hsn: "7208", tax: "18", rate: 45000, qty: 1, amount: 45000.00 },
+    { name: "ALUMINIUM", hsn: "7601", tax: "18", rate: 17500, qty: 0.78, amount: 13650.00 },
+    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 4900, qty: 0.235, amount: 1151.50 },
+    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 1000, qty: 0.235, amount: 235.00 },
   ],
   modeofPayment: [
     {method : "CARD", amount: 0.00},
@@ -81,7 +81,7 @@ function renderDynamicContent(selectedName, qrcodeRef) {
         {/* Customer Info */}
         <div className="customer-info">
           <p>Customer: {scrapBillData.customerName}</p>
-            <p style={{marginLeft: "50pt"}}>{scrapBillData.customerId}</p>
+            <p style={{marginLeft: "50pt"}}>{scrapBillData.customerNo}</p>
         </div>
         <hr className="dashed" />
         

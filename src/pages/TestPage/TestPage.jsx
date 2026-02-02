@@ -17,7 +17,7 @@ const scrapBillData = {
   customerName: "John Doe",
   items: [
     { name: "STEEL", rate: 45, qty: 1.845, amount: 10000.00 },
-    { name: "ALUMINIUM", rate: 175, qty: 0.78, amount: 1500.00 },
+    { name: "ALUMINIUM PLATE BRAND ALUMINIUM TEST1 MODEL36 11", rate: 175, qty: 0.78, amount: 1500.00 },
     { name: "THARA O.T", rate: 490, qty: 0.235, amount: 1000.00 },
     { name: "THARA O.T", rate: 10, qty: 0.235, amount: 1200.00 },
   ],
@@ -42,17 +42,19 @@ function renderDynamicContent(selectedName, qrcodeRef) {
   }
 
   if (item.name === "scrap_bill") {
-    // Calculate total dynamically
     const totalAmount = scrapBillData.items.reduce(
       (sum, item) => sum + item.amount, 
       0
     );
+    
     return (
       <div>
         <div className="scrap-title">
-            <h3>SCRAP BILL</h3>
+          <h3>SCRAP BILL</h3>
         </div>
-        <div className="cust-name"><h6>Salesman: {scrapBillData.customername}</h6></div>
+        <div className="cust-name">
+          <h6>Salesman: {scrapBillData.customername}</h6>
+        </div>
         
         {/* Bill number and date */}
         <div className="bill">
@@ -73,54 +75,62 @@ function renderDynamicContent(selectedName, qrcodeRef) {
           Customer: {scrapBillData.customerId}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
+        
         {/* Main Table */}
-        <table className="items">
+        <table className="items" style={{ width: "100%" }}>
           <thead>
             <tr>
-             <th style={{ width: "30mm", textAlign: "left",fontWeight: "bold",fontSize: "11pt" }}>Particulars</th>
-            <th style={{ width: "13mm", textAlign: "right",fontWeight: "bold",fontSize:"11pt" }}>Rate</th>
-            <th style={{ width: "13mm", textAlign: "right",fontWeight: "bold",fontSize:"11pt" }}>Qty</th>
-            <th style={{ width: "18mm", textAlign: "right",fontWeight: "bold",fontSize:"11pt" }}>Amount</th>
-
-          </tr>
+              <th style={{ width: "60mm", textAlign: "left", fontWeight: "bold", fontSize: "11pt" }}>Particulars</th>
+              <th style={{ width: "13mm", textAlign: "right", fontWeight: "bold", fontSize: "11pt" }}>Rate</th>
+              <th style={{ width: "13mm", textAlign: "right", fontWeight: "bold", fontSize: "11pt" }}>Qty</th>
+              <th style={{ width: "68mm", textAlign: "right", fontWeight: "bold", fontSize: "11pt" }}>Amount</th>
+            </tr>
           </thead>
           
           <tbody>
-            <tr>
-                <td colSpan="4" style={{ padding: 0, margin: 0 }}>
-                    <hr className="dashed" style={{ margin: 0, width: "100%" }} />
-                </td>
-            </tr>
-            {scrapBillData.items.map((item, index) => (
-              <tr key={index}>
-                <td style={{ textAlign: "left" }}>{item.name}</td>
-                <td style={{ textAlign: "right" }}>{item.rate.toFixed(2)}</td>
-                <td style={{ textAlign: "right" }}>{item.qty.toFixed(3)}</td>
-                <td style={{ textAlign: "right" }}>{item.amount.toFixed(2)}</td>
-              </tr>
-            ))}
-            
             <tr>
               <td colSpan="4" style={{ padding: 0, margin: 0 }}>
                 <hr className="dashed" style={{ margin: 0, width: "100%" }} />
               </td>
             </tr>
             
-            
-            
-
+            {scrapBillData.items.map((item, index) => (
+              <React.Fragment key={index}>
+                {/* First row: Particular name only */}
+                <tr>
+                  <td style={{ textAlign: "left", paddingBottom: "0" }} colSpan="4">
+                    {item.name}
+                  </td>
+                </tr>
+                
+                {/* Second row: Rate, Qty, Amount */}
+                <tr>
+                  <td style={{ textAlign: "right", paddingTop: "0" }}>
+                    {/* Empty cell for alignment */}
+                  </td>
+                  <td style={{ textAlign: "right", paddingTop: "0" }}>{item.rate.toFixed(2)}</td>
+                  <td style={{ textAlign: "right", paddingTop: "0" }}>{item.qty.toFixed(3)}</td>
+                  <td style={{ textAlign: "right", paddingTop: "0" }}>{item.amount.toFixed(2)}</td>
+                </tr>
+                
+                {/* Separator line */}
+                <tr>
+                  <td colSpan="4" style={{ padding: "2px 0", margin: 0 }}>
+                    <hr className="dashed" style={{ margin: 0, width: "100%" }} />
+                  </td>
+                </tr>
+              </React.Fragment>
+            ))}
           </tbody>
         </table>
-        <div style={{display:"flex",flexDirection:"row",justifyContent:"space-between",marginTop:"5px",}}>
-
-      <div style={{ textAlign: "left",marginLeft:"50px" }}>
-        Amount
-      </div>
-
-      {/* RIGHT */}
-      <div style={{ textAlign: "right",fontWeight:"bold",fontSize:"14pt" }}>
-        {totalAmount.toFixed(2)}
-      </div>
+        
+        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginTop: "5px" }}>
+          <div style={{ textAlign: "left", marginLeft: "50px" }}>
+            Amount
+          </div>
+          <div style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>
+            {totalAmount.toFixed(2)}
+          </div>
         </div>
       </div>
     );
@@ -179,7 +189,7 @@ export default function TestPage() {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace;
+            font-family: Arial, sans-serif;
           }
 
           body {
@@ -187,7 +197,7 @@ export default function TestPage() {
             padding: 0;
             font-size: 10pt;
             width: 80mm;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 13px;
             font-weight: 500;
             letter-spacing: 0.3px;
