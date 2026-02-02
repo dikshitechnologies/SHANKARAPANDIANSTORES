@@ -572,8 +572,10 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
 
     const response = await apiService.get(endpoint);
 
-    // API returns array directly
-    const list = Array.isArray(response.data) ? response.data : [];
+    // API may return array directly OR { data, totalCount, page, pageSize }
+    const list = Array.isArray(response.data)
+      ? response.data
+      : (Array.isArray(response.data?.data) ? response.data.data : []);
 
     return list;
   } catch (error) {
@@ -608,11 +610,18 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
       setIsLoading(true);
       
       // Call API to get items
-      const endpoint = API_ENDPOINTS.TAG_PRINT.GET_TAG_PRINT_ITEMS(tagNo);
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      const compCode = userInfo.fcompcode || '001';
+      const endpoint = API_ENDPOINTS.TAG_PRINT.GET_TAG_PRINT_ITEMS({
+        voucher: tagNo,
+        compCode,
+        page: 1,
+        pageSize: 10,
+      });
       const response = await apiService.get(endpoint);
       
       // Transform API response to match table format
-      const apiData = response.data || [];
+      const apiData = Array.isArray(response.data?.data) ? response.data.data : (response.data || []);
       const transformedItems = apiData.map((item, index) => ({
         sNo: index + 1,
         barcode: item.barcode || '',
@@ -620,8 +629,8 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
         qty: item.qty || 1,
         print: 'N',
         selected: false,
-        unit: item.unit || '',
-        hsn: item.hsn || '',
+        unit: item.fUnit || item.unit || '',
+        hsn: item.fhsn || item.hsn || '',
         mrp: item.mrp || 0,
         inTax: item.inTax || 0,
         sRate: item.sRate || 0,
