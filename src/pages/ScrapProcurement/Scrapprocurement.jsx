@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import PopupListSelector from '../../components/Listpopup/PopupListSelector.jsx';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import PrintReceipt from '../../pages/PrintReceipt/PrintReceipt';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import axiosInstance from '../../api/axiosInstance';
@@ -88,6 +89,7 @@ const Scrapprocurement = () => {
   const custNameRef = useRef(null);
   const scrapProductRef = useRef(null);
   const ignoreNextEnterRef = useRef(false);
+  const printReceiptRef = useRef(null);
   const [focusedUomField, setFocusedUomField] = useState(null); 
 
   // Track which top-section field is focused to style active input
@@ -156,6 +158,9 @@ const Scrapprocurement = () => {
   // States to track original data for cancellation
   const [originalBillDetails, setOriginalBillDetails] = useState(null);
   const [originalItems, setOriginalItems] = useState(null);
+
+  // State to hold bill data for printing
+  const [printBillData, setPrintBillData] = useState(null);
 
   // Track current focus for arrow navigation
   const [currentFocus, setCurrentFocus] = useState({
@@ -1414,6 +1419,29 @@ const clearFormData = async () => {
   }
 };
 
+  // Build billData object for printing
+  const buildBillData = () => {
+    const validItems = items.filter(item => 
+      item.itemName && item.itemName.trim() !== '' && 
+      item.itemCode && item.itemCode.trim() !== ''
+    );
+    
+    return {
+      voucherNo: billDetails.billNo,
+      voucherDate: billDetails.billDate,
+      salesmanName: billDetails.salesman,
+      customercode: billDetails.custCode || '',
+      customerName: billDetails.custName,
+      netAmount: totalAmount,
+      items: validItems.map(item => ({
+        itemName: item.itemName || 'N/A',
+        rate: parseFloat(item.sRate) || 0,
+        qty: parseFloat(item.qty) || 0,
+        amount: parseFloat(item.amount) || 0
+      }))
+    };
+  };
+
   // Separate save function for actual API call
   const performSave = async () => {
     try {
@@ -1460,26 +1488,56 @@ const clearFormData = async () => {
         API_ENDPOINTS.Scrap_Procurement.SAVE_SCRAP_PROCUREMENT(isCreate),
         payload
       );
-      clearFormData(); // Clear form data only after successful save
+      
       if (response.status === 200 || response.status === 201) {
         const mode = isCreate ? 'created' : 'updated';
         
         ignoreNextEnterRef.current = false;
         
-        showConfirmation({
-          title: 'Success',
-          message: `Scrap Procurement data ${mode} successfully!`,
-          type: 'success',
-          confirmText: 'OK',
-          showIcon: true,
-          onConfirm: () => {
-            setShowConfirmPopup(false);
-            setOriginalBillDetails(null);
-            setOriginalItems(null);
-            clearFormData(); // Clear ONLY on successful save
-            setIsEditMode(false);
-          }
-        });
+        // Build bill data for printing BEFORE clearing form
+        const billDataForPrint = buildBillData();
+        console.log('billDataForPrint:', billDataForPrint);
+        
+        // Store the bill data in state for PrintReceipt component
+        setPrintBillData(billDataForPrint);
+        
+        // Show print confirmation after successful save
+        // Use setTimeout to ensure state updates have been processed
+        setTimeout(() => {
+          console.log('Showing print confirmation popup');
+          showConfirmation({
+            title: 'Print Confirmation',
+            message: 'Would you like to print the receipt?',
+            type: 'success',
+            confirmText: 'Yes',
+            cancelText: 'No',
+            showIcon: true,
+            onConfirm: () => {
+              console.log('Print confirmation - Yes clicked');
+              setShowConfirmPopup(false);
+              // Trigger print with the saved data
+              if (printReceiptRef.current && printReceiptRef.current.print) {
+                setTimeout(() => {
+                  printReceiptRef.current.print();
+                }, 100);
+              }
+              // Clear form AFTER user confirms print or no
+              setOriginalBillDetails(null);
+              setOriginalItems(null);
+              clearFormData();
+              setIsEditMode(false);
+            },
+            onCancel: () => {
+              console.log('Print confirmation - No clicked');
+              setShowConfirmPopup(false);
+              // Clear form when user says no
+              setOriginalBillDetails(null);
+              setOriginalItems(null);
+              clearFormData();
+              setIsEditMode(false);
+            }
+          });
+        }, 100);
       } else {
         showConfirmation({
           title: 'Error',
@@ -1611,15 +1669,14 @@ const clearFormData = async () => {
   };
 
   const handlePrint = () => {
-    showConfirmation({
-      title: 'Print Confirmation',
-      message: 'Print functionality is not yet implemented. Would you like to continue?',
-      type: 'info',
-      confirmText: 'Continue',
-      onConfirm: () => {
-        setShowConfirmPopup(false);
-      }
-    });
+    if (printReceiptRef.current && printReceiptRef.current.print) {
+      printReceiptRef.current.print();
+    } else {
+      toast.error('No data to print', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
   };
 
   // --- RESPONSIVE STYLES ---
@@ -2850,6 +2907,9 @@ const clearFormData = async () => {
           setPopupMode('');
         }}
       />
+
+      {/* PrintReceipt Component - Hidden, used for printing */}
+      <PrintReceipt ref={printReceiptRef} billData={printBillData} mode="scrap_bill" />
 
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
