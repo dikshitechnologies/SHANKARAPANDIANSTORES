@@ -58,7 +58,7 @@ function renderDynamicContent(selectedName, qrcodeRef) {
         <div className="bill">
           <div className="bill-info">
             <div>
-              <div>No. {scrapBillData.billNo}</div>
+              <div>Bill No. {scrapBillData.billNo}</div>
               <div>Date {scrapBillData.date}</div>
               <div>Time: {scrapBillData.time}</div>
             </div>
@@ -77,10 +77,10 @@ function renderDynamicContent(selectedName, qrcodeRef) {
         <table className="items">
           <thead>
             <tr>
-             <th style={{ width: "30mm", textAlign: "left" }}>Particulars</th>
-            <th style={{ width: "13mm", textAlign: "right" }}>Rate</th>
-            <th style={{ width: "13mm", textAlign: "right" }}>Qty</th>
-            <th style={{ width: "18mm", textAlign: "right" }}>Amount</th>
+             <th style={{ width: "30mm", textAlign: "left",fontWeight: "bold",fontSize: "11pt" }}>Particulars</th>
+            <th style={{ width: "13mm", textAlign: "right",fontWeight: "bold",fontSize:"11pt" }}>Rate</th>
+            <th style={{ width: "13mm", textAlign: "right",fontWeight: "bold",fontSize:"11pt" }}>Qty</th>
+            <th style={{ width: "18mm", textAlign: "right",fontWeight: "bold",fontSize:"11pt" }}>Amount</th>
 
           </tr>
           </thead>
@@ -106,18 +106,22 @@ function renderDynamicContent(selectedName, qrcodeRef) {
               </td>
             </tr>
             
-            {/* Total Amount */}
-             <tr className="total-row">
-              <td colSpan="3" style={{ textAlign: "left" }}>
-                Amount
-              </td>
-   <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "16pt" }}>
-      {totalAmount.toFixed(2)}
-   </td>
-            </tr>
+            
+            
 
           </tbody>
         </table>
+        <div style={{display:"flex",flexDirection:"row",justifyContent:"space-between",marginTop:"5px",}}>
+
+      <div style={{ textAlign: "left",marginLeft:"50px" }}>
+        Amount
+      </div>
+
+      {/* RIGHT */}
+      <div style={{ textAlign: "right",fontWeight:"bold",fontSize:"14pt" }}>
+        {totalAmount.toFixed(2)}
+      </div>
+        </div>
       </div>
     );
   }
@@ -175,7 +179,7 @@ export default function TestPage() {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace;
+            font-family: Arial, sans-serif;
           }
 
           body {
@@ -183,7 +187,7 @@ export default function TestPage() {
             padding: 0;
             font-size: 10pt;
             width: 80mm;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 13px;
             font-weight: 900;
             letter-spacing: 0.3px;
@@ -326,7 +330,7 @@ export default function TestPage() {
           table.items td:last-child {
             padding-right: 0;
             text-align: right;
-            font-family: "Courier New", monospace;
+            font-family: Arial, sans-serif;
             font-variant-numeric: tabular-nums;
           }
 
