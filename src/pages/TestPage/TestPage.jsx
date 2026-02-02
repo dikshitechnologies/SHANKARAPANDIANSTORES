@@ -1,5 +1,6 @@
-import React, { useRef, useState } from "react";
-
+import React, { useRef, useState, useEffect } from "react";
+import logo from "../../assets/logo1.jpeg";
+import QRCode from "qrcode";
 // Dynamic content data
 const contentList = [
   { name: "message", value: "Hello user" },
@@ -15,10 +16,10 @@ const scrapBillData = {
   customerId: "RS6385666140",
   customerName: "John Doe",
   items: [
-    { name: "STEEL", rate: 45, qty: 1.845, amount: 100.00 },
-    { name: "ALUMINIUM", rate: 175, qty: 0.78, amount: 150.00 },
-    { name: "THARA O.T", rate: 490, qty: 0.235, amount: 100.00 },
-    { name: "THARA O.T", rate: 10, qty: 0.235, amount: 120.00 },
+    { name: "STEEL", rate: 45, qty: 1.845, amount: 10000.00 },
+    { name: "ALUMINIUM", rate: 175, qty: 0.78, amount: 1500.00 },
+    { name: "THARA O.T", rate: 490, qty: 0.235, amount: 1000.00 },
+    { name: "THARA O.T", rate: 10, qty: 0.235, amount: 1200.00 },
   ],
 //   totalAmount: 334.00,
   gstNumber: "33ECCPR7067N1ZL",
@@ -32,7 +33,7 @@ const scrapBillData = {
   ]
 };
 
-function renderDynamicContent(selectedName) {
+function renderDynamicContent(selectedName, qrcodeRef) {
   const item = contentList.find((c) => c.name === selectedName);
   if (!item) return null;
   
@@ -62,33 +63,32 @@ function renderDynamicContent(selectedName) {
               <div>Time: {scrapBillData.time}</div>
             </div>
           </div>
-          <div>
-            <div>QR</div>
-          </div>
+          <div ref={qrcodeRef} style={{ display: "flex", justifyContent: "center", width: "50px", height: "50px" }}></div>
         </div>
 
-        <hr className="dashed" />
+        <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
         {/* Customer Info */}
         <div className="customer-info">
           Customer: {scrapBillData.customerId}
         </div>
-        <hr className="dashed" />
+        <hr className="dashed" style={{ margin: 0, width: "100%" }} />
         {/* Main Table */}
         <table className="items">
           <thead>
             <tr>
-              <th style={{ textAlign: "left", width: "38%", fontWeight: "bold" }}>Particulars</th>
-              <th style={{ textAlign: "center", width: "15%", fontWeight: "bold" }}>Rate</th>
-              <th style={{ textAlign: "center", width: "15%", fontWeight: "bold" }}>Qty</th>
-              <th style={{ textAlign: "right", width: "32%", fontWeight: "bold" }}>Amount</th>
-            </tr>
+             <th style={{ width: "30mm", textAlign: "left" }}>Particulars</th>
+            <th style={{ width: "13mm", textAlign: "right" }}>Rate</th>
+            <th style={{ width: "13mm", textAlign: "right" }}>Qty</th>
+            <th style={{ width: "18mm", textAlign: "right" }}>Amount</th>
+
+          </tr>
           </thead>
           
           <tbody>
             <tr>
-                <td colSpan="4">
-                    <hr className="dashed" />
+                <td colSpan="4" style={{ padding: 0, margin: 0 }}>
+                    <hr className="dashed" style={{ margin: 0, width: "100%" }} />
                 </td>
             </tr>
             {scrapBillData.items.map((item, index) => (
@@ -101,20 +101,21 @@ function renderDynamicContent(selectedName) {
             ))}
             
             <tr>
-              <td colSpan="4">
-                <hr className="dashed" />
+              <td colSpan="4" style={{ padding: 0, margin: 0 }}>
+                <hr className="dashed" style={{ margin: 0, width: "100%" }} />
               </td>
             </tr>
             
             {/* Total Amount */}
-            <tr className="total-row">
-              <td colSpan="3" style={{ textAlign: "right" }}>
+             <tr className="total-row">
+              <td colSpan="3" style={{ textAlign: "left" }}>
                 Amount
               </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
-                {totalAmount.toFixed(2)}
-              </td>
+   <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "16pt" }}>
+      {totalAmount.toFixed(2)}
+   </td>
             </tr>
+
           </tbody>
         </table>
       </div>
@@ -126,12 +127,35 @@ function renderDynamicContent(selectedName) {
 
 export default function TestPage() {
   const printRef = useRef(null);
+  const qrcodeRef = useRef(null);
   const [selectedContent, setSelectedContent] = useState(contentList[0].name);
+
+  // Initialize QR code when content changes
+  useEffect(() => {
+  if (selectedContent === "scrap_bill" && qrcodeRef.current) {
+    qrcodeRef.current.innerHTML = "";
+
+    QRCode.toString(
+      scrapBillData.billNo,
+      {
+        type: "svg",
+        width: 50,        // 👈 slightly bigger = better scan
+        margin: 0,
+        errorCorrectionLevel: "H"
+      },
+      (err, svg) => {
+        if (!err) {
+          qrcodeRef.current.innerHTML = svg;
+        }
+      }
+    );
+  }
+}, [selectedContent]);
 
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
 
-    const win = window.open("", "", "width=300,height=500");
+    const win = window.open("", "", "width=800,height=500");
 
     win.document.open();
     win.document.write(`
@@ -160,14 +184,14 @@ export default function TestPage() {
             font-size: 10pt;
             width: 80mm;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 900;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
           }
 
           .receipt {
-            padding: 2mm 3mm;
+            padding: 2mm 1mm;
             width: 100%;
             max-width: 80mm;
           }
@@ -185,26 +209,26 @@ export default function TestPage() {
           }
 
           .company-name {
-            font-size: 12pt;
+            font-size: 13pt;
             font-weight: bold;
             letter-spacing: 0.5pt;
             margin: 1mm 0;
           }
 
           .company-address {
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.2;
             margin-bottom: 1mm;
           }
 
           .gst-number {
-            font-size: 8pt;
+            font-size: 9pt;
             font-weight: bold;
             margin-bottom: 1mm;
           }
 
           .contact {
-            font-size: 7pt;
+            font-size: 8pt;
             margin-bottom: 1mm;
           }
 
@@ -217,16 +241,17 @@ export default function TestPage() {
           .scrap-title {
             text-align: center;
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 11pt;
             margin: 2mm 0;
+            padding: 1mm 0;
             background-color: #0a0a0a;
             color: #ffffff;
           }
           .cust-name {
             text-align: right;
-            font-size: 10pt;
-            font-weight: bold;
             margin-bottom: 1mm;
+            font-size: 11pt;
+            font-weight: 600;
           }
           .bill {
             display: flex;
@@ -236,26 +261,34 @@ export default function TestPage() {
           .bill-info {
             display: flex;
             justify-content: space-between;
-            font-size: 8pt;
+            font-size: 9pt;
             font-weight: bold;
             margin-bottom: 1mm;
           }
 
           .customer-info {
-            font-size: 8pt;
+            font-size: 9pt;
             margin-bottom: 2mm;
           }
 
           table.items {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8pt;
+            table-layout: fixed;
+            font-size: 9pt;
           }
+            table.items th,
+            table.items td {
+              padding: 0.8mm 1mm;
+              overflow: hidden;
+              white-space: nowrap;
+            }
 
           table.items th {
             font-weight: normal;
             text-align: left;
             padding-bottom: 1mm;
+           
           }
 
           table.items th.center {
@@ -266,19 +299,18 @@ export default function TestPage() {
             text-align: right;
           }
 
-          table.items td {
-            padding: 1mm 0;
-          }
+         
 
           .total-row {
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 10pt;
             padding-top: 2mm;
           }
+            
 
           .terms {
             text-align: center;
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.3;
             margin-top: 2mm;
           }
@@ -286,9 +318,18 @@ export default function TestPage() {
           .thank-you {
             text-align: center;
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 10pt;
             margin-top: 3mm;
           }
+
+          table.items th:last-child,
+          table.items td:last-child {
+            padding-right: 0;
+            text-align: right;
+            font-family: "Courier New", monospace;
+            font-variant-numeric: tabular-nums;
+          }
+
         </style>
       </head>
 
@@ -330,6 +371,18 @@ export default function TestPage() {
         <div className="receipt">
           {/* Header with Logo */}
           <div className="header">
+            <div style={{ textAlign: "center" }}>
+            <img
+              src={logo}
+              alt="Logo"
+              style={{
+                width: 100,
+                height: 100,
+                objectFit: "contain",
+                display: "inline-block",
+              }}
+            />
+          </div>
             <div className="company-name">R.SANKARAPANDIAN STORE</div>
             <div className="company-address">
               51/179, HARIHARAN BAZAAR STREET<br />
@@ -339,10 +392,10 @@ export default function TestPage() {
             <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
           </div>
 
-          <hr className="dashed" />
+          
 
           {/* Dynamic Content (Scrap Bill) */}
-          {renderDynamicContent(selectedContent)}
+          {renderDynamicContent(selectedContent, qrcodeRef)}
 
           <hr className="dashed" />
 
