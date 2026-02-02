@@ -235,6 +235,12 @@ const [taxList, setTaxList] = useState([]);
   const [deleteInvoicePopupOpen, setDeleteInvoicePopupOpen] = useState(false);
   const [currentItemRowIndex, setCurrentItemRowIndex] = useState(0);
   
+  // 🔄 Customer History Modal States
+  const [customerHistoryOpen, setCustomerHistoryOpen] = useState(false);
+  const [customerHistoryData, setCustomerHistoryData] = useState(null);
+  const [customerHistoryLoading, setCustomerHistoryLoading] = useState(false);
+  const [customerHistoryError, setCustomerHistoryError] = useState('');
+  
   // ✅ Total Amount - keep full decimals for table
   const roundedTotalAmount = totalAmount; // Keep full decimal value
   
@@ -1339,31 +1345,56 @@ const handleCustomerSelect = async (customer) => {
 
   setCustomerPopupOpen(false);
 
-  // ✅ FETCH PARTY BALANCE (NEW API)
   try {
     const customerCode = customer.code;
-    const companyCode = compCode; // already from getCompCode()
+    const companyCode = compCode;
 
     if (customerCode && companyCode) {
-      const resp = await axiosInstance.get(
+      // ✅ 1. FETCH PARTY BALANCE
+      const balanceResp = await axiosInstance.get(
         API_ENDPOINTS.sales_return.getCustomerBalance(
           customerCode,
           companyCode
         )
       );
 
-      // API RESPONSE:
-      // { amount: "1300.00", amount1: "Cr" }
-      const amount = resp?.data?.amount || "0.00";
-      const type = resp?.data?.amount1 || "";
-
+      const amount = balanceResp?.data?.amount || "0.00";
+      const type = balanceResp?.data?.amount1 || "";
       setPartyBalance(`${amount} ${type}`);
+
+      // ✅ 2. FETCH LAST BILL AMOUNT - USE THE LEDGER API
+      try {
+        // Get today's date and date 1 year ago for default range
+        const today = new Date();
+        const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+        
+        const fromDate = oneYearAgo.toISOString().split('T')[0]; // YYYY-MM-DD
+        const toDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // Call ledger API - same API used in customer history
+        const ledgerResp = await axiosInstance.get(
+          API_ENDPOINTS.sales_return.getLedger(customerCode, companyCode, fromDate, toDate)
+        );
+        
+        // Extract last bill amount from ledger response
+        const lastAmt = ledgerResp?.data?.latestBillAmount ?? 
+                       ledgerResp?.data?.lastBillAmount ?? 
+                       "0.00";
+        
+        setLastBillAmount(Number(lastAmt).toFixed(2));
+        console.log("Last bill amount fetched:", lastAmt);
+      } catch (lastBillErr) {
+        console.error("Last bill fetch failed:", lastBillErr);
+        setLastBillAmount("0.00");
+      }
     } else {
       setPartyBalance("0.00");
+      setLastBillAmount("0.00");
     }
   } catch (error) {
-    console.error("Failed to fetch party balance:", error);
+    console.error("Failed to fetch customer details:", error);
     setPartyBalance("0.00");
+    setLastBillAmount("0.00");
   }
 
   // ✅ FOCUS TO FIRST BARCODE
@@ -1371,7 +1402,6 @@ const handleCustomerSelect = async (customer) => {
     document
       .querySelector('input[data-row="0"][data-field="barcode"]')
       ?.focus();
-
     ignoreNextEnterRef.current = false;
   }, 300);
 };
@@ -1399,6 +1429,58 @@ const handleCustomerSelect = async (customer) => {
       ignoreNextEnterRef.current = false;
     }, 200);
   };
+
+
+  
+
+// 🔄 Open Customer History Modal
+const openCustomerHistory = async (customerName) => {
+  try {
+    setCustomerHistoryLoading(true);
+    setCustomerHistoryError('');
+    
+    // Find customer code from billDetails
+    const customerCode = billDetails.custCode || billDetails.partyCode;
+    
+    if (!customerCode) {
+      setCustomerHistoryError('Customer code not found');
+      setCustomerHistoryOpen(true);
+      return;
+    }
+    
+    // Get today's date and date 1 year ago for default range
+    const today = new Date();
+    const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    
+    const fromDate = oneYearAgo.toISOString().split('T')[0]; // YYYY-MM-DD
+    const toDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Call ledger API
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.sales_return.getLedger(customerCode, compCode, fromDate, toDate)
+    );
+    
+    if (response?.data) {
+      // ✅ SET LAST BILL AMOUNT HERE
+      const lastAmt = response.data.latestBillAmount ?? 0;
+      setLastBillAmount(Number(lastAmt).toFixed(2));
+
+      setCustomerHistoryData({
+        customerName,
+        ...response.data
+      });
+    } else {
+      setCustomerHistoryError('No data available');
+    }
+  } catch (error) {
+    console.error('Error fetching customer history:', error);
+    setCustomerHistoryError(error.message || 'Failed to fetch customer history');
+  } finally {
+    setCustomerHistoryLoading(false);
+    setCustomerHistoryOpen(true);
+  }
+};
+
 
 // Handle item selection
 const handleItemSelect = async (item) => {
@@ -3843,56 +3925,56 @@ const itemsData = validItems.map(item => {
       />
     </div>
 
-    {/* Last Bill Amount + History */}
-    <div style={{
-      ...styles.formField,
-      gridColumn: screenSize.isMobile ? 'span 1' : ''
-    }}>
-      <label style={{
-        ...styles.inlineLabel,
-        fontSize: screenSize.isMobile ? '12px' : ''
-      }}>Last Bill Amt:</label>
+ {/* Last Bill Amount + History */}
+<div style={{
+  ...styles.formField,
+  gridColumn: screenSize.isMobile ? 'span 1' : ''
+}}>
+  <label style={{
+    ...styles.inlineLabel,
+    fontSize: screenSize.isMobile ? '12px' : ''
+  }}>Last Bill Amt:</label>
 
-      <div style={{ position: 'relative', width: '100%' }}>
-        <input
-          type="text"
-          value={lastBillAmount || '0.00'}
-          readOnly
-          tabIndex={-1}
-          style={{
-            ...styles.inlineInput,
-            fontWeight: '600',
-            paddingRight: screenSize.isMobile ? '30px' : '36px',
-            fontSize: screenSize.isMobile ? '13px' : '',
-            cursor: 'default'
-          }}
-        />
+  <div style={{ position: 'relative', width: '100%' }}>
+    <input
+      type="text"
+      value={lastBillAmount || '0.00'}
+      readOnly
+      tabIndex={-1}
+      style={{
+        ...styles.inlineInput,
+        fontWeight: '600',
+        paddingRight: screenSize.isMobile ? '30px' : '36px',
+        fontSize: screenSize.isMobile ? '13px' : '',
+        cursor: 'default'
+      }}
+    />
 
-        {/* 🔁 History Icon */}
-        <div
-          onClick={() => {
-            if (billDetails.custName && billDetails.custName.trim() !== '') {
-              openCustomerHistory(billDetails.custName);
-            } else {
-              toast.warning('Please select a customer first', { autoClose: 1500 });
-            }
-          }}
-          title="View Customer History"
-          style={{
-            position: 'absolute',
-            right: screenSize.isMobile ? '6px' : '8px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            cursor: 'pointer',
-            color: '#4d7cfe',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          <HistoryIcon />
-        </div>
-      </div>
+    {/* 🔁 History Icon */}
+    <div
+      onClick={() => {
+        if (billDetails.custName && billDetails.custName.trim() !== '') {
+          openCustomerHistory(billDetails.custName);
+        } else {
+          toast.warning('Please select a customer first', { autoClose: 1500 });
+        }
+      }}
+      title="View Customer History"
+      style={{
+        position: 'absolute',
+        right: screenSize.isMobile ? '6px' : '8px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        cursor: 'pointer',
+        color: '#4d7cfe',
+        display: 'flex',
+        alignItems: 'center'
+      }}
+    >
+      <HistoryIcon />
     </div>
+  </div>
+</div>
 
     <div style={{
       marginLeft: screenSize.isMobile ? '0' : '80px',
@@ -4811,6 +4893,214 @@ const itemsData = validItems.map(item => {
     }, 150);
   }}
 />
+
+      {/* 🔄 Customer History Modal - BLUE THEME */}
+{customerHistoryOpen && (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(15, 23, 42, 0.55)',
+      display: 'flex',
+      alignItems: 'center',
+      marginTop: '50px',
+      justifyContent: 'center',
+      zIndex: 5000
+    }}
+    onClick={() => setCustomerHistoryOpen(false)}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: '95%',
+        maxWidth: '1100px',
+        maxHeight: '85vh',
+        background: '#ffffff',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
+
+      {/* 🔵 HEADER */}
+      <div
+        style={{
+          background: 'linear-gradient(90deg, #1B91DA, #2563EB)',
+          color: '#fff',
+          padding: '16px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '18px', fontWeight: 700 }}>
+            Customer Ledger History
+          </div>
+          <div style={{ fontSize: '13px', opacity: 0.9 }}>
+            {customerHistoryData?.customerName || ''}
+          </div>
+        </div>
+
+        <button
+          onClick={() => setCustomerHistoryOpen(false)}
+          style={{
+            background: 'rgba(255,255,255,0.15)',
+            border: 'none',
+            color: '#fff',
+            fontSize: '22px',
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            cursor: 'pointer'
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* BODY */}
+      <div style={{ padding: '18px', overflowY: 'auto' }}>
+
+        {/* 🔄 LOADING */}
+        {customerHistoryLoading && (
+          <div style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>
+            Loading customer history...
+          </div>
+        )}
+
+        {/* ❌ ERROR */}
+        {customerHistoryError && !customerHistoryLoading && (
+          <div
+            style={{
+              background: '#fee2e2',
+              color: '#b91c1c',
+              padding: '14px',
+              borderRadius: '8px',
+              textAlign: 'center',
+              marginBottom: '15px'
+            }}
+          >
+            {customerHistoryError}
+          </div>
+        )}
+
+        {/* ✅ DATA */}
+        {customerHistoryData &&
+          !customerHistoryLoading &&
+          !customerHistoryError && (
+            <>
+              
+
+              {/* 📄 TRANSACTIONS TABLE */}
+              <div style={{ overflowX: 'auto' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '13px'
+                  }}
+                >
+                  <thead>
+                    <tr style={{ background: '#eff6ff' }}>
+                      {['Date', 'Party', 'Type', 'Bill No', 'Debit', 'Credit'].map(
+                        (h, i) => (
+                          <th
+                            key={i}
+                            style={{
+                              padding: '12px',
+                              textAlign: i > 3 ? 'right' : 'left',
+                              color: '#1e3a8a',
+                              fontWeight: 700,
+                              borderBottom: '2px solid #bfdbfe'
+                            }}
+                          >
+                            {h}
+                          </th>
+                        )
+                      )}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {customerHistoryData.transactions?.length ? (
+                      customerHistoryData.transactions.map((t, i) => (
+                        <tr
+                          key={i}
+                          style={{
+                            background: i % 2 ? '#f8fafc' : '#ffffff',
+                            borderBottom: '1px solid #e5e7eb'
+                          }}
+                        >
+                          <td style={{ padding: '10px' }}>{t.date}</td>
+                          <td style={{ padding: '10px' }}>{t.party}</td>
+                          <td
+                            style={{
+                              padding: '10px',
+                              fontSize: '12px',
+                              color: '#475569'
+                            }}
+                          >
+                            {t.type}
+                          </td>
+                          <td
+                            style={{
+                              padding: '10px',
+                              fontWeight: 600,
+                              color: '#2563eb'
+                            }}
+                          >
+                            {t.billNo}
+                          </td>
+                          <td
+                            style={{
+                              padding: '10px',
+                              textAlign: 'right',
+                              fontWeight: 600,
+                              color: '#16a34a'
+                            }}
+                          >
+                            {t.debit || '-'}
+                          </td>
+                          <td
+                            style={{
+                              padding: '10px',
+                              textAlign: 'right',
+                              fontWeight: 600,
+                              color: '#dc2626'
+                            }}
+                          >
+                            {t.credit || '-'}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan="6"
+                          style={{
+                            textAlign: 'center',
+                            padding: '30px',
+                            color: '#94a3b8'
+                          }}
+                        >
+                          No transactions found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              
+            </>
+          )}
+      </div>
+    </div>
+  </div>
+)}
 
 
     </div>

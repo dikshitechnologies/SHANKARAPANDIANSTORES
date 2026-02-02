@@ -1603,7 +1603,7 @@ setTimeout(() => {
     });
     
     // Prepare request data
-  const requestData = {
+const requestData = {
   header: {
     voucherNo: billDetails.billNo.toString(),
     voucherDate: billDetails.billDate.toString(),
@@ -1618,49 +1618,44 @@ setTimeout(() => {
     refNo: (billDetails.newBillNo || "").toString(),
     discount: discountPercent.toString(),
     discountAMT: parseFloat(discountAmount || 0).toFixed(2).toString(),
+
+    // ✅ EXACT FIELD NAME
     gstRrate: gstMode === "Inclusive" ? "I" : "E"
   },
 
   items: validItems.map((item, index) => {
-    const taxPercent = parseFloat(item.tax || item.inTax || 0);
     const qtyVal = parseFloat(item.qty || 0);
     const sRateVal = parseFloat(item.sRate || item.rate || 0);
+    const taxPercent = parseFloat(item.tax || 0);
 
-    // --- TAX AMOUNT (NUMBER) ---
-    let taxAmt = 0;
-    if (item.taxAmount) {
-      taxAmt = parseFloat(item.taxAmount);
-    } else if (item.taxAmountValue) {
-      taxAmt = parseFloat(item.taxAmountValue);
-    } else {
-      const calc = calculateAmount(qtyVal, sRateVal, taxPercent);
-      taxAmt = calc?.taxAmount ? parseFloat(calc.taxAmount) : 0;
-    }
+    const baseAmount = qtyVal * sRateVal;
+    const taxAmt = (baseAmount * taxPercent) / 100;
 
     return {
       barcode: (item.barcode || "").toString(),
       itemName: (item.itemName || "").toString(),
       itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-
-      // 🔴 MUST BE STRING
       stock: (item.stock ?? 0).toString(),
-      mrp: (item.mrp ?? 0).toString(),
+      mrp: (item.mrp ?? sRateVal).toString(),
       uom: (item.uom || "").toString(),
-      hsn: (item.hsn || "").toString(),
-      tax: (item.tax || "0").toString(),
-      srate: (item.sRate || item.rate || 0).toString(),
+      hsn: /^\d+$/.test(item.hsn) ? item.hsn : "",
+      tax: taxPercent.toString(),
+      srate: sRateVal.toString(),
       qty: qtyVal.toString(),
-      amount: (item.amount || 0).toString(),
 
-      // ✅ ONLY NUMBERS
-      fSlNo: item.fserialno ? parseInt(item.fserialno, 10) : 0,
+      // ✅ BASE AMOUNT ONLY
+      amount: baseAmount.toFixed(2),
+
+      // ✅ NUMBER
       taxamt: parseFloat(taxAmt.toFixed(2)),
 
-      // 🔴 desc MUST BE NUMBER (per API contract)
-      desc: 0
+      // ✅ NULL instead of 0
+      fSlNo: item.fserialno ? parseInt(item.fserialno, 10) : null,
+      desc: (item.fdesc || "").toString()
     };
   })
 };
+
 
 
     console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
@@ -1743,7 +1738,7 @@ const requestData = {
     refNo: (billDetails.newBillNo || "").toString(),
     discount: (discountPercent || 0).toString(),
     discountAMT: Number(discountAmount || 0).toFixed(2),  // string
-    gstRrate: gstMode === "Inclusive" ? "I" : "E"
+    gstRate: gstMode === "Inclusive" ? "I" : "E"
   },
 
   items: validItems.map((item) => {
@@ -1782,7 +1777,7 @@ const requestData = {
       taxamt: Number(taxAmt.toFixed(2)),
 
       // ❗ MUST BE NUMBER (not string)
-      desc: 0
+            desc: (item.fdesc || "").toString()
     };
   })
 };
@@ -6018,7 +6013,10 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
           ref={descRef}
           type="text"
           value={descValue}
-          onChange={(e) => setDescValue(e.target.value)}
+          onChange={(e) => {
+            setDescValue(e.target.value);
+            console.log('Description changed:', e.target.value); }
+          }
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
