@@ -7,6 +7,7 @@ import Navbar from './components/Navbar/Navbar'
 import Login from './pages/Login/Login'
 import { useAuth } from './context/AuthContext'
 import TestPage from './pages/TestPage/TestPage'
+import TestPage4 from './pages/TestPage/TestPage4'
 import TestPage3 from './pages/TestPage/TestPage3'
 import  Company  from './pages/company/Company'
 import LedgerCreation from './pages/Ledgercreation/Ledgercreation'
@@ -113,6 +114,7 @@ function App() {
       <Route path="/home" element={<ProtectedRoute><LayoutWithNavbar><Home /></LayoutWithNavbar></ProtectedRoute>} />
       <Route path="/test" element={<ProtectedRoute><LayoutWithNavbar><TestPage /></LayoutWithNavbar></ProtectedRoute>} />
       <Route path="/test3" element={<ProtectedRoute><LayoutWithNavbar><TestPage3 /></LayoutWithNavbar></ProtectedRoute>} />
+      <Route path="/test4" element={<ProtectedRoute><LayoutWithNavbar><TestPage4 /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/company-creation" element={<ProtectedRoute><LayoutWithNavbar><Company /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ledger-creation" element={<ProtectedRoute><LayoutWithNavbar><LedgerCreation /></LayoutWithNavbar></ProtectedRoute>} />

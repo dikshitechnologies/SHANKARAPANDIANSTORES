@@ -17,10 +17,10 @@ const scrapBillData = {
   customerNo: "9876543210",
   customerName: "David",
   items: [
-    { name: "STEEL", hsn: "7208", tax: "18", rate: 45000, qty: 1, amount: 45000.00 },
-    { name: "ALUMINIUM", hsn: "7601", tax: "18", rate: 17500, qty: 0.78, amount: 13650.00 },
-    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 4900, qty: 0.235, amount: 1151.50 },
-    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 1000, qty: 0.235, amount: 235.00 },
+    { name: "STEEL", hsn: "7208", tax: "18", rate: 45000, qty: 1, amount: 45000.00,description: "test" },
+    { name: "ALUMINIUM", hsn: "7601", tax: "18", rate: 17500, qty: 0.78, amount: 13650.00,description: "test" },
+    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 4900, qty: 0.235, amount: 1151.50,description: "test" },
+    { name: "THARA O.T", hsn: "7602", tax: "18", rate: 1000, qty: 0.235, amount: 235.00 ,description: "test"},
   ],
   modeofPayment: [
     {method : "CARD", amount: 0.00},
@@ -89,7 +89,8 @@ function renderDynamicContent(selectedName, qrcodeRef) {
         <table className="items">
           <thead>
             <tr>
-              <th style={{ textAlign: "left", width: "40%" }} colSpan="3">Particulars</th>              
+              <th style={{ textAlign: "left"}} colSpan="3">Particulars</th>
+              <th style={{ textAlign: "left"}} colSpan="3"></th>
             </tr>
             <tr>
               <th style={{ textAlign: "center", width: "20%",paddingLeft: "10pt" }}>HSN</th>
@@ -110,7 +111,10 @@ function renderDynamicContent(selectedName, qrcodeRef) {
             {scrapBillData.items.map((item, index) => (
               <React.Fragment key={index}>
                 <tr>
-                  <td style={{ textAlign: "left" }} colSpan="3">{item.name}</td>
+                  <td style={{ textAlign: "left" }} colSpan="5">{item.name}</td>
+                </tr>
+                <tr>
+                  <td style={{ textAlign: "left", paddingLeft: "10pt" }} colSpan="5">{item.description}</td>
                 </tr>
                 <tr>
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.hsn}</td>
@@ -219,7 +223,7 @@ export default function TestPage3() {
         <title>Sales Invoice Receipt</title>
         <style>
           @page {
-            size: 80mm auto;
+            size: 110mm auto;
             margin: 0;
             padding: 0;
           }
@@ -235,7 +239,7 @@ export default function TestPage3() {
             margin: 0;
             padding: 0;
             font-size: 10pt;
-            width: 80mm;
+            width: 110mm;
             font-family: Arial, sans-serif;
             font-size: 13px;
             font-weight: 500;
@@ -246,7 +250,7 @@ export default function TestPage3() {
           .receipt {
             padding: 2mm 3mm;
             width: 100%;
-            max-width: 80mm;
+            max-width: 110mm;
           }
 
           .header {
@@ -414,7 +418,7 @@ export default function TestPage3() {
         ))}
       </select>
       <button onClick={handlePrint} style={{ padding: "5px 15px", marginLeft: "10px" }}>
-        Print 80mm Receipt
+        Print 110mm Receipt
       </button>
 
       {/* HIDDEN PRINT CONTENT */}
