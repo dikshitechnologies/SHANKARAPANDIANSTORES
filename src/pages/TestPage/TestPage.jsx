@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 // Dynamic content data
 const contentList = [
   { name: "message", value: "Hello user" },
-  { name: "table", value: [["Name", "Age"], ["Alice", 25], ["Bob", 30]] },
+  { name: "scrap_bill", value: "Scrap Bill Details" },
   // Add more content objects as needed
 ];
 
@@ -36,6 +36,7 @@ const scrapBillData = {
 function renderDynamicContent(selectedName, qrcodeRef) {
   const item = contentList.find((c) => c.name === selectedName);
   if (!item) return null;
+  
   if (item.name === "message") {
     return <div>{item.value}</div>;
   }
@@ -162,16 +163,19 @@ export default function TestPage() {
       <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>Parking Receipt</title>
-
-        <!-- Barcode & QR libraries -->
-        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
+        <title>Scrap Bill Receipt</title>
         <style>
           @page {
             size: 80mm auto;
             margin: 0;
+            padding: 0;
+          }
+
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
           }
 
           body {
@@ -192,20 +196,23 @@ export default function TestPage() {
             max-width: 80mm;
           }
 
-          .headerSubTitle {
+          .header {
             text-align: center;
-            font-size: 9pt;
+            margin-bottom: 1mm;
           }
 
-          .headerTitle {
-            text-align: center;
-            font-size: 18pt;
-            font-weight: bold;
+          .logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin: 0 auto;
           }
 
           .company-name {
             font-size: 13pt;
             font-weight: bold;
+            letter-spacing: 0.5pt;
+            margin: 1mm 0;
           }
 
           .company-address {
@@ -225,10 +232,10 @@ export default function TestPage() {
             margin-bottom: 1mm;
           }
 
-          hr {
+          hr.dashed {
             border: none;
             border-top: 1px dashed #000;
-            margin: 3mm 0;
+            margin: 1mm 0;
           }
 
           .scrap-title {
@@ -284,7 +291,7 @@ export default function TestPage() {
            
           }
 
-          .keepIt {
+          table.items th.center {
             text-align: center;
           }
 
@@ -328,21 +335,6 @@ export default function TestPage() {
 
       <body>
         ${printContents}
-
-        <script>
-          JsBarcode("#barcode", "20180613T130518", {
-            format: "CODE128",
-            width: 1.3,
-            height: 30,
-            displayValue: false
-          });
-
-          new QRCode(document.getElementById("qrcode"), {
-            text: "https://example.com/receipt/71",
-            width: 80,
-            height: 80
-          });
-        </script>
       </body>
       </html>
     `);
@@ -352,17 +344,17 @@ export default function TestPage() {
     setTimeout(() => {
       win.focus();
       win.print();
-      win.close();
-    }, 800);
+      setTimeout(() => win.close(), 100);
+    }, 500);
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h2>Test Printer Utility</h2>
-    <select
+      <select
         value={selectedContent}
         onChange={(e) => setSelectedContent(e.target.value)}
-        style={{ marginBottom: 10 }}
+        style={{ marginBottom: 10, padding: "5px 10px" }}
       >
         {contentList.map((c) => (
           <option key={c.name} value={c.name}>
@@ -370,7 +362,9 @@ export default function TestPage() {
           </option>
         ))}
       </select>
-      <button onClick={handlePrint}>Print 80mm Receipt</button>
+      <button onClick={handlePrint} style={{ padding: "5px 15px", marginLeft: "10px" }}>
+        Print 80mm Receipt
+      </button>
 
       {/* HIDDEN PRINT CONTENT */}
       <div ref={printRef} style={{ display: "none" }}>
@@ -394,18 +388,8 @@ export default function TestPage() {
               51/179, HARIHARAN BAZAAR STREET<br />
               PONNERI - 601204
             </div>
-            <div style={{ textAlign: "center", fontWeight: "bold" }}>
-              Customer Care: 044-27973611 / 72007 79217
-            </div>
-            <div
-              style={{
-                textAlign: "center",
-                fontSize: "11pt",
-                fontWeight: "bold",
-              }}
-            >
-              GST No: 33ECCPR7067N1ZL
-            </div>
+            <div className="contact">Customer Care: 044-27973611 / 72007 79217</div>
+            <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
           </div>
 
           
@@ -413,21 +397,17 @@ export default function TestPage() {
           {/* Dynamic Content (Scrap Bill) */}
           {renderDynamicContent(selectedContent, qrcodeRef)}
 
-          <div
-            className="keepItBody"
-            style={{
-              textAlign: "center",
-              marginTop: 4,
-              fontWeight: "normal",
-              textShadow: "0.3px 0 0 #000",
-            }}
-          >
+          <hr className="dashed" />
+
+          {/* Terms and Conditions */}
+          {/* <div className="terms">
             <div>( Incl. of all Taxes )</div>
             <div>-E & O E. No Exchange No Refund-</div>
             <div>-No Return for CHINA and WOODEN PRODUCTS-</div>
-          </div>
+          </div> */}
 
-          <div className="keepIt">*** Thank You Visit Again! ***</div>
+          {/* Thank You Message */}
+          <div className="thank-you">*** Thank You Visit Again! ***</div>
         </div>
       </div>
     </div>
