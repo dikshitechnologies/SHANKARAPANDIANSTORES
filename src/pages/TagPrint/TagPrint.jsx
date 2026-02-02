@@ -487,7 +487,7 @@ const TagPrint = () => {
       backgroundColor: 'white',
       borderRadius: 10,
       overflowX: 'auto',
-      overflowY: 'auto',
+      overflowY: 'visible',
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       border: '1px solid #e0e0e0',
       margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
@@ -498,7 +498,7 @@ const TagPrint = () => {
       flex: 'none',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? 'calc(100vh - 500px)' : screenSize.isTablet ? 'calc(100vh - 550px)' : 'calc(100vh - 600px)',
+      maxHeight: 'none',
     },
     previewLabel: {
       padding: screenSize.isMobile ? '8px 12px' : '12px 16px',
@@ -734,7 +734,18 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     updatedItems[index].qty = qty;
     updatedItems[index].amount = qty * (updatedItems[index].sRate || 0);
     setItems(updatedItems);
-    updatePrintItems(updatedItems);
+  };
+
+  const handleQtyKeyDown = (e, index) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const updatedItems = [...items];
+      const qty = parseFloat(e.target.value) || 0;
+      updatedItems[index].qty = qty;
+      updatedItems[index].amount = qty * (updatedItems[index].sRate || 0);
+      setItems(updatedItems);
+      updatePrintItems(updatedItems);
+    }
   };
 
   // Update print items based on selections
@@ -895,6 +906,19 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     }, 1000);
   };
 
+  const buildPreviewRows = (list) => {
+    return list.flatMap((item) => {
+      const count = Math.max(0, parseInt(item.qty, 10) || 0);
+      if (count === 0) return [];
+      return Array.from({ length: count }, (_, idx) => ({
+        ...item,
+        _previewIndex: idx + 1,
+      }));
+    });
+  };
+
+  const previewRows = buildPreviewRows(items.filter((item) => item.print === 'Y'));
+
   return (
     <div style={styles.container}>
       {/* Header Section */}
@@ -1027,6 +1051,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                           inputMode="decimal"
                           value={item.qty}
                           onChange={(e) => handleQtyChange(idx, e.target.value)}
+                          onKeyDown={(e) => handleQtyKeyDown(e, idx)}
                           style={{
                             width: '100%',
                             border: 'none',
@@ -1068,55 +1093,53 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
       </div>
 
         {/* Preview Section - Shows print items before actual footer */}
-        {hasSearched && (
-          <div style={styles.previewSection}>
-            <div style={styles.previewLabel}>
-              Print Preview - Items to Print
-            </div>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={{...styles.th, width: '50px'}}>No.</th>
-                  <th style={{...styles.th, width: '120px'}}>Item Name</th>
-                  <th style={{...styles.th, width: '80px'}}>Prefix</th>
-                  <th style={{...styles.th, width: '80px'}}>Short Name</th>
-                  <th style={{...styles.th, width: '80px'}}>W.P</th>
-                  <th style={{...styles.th, width: '80px'}}>R.P</th>
-                  <th style={{...styles.th, width: '80px'}}>Qty</th>
-                  <th style={{...styles.th, width: '80px'}}>Pcs</th>
-                  <th style={{...styles.th, width: '80px'}}>Print</th>
-                  <th style={{...styles.th, width: '80px'}}>BARCODE</th>
-                  <th style={{...styles.th, width: '80px'}}>CP</th>
-                  <th style={{...styles.th, width: '100px'}}>SI No</th>
-                </tr>
-              </thead>
-              <tbody>
-                {printItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="12" style={styles.td}>&nbsp;</td>
-                  </tr>
-                ) : (
-                  printItems.map((item, idx) => (
-                    <tr key={idx}>
-                      <td style={styles.td}>{idx + 1}</td>
-                      <td style={styles.td}>{item.itemName || 'N/A'}</td>
-                      <td style={styles.td}>{prefix || 'N/A'}</td>
-                      <td style={styles.td}>{item.hsn || 'N/A'}</td>
-                      <td style={styles.td}>₹{item.mrp?.toFixed(2) || '0.00'}</td>
-                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
-                      <td style={styles.td}>{item.qty || '0'}</td>
-                      <td style={styles.td}>Y</td>
-                      <td style={styles.td}>Y</td>
-                      <td style={styles.td}>{item.barcode || 'N/A'}</td>
-                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
-                      <td style={styles.td}>{item.sNo || idx + 1}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        <div style={styles.previewSection}>
+          <div style={styles.previewLabel}>
+            Print Preview - Items to Print
           </div>
-        )}
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={{...styles.th, width: '50px'}}>No.</th>
+                <th style={{...styles.th, width: '120px'}}>Item Name</th>
+                <th style={{...styles.th, width: '80px'}}>Prefix</th>
+                <th style={{...styles.th, width: '80px'}}>Short Name</th>
+                <th style={{...styles.th, width: '80px'}}>W.P</th>
+                <th style={{...styles.th, width: '80px'}}>R.P</th>
+                <th style={{...styles.th, width: '80px'}}>Qty</th>
+                <th style={{...styles.th, width: '80px'}}>Pcs</th>
+                <th style={{...styles.th, width: '80px'}}>Print</th>
+                <th style={{...styles.th, width: '80px'}}>BARCODE</th>
+                <th style={{...styles.th, width: '80px'}}>CP</th>
+                <th style={{...styles.th, width: '100px'}}>SI No</th>
+              </tr>
+            </thead>
+            <tbody>
+              {previewRows.length === 0 ? (
+                <tr>
+                  <td colSpan="12" style={styles.td}>&nbsp;</td>
+                </tr>
+              ) : (
+                previewRows.map((item, idx) => (
+                  <tr key={idx}>
+                    <td style={styles.td}>{idx + 1}</td>
+                    <td style={styles.td}>{item.itemName || 'N/A'}</td>
+                    <td style={styles.td}>{prefix || 'N/A'}</td>
+                    <td style={styles.td}>{item.hsn || 'N/A'}</td>
+                    <td style={styles.td}>₹{item.mrp?.toFixed(2) || '0.00'}</td>
+                    <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
+                    <td style={styles.td}>{item.qty || '0'}</td>
+                    <td style={styles.td}>1</td>
+                    <td style={styles.td}>Y</td>
+                    <td style={styles.td}>{item.barcode || 'N/A'}</td>
+                    <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
+                    <td style={styles.td}>{item.sNo || idx + 1}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
       {/* Footer Section */}
       <div style={styles.footer}>
