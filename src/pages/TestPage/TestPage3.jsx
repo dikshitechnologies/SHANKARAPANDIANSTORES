@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import QRCode from "qrcode";
 import logo from "../../assets/logo1.jpeg";
 
@@ -81,7 +81,7 @@ function renderDynamicContent(selectedName, qrcodeRef) {
         {/* Customer Info */}
         <div className="customer-info">
           <p>Customer: {scrapBillData.customerName}</p>
-            <p style={{marginLeft: "50pt"}}>{scrapBillData.customerNo}</p>
+            <p style={{marginLeft: "40pt"}}>{scrapBillData.customerNo}</p>
         </div>
         <hr className="dashed" />
         
@@ -228,7 +228,7 @@ export default function TestPage3() {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace;
+            font-family: Arial, sans-serif;
           }
 
           body {
@@ -236,9 +236,9 @@ export default function TestPage3() {
             padding: 0;
             font-size: 10pt;
             width: 80mm;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 12px;
-            font-weight: 900;
+            font-weight: 500;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
           }
@@ -302,7 +302,6 @@ export default function TestPage3() {
           .cust-name {
             text-align: right;
             font-size: 12pt;
-            font-weight: bold;
             margin-bottom: 1mm;
           }
           .bill {
@@ -314,7 +313,6 @@ export default function TestPage3() {
             display: flex;
             justify-content: space-between;
             font-size: 8pt;
-            font-weight: bold;
             margin-bottom: 1mm;
           }
 
