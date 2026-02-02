@@ -66,8 +66,8 @@ function renderDynamicContent(selectedName, qrcodeRef) {
         <div className="bill">
           <div className="bill-info">
             <div>
-              <div>No. {scrapBillData.billNo}</div>
-              <div>Date {scrapBillData.date}</div>
+              <div>Bill No: {scrapBillData.billNo}</div>
+              <div>Date: {scrapBillData.date}</div>
               <div>Time: {scrapBillData.time}</div>
             </div>
           </div>
@@ -81,7 +81,7 @@ function renderDynamicContent(selectedName, qrcodeRef) {
         {/* Customer Info */}
         <div className="customer-info">
           <p>Customer: {scrapBillData.customerName}</p>
-            <p style={{marginLeft: "40pt"}}>{scrapBillData.customerNo}</p>
+            <p style={{marginLeft: "46pt"}}>{scrapBillData.customerNo}</p>
         </div>
         <hr className="dashed" />
         
