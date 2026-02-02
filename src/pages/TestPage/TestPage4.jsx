@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 // Dynamic content data
 const contentList = [
   { name: "message", value: "Hello user" },
-  { name: "scrap_bill", value: "Scrap Bill Details" },
+  { name: "payment-voucher", value: "Payment Voucher Details" },
   // Add more content objects as needed
 ];
 
@@ -78,7 +78,7 @@ function renderDynamicContent(selectedName, qrcodeRef) {
     return <div>{item.value}</div>;
   }
 
-  if (item.name === "scrap_bill") {
+  if (item.name === "payment-voucher") {
     // Calculate total dynamically
     const totalAmount = scrapBillData.items.reduce(
       (sum, item) => sum + item.amount, 
@@ -233,7 +233,7 @@ export default function TestPage4() {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace;
+            font-family: Arial, sans-serif;
           }
 
           body {
@@ -241,9 +241,9 @@ export default function TestPage4() {
             padding: 0;
             font-size: 10pt;
             width: 80mm;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 13px;
-            font-weight: 900;
+            font-weight: 500;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
           }
@@ -259,16 +259,16 @@ export default function TestPage4() {
   width: 20mm;
   text-align: right;
   padding-right: 1mm;
-  font-family: "Courier New", monospace;
+  font-family: Arial, sans-serif;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  font-weight: 900;
+  font-weight: 500;
 }
 
 /* Total amount slightly bigger but SAME ALIGNMENT */
 .total-amount {
   font-size: 8pt;
-  font-weight: 900;
+  font-weight: 500;
 }
 
 
@@ -422,7 +422,7 @@ table.items td {
           table.items td:last-child {
             padding-right: 0;
             text-align: right;
-            font-family: "Courier New", monospace;
+            font-family: Arial, sans-serif;
             font-variant-numeric: tabular-nums;
           }
 

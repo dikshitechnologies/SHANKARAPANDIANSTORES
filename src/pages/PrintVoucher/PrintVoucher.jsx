@@ -2,13 +2,13 @@ import React, { useRef, useEffect, forwardRef } from "react";
 import logo from "../../assets/logo1.jpeg";
 import QRCode from "qrcode";
 
-const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
+const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) => {
   const printRef = useRef(null);
   const qrcodeRef = useRef(null);
 
   // Initialize QR code when component mounts
   useEffect(() => {
-    if ((mode === "scrap_bill" || mode === "sales_return") && qrcodeRef.current && billData?.voucherNo) {
+    if (mode === "" && qrcodeRef.current && billData?.voucherNo) {
       qrcodeRef.current.innerHTML = "";
       QRCode.toString(
         billData.voucherNo,
@@ -37,7 +37,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
       <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>Scrap Bill Receipt</title>
+        <title>Payment Voucher</title>
         <style>
           @page {
             size: 80mm auto;
@@ -320,83 +320,8 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
         <hr className="dashed" />
 
-        {/* Thank You Message */}
-        <div className="thank-you">*** Thank You Visit Again! ***</div>
-      </div>
-    );
-  };
-
-  const renderSalesReturn = () => {
-    if (!billData) return null;
-
-    const totalAmount = billData.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || billData.netAmount || 0;
-    const totalQty = billData.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0;
-
-    return (
-      <div>
-        <div className="scrap-title">
-          <h3>SALES RETURN</h3>
-        </div>
-        <div className="cust-name">
-          <h6>Salesman: {billData.salesmanName || 'N/A'}</h6>
-        </div>
-
-        {/* Bill number and date */}
-        <div className="bill">
-          <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-            <div style={{ fontSize: "9pt" }}>
-              <span>Bill No:&nbsp;</span>
-              <span>{billData.voucherNo || 'N/A'}</span>
-            </div>
-            <div style={{ fontSize: "9pt" }}>
-              <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;</span>
-              <span>
-                {billData.voucherDate ? (() => {
-                  const date = new Date(billData.voucherDate);
-                  const day = String(date.getDate()).padStart(2, '0');
-                  const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
-                  const year = date.getFullYear();
-                  return `${day}-${month}-${year}`;
-                })() : 'N/A'}
-              </span>
-            </div>
-            <div style={{ fontSize: "9pt" }}>
-              <span>Time:&nbsp;&nbsp;&nbsp;&nbsp;</span>
-              <span>{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-            </div>
-          </div>
-          <div ref={qrcodeRef} style={{ display: "flex", justifyContent: "center", width: "50px", height: "50px" }}></div>
-        </div>
-
-        <hr className="dashed" style={{ margin: 0, width: "100%" }} />
-
-        {/* Customer Info */}
-        {/* <div className="customer-info">
-          Customer: {billData.customerCode || 'N/A'}
-        </div>
-        <hr className="dashed" style={{ margin: 0, width: "100%" }} /> */}
-
-        {/* Summary Table */}
-        <table className="items" style={{ fontSize: "9pt" }}>
-          <tbody>
-            <tr>
-              <td style={{ textAlign: "left", width: "50%" }}>Customer: {billData.customerName || 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style={{ textAlign: "left", width: "50%" }}>Total Items: {billData.items?.length || 0}</td>
-              <td style={{ textAlign: "right", width: "50%" }}>Total Qty: {totalQty.toFixed(3)}</td>
-            </tr>
-            <tr>
-              <td colSpan="2"><hr className="dashed" style={{ margin: 0, width: "100%" }} /></td>
-            </tr>
-            <tr className="total-row">
-              <td style={{ textAlign: "left" }}>Bill Amount</td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>{totalAmount.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <hr className="dashed" />
+        
+       
 
         {/* Thank You Message */}
         <div className="thank-you">*** Thank You Visit Again! ***</div>
@@ -439,7 +364,6 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
           {/* Dynamic Content */}
           {mode === "scrap_bill" && renderScrapBill()}
-          {mode === "sales_return" && renderSalesReturn()}
         </div>
       </div>
 
@@ -465,6 +389,6 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
   );
 });
 
-PrintReceipt.displayName = 'PrintReceipt';
+PrintVoucher.displayName = 'PrintVoucher';
 
-export default PrintReceipt;
+export default PrintVoucher;

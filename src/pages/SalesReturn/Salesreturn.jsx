@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from "../../api/endpoints";
 import apiService from "../../api/apiService";
 import axiosInstance from "../../api/axiosInstance";
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import PrintReceipt from '../../pages/PrintReceipt/PrintReceipt';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
 import { PERMISSION_CODES } from '../../constants/permissions';
@@ -227,6 +228,7 @@ const [roundOffValue, setRoundOffValue] = useState(0);
   const newBillNoRef = useRef(null);
   const typeRef = useRef(null);
   const gstModeRef = useRef(null);
+  const printReceiptRef = useRef(null);
   // When focusing programmatically from another header field, sometimes the same Enter
   // key can propagate to the newly-focused input. Use this ref to ignore that single Enter.
   const ignoreNextEnterRef = useRef(false);
@@ -235,6 +237,7 @@ const [roundOffValue, setRoundOffValue] = useState(0);
   const [focusedField, setFocusedField] = useState('');
   const [activeFooterAction, setActiveFooterAction] = useState('null');
   const [isBarcodeEnter, setIsBarcodeEnter] = useState(false); // ✅ Correct
+  const [printBillData, setPrintBillData] = useState(null);
   
   // Track focused element position for arrow navigation
   const [focusedElement, setFocusedElement] = useState({
@@ -652,6 +655,29 @@ useEffect(() => {
         });
       }
     }, [activeTopAction]);
+
+// Build billData object for printing
+const buildBillData = () => {
+  const validItems = items.filter(item => 
+    item.itemName && item.itemName.trim() !== '' && 
+    item.itemCode && item.itemCode.trim() !== ''
+  );
+  
+  return {
+    voucherNo: billDetails.billNo,
+    voucherDate: billDetails.billDate,
+    salesmanName: billDetails.salesman,
+    customercode: billDetails.customerCode || '',
+    customerName: billDetails.custName,
+    netAmount: netAmount,
+    items: validItems.map(item => ({
+      itemName: item.itemName || 'N/A',
+      rate: parseFloat(item.sRate) || parseFloat(item.rate) || 0,
+      qty: parseFloat(item.qty) || 0,
+      amount: parseFloat(item.amount) || 0
+    }))
+  };
+};
 
 // Add this function to clear discount from localStorage when form is cleared
 const resetForm = async () => {
@@ -1674,11 +1700,46 @@ const requestData = {
       // Save discount data to localStorage with voucher number as key
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       
-      // Reset form after successful creation
-      await resetForm();
-      setDiscountPercent(0);
-      setDiscountAmount(0);
-      setDiscount("");
+      // Build bill data for printing
+      const billDataForPrint = buildBillData();
+      setPrintBillData(billDataForPrint);
+      
+      // Show print confirmation after successful save
+      setTimeout(() => {
+        console.log('Showing print confirmation popup');
+        showConfirmation({
+          title: 'Print Confirmation',
+          message: 'Would you like to print the receipt?',
+          type: 'success',
+          confirmText: 'Yes',
+          cancelText: 'No',
+          showIcon: true,
+          onConfirm: async () => {
+            console.log('Print confirmation - Yes clicked');
+            setShowConfirmPopup(false);
+            // Trigger print with the saved data
+            if (printReceiptRef.current && printReceiptRef.current.print) {
+              setTimeout(() => {
+                printReceiptRef.current.print();
+              }, 100);
+            }
+            // Reset form after printing
+            await resetForm();
+            setDiscountPercent(0);
+            setDiscountAmount(0);
+            setDiscount("");
+          },
+          onCancel: () => {
+            console.log('Print confirmation - No clicked');
+            setShowConfirmPopup(false);
+            // Reset form when user says no
+            resetForm();
+            setDiscountPercent(0);
+            setDiscountAmount(0);
+            setDiscount("");
+          }
+        });
+      }, 100);
       
       return response;
     } else {
@@ -1803,13 +1864,46 @@ const requestData = {
       
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       
-      // Reset form after successful update
-      await resetForm();
-      setDiscountPercent(0);
-      setDiscountAmount(0);
-      setDiscount("");
+      // Build bill data for printing
+      const billDataForPrint = buildBillData();
+      setPrintBillData(billDataForPrint);
       
-      // toast.success(`Sales Return ${voucherNo} updated successfully with discount!`);
+      // Show print confirmation after successful update
+      setTimeout(() => {
+        console.log('Showing print confirmation popup');
+        showConfirmation({
+          title: 'Print Confirmation',
+          message: 'Would you like to print the receipt?',
+          type: 'success',
+          confirmText: 'Yes',
+          cancelText: 'No',
+          showIcon: true,
+          onConfirm: async () => {
+            console.log('Print confirmation - Yes clicked');
+            setShowConfirmPopup(false);
+            // Trigger print with the saved data
+            if (printReceiptRef.current && printReceiptRef.current.print) {
+              setTimeout(() => {
+                printReceiptRef.current.print();
+              }, 100);
+            }
+            // Reset form after printing
+            await resetForm();
+            setDiscountPercent(0);
+            setDiscountAmount(0);
+            setDiscount("");
+          },
+          onCancel: () => {
+            console.log('Print confirmation - No clicked');
+            setShowConfirmPopup(false);
+            // Reset form when user says no
+            resetForm();
+            setDiscountPercent(0);
+            setDiscountAmount(0);
+            setDiscount("");
+          }
+        });
+      }, 100);
       
       return response;
     } else {
@@ -3904,7 +3998,14 @@ const handleSave = async () => {
 
 
 const handlePrint = () => {
-  toast.info('Print functionality to be implemented');
+  if (printReceiptRef.current && printReceiptRef.current.print) {
+    printReceiptRef.current.print();
+  } else {
+    toast.error('No data to print', {
+      position: 'top-right',
+      autoClose: 3000,
+    });
+  }
 };
   // --- RESPONSIVE STYLES ---
   const TYPOGRAPHY = {
@@ -4841,6 +4942,9 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         borderColor="#1B91DA"
         hideCancelButton={false}
       />
+
+      {/* PrintReceipt Component - Hidden, used for printing */}
+      <PrintReceipt ref={printReceiptRef} billData={printBillData} mode="sales_return" />
 
 {/* --- HEADER SECTION --- */}
 <div style={styles.headerSection}>
