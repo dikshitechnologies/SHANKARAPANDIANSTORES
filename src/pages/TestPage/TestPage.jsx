@@ -51,7 +51,7 @@ function renderDynamicContent(selectedName) {
         <div className="scrap-title">
             <h3>SCRAP BILL</h3>
         </div>
-        <div><h6>{scrapBillData.customername}</h6></div>
+        <div className="cust-name"><h6>{scrapBillData.customername}</h6></div>
         
         {/* Bill number and date */}
         <div className="bill-info">
@@ -106,7 +106,7 @@ function renderDynamicContent(selectedName) {
               <td colSpan="3" style={{ textAlign: "right" }}>
                 Amount
               </td>
-              <td style={{ textAlign: "right" }}>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
                 {totalAmount.toFixed(2)}
               </td>
             </tr>
@@ -205,21 +205,22 @@ export default function TestPage() {
           }
 
           .scrap-title {
-            display: flex;
-            flex-direction: row;
-            // justify-content: space-between;
-            align-items: center;
+            text-align: center;
             font-weight: bold;
             font-size: 10pt;
             margin: 2mm 0;
             background-color: #0a0a0a;
             color: #ffffff;
           }
-
+          .cust-name {
+            text-align: right;
+            margin-bottom: 1mm;
+          }
           .bill-info {
             display: flex;
             justify-content: space-between;
-            font-size: 7pt;
+            font-size: 8pt;
+            font-weight: bold;
             margin-bottom: 1mm;
           }
 
