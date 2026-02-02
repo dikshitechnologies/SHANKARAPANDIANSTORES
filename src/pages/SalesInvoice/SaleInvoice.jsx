@@ -4132,6 +4132,7 @@ const itemsData = validItems.map(item => {
                   : { ...styles.editableInput, textAlign: 'right' }}
                 value={item.hsn}
                 data-row={index}
+                readOnly
                 data-field="hsn"
                 onChange={(e) => handleItemChange(item.id, 'hsn', e.target.value)}
                 onKeyDown={(e) => {
@@ -4645,7 +4646,7 @@ const itemsData = validItems.map(item => {
         if (descHuidRowIndex !== null) {
           document
             .querySelector(
-              `input[data-row="${descHuidRowIndex}"][data-field="hsn"]`
+              `input[data-row="${descHuidRowIndex}"][data-field="tax"]`
             )
             ?.focus();
         }

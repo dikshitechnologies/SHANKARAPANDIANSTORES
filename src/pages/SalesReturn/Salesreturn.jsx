@@ -1603,46 +1603,65 @@ setTimeout(() => {
     });
     
     // Prepare request data
-    const requestData = {
-      header: {
-        voucherNo: billDetails.billNo.toString(),
-        voucherDate: billDetails.billDate.toString(),
-        mobileNo: (billDetails.mobileNo || "").toString(),
-        customerCode: (billDetails.customerCode || "").toString(),
-        customerName: (billDetails.custName || "").toString(),
-        salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "").toString(),
-        compCode: userData?.companyCode || "",
-        userCode: userData?.userCode || "001",
-        billAMT: totalAmount.toFixed(2).toString(),
-        refNo: (billDetails.newBillNo || "").toString(), 
-        discount: discountPercent.toString(), // Add discount percentage
-        discountAMT: discountAmount.toString(), // Add discount amount
-      
-        gstRrate: gstMode === 'Inclusive' ? 'I' : 'E' // Map gstMode to gstRrate (I for Inclusive, E for Exclusive)
-      },
-      items: validItems.map((item, index) => {
-        const itemNetAmount = Math.max(parseFloat(item.amount || 0) - (itemDiscounts[index] || 0), 0);
-        
-        return {
-          barcode: (item.barcode || "").toString(),
-          itemName: (item.itemName || "").toString(),
-          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-          stock: (item.stock || "0").toString(),
-          mrp: (item.mrp || "0").toString(),
-          uom: (item.uom || "").toString(),
-          hsn: (item.hsn || "").toString(),
-          tax: (item.tax || "0").toString(),
-          srate: (item.sRate || "0").toString(),
-          qty: (parseFloat(item.qty || 0)).toFixed(2).toString(),
-          amount: (item.amount || "0").toString(),
-          taxamt: (item.taxAmountValue || "0").toString(), // Map taxAmount to taxamt
-          fSlNo: (item.fserialno || "").toString(), // Map fserialno to fSlNo
-          desc: (item.fdesc || "").toString(), // Map fdesc to desc
-         // Send actual net amount per item
-        };
-      })
+  const requestData = {
+  header: {
+    voucherNo: billDetails.billNo.toString(),
+    voucherDate: billDetails.billDate.toString(),
+    mobileNo: (billDetails.mobileNo || "").toString(),
+    customerCode: (billDetails.customerCode || "").toString(),
+    customerName: (billDetails.custName || "").toString(),
+    salesMansName: (billDetails.salesman || "").toString(),
+    salesMansCode: (billDetails.salesmanCode || "").toString(),
+    compCode: (userData?.companyCode || "").toString(),
+    userCode: (userData?.userCode || "001").toString(),
+    billAMT: totalAmount.toFixed(2).toString(),
+    refNo: (billDetails.newBillNo || "").toString(),
+    discount: discountPercent.toString(),
+    discountAMT: parseFloat(discountAmount || 0).toFixed(2).toString(),
+    gstRrate: gstMode === "Inclusive" ? "I" : "E"
+  },
+
+  items: validItems.map((item, index) => {
+    const taxPercent = parseFloat(item.tax || item.inTax || 0);
+    const qtyVal = parseFloat(item.qty || 0);
+    const sRateVal = parseFloat(item.sRate || item.rate || 0);
+
+    // --- TAX AMOUNT (NUMBER) ---
+    let taxAmt = 0;
+    if (item.taxAmount) {
+      taxAmt = parseFloat(item.taxAmount);
+    } else if (item.taxAmountValue) {
+      taxAmt = parseFloat(item.taxAmountValue);
+    } else {
+      const calc = calculateAmount(qtyVal, sRateVal, taxPercent);
+      taxAmt = calc?.taxAmount ? parseFloat(calc.taxAmount) : 0;
+    }
+
+    return {
+      barcode: (item.barcode || "").toString(),
+      itemName: (item.itemName || "").toString(),
+      itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+
+      // 🔴 MUST BE STRING
+      stock: (item.stock ?? 0).toString(),
+      mrp: (item.mrp ?? 0).toString(),
+      uom: (item.uom || "").toString(),
+      hsn: (item.hsn || "").toString(),
+      tax: (item.tax || "0").toString(),
+      srate: (item.sRate || item.rate || 0).toString(),
+      qty: qtyVal.toString(),
+      amount: (item.amount || 0).toString(),
+
+      // ✅ ONLY NUMBERS
+      fSlNo: item.fserialno ? parseInt(item.fserialno, 10) : 0,
+      taxamt: parseFloat(taxAmt.toFixed(2)),
+
+      // 🔴 desc MUST BE NUMBER (per API contract)
+      desc: 0
     };
+  })
+};
+
 
     console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
     
@@ -1708,49 +1727,66 @@ setTimeout(() => {
     const netAmountValue = Math.max(totalAmountValue - totalDiscountAmount, 0);
     
     // Prepare request data
-    const requestData = {
-      header: {
-        voucherNo: billDetails.billNo.toString(),
-        voucherDate: billDetails.billDate.toString(),
-        mobileNo: (billDetails.mobileNo || "").toString(),
-        customerCode: (billDetails.customerCode || "").toString(),
-        customerName: (billDetails.custName || "").toString(),
-        salesMansName: (billDetails.salesman || "").toString(),
-        salesMansCode: (billDetails.salesmanCode || "002").toString(),
-        compCode: userData?.companyCode || "",
-        userCode: userData?.userCode || "",
-        billAMT: totalAmount.toFixed(2).toString(),
-        refNo: (billDetails.newBillNo || "").toString(),
-        discount: discountPercent.toString(), // Add discount percentage
-        discountAMT: discountAmount.toString(), // Add discount amount
-        netAmount: netAmountValue.toFixed(2).toString(), // Add net amount
-        gstRrate: gstMode === 'Inclusive' ? 'I' : 'E' // Map gstMode to gstRrate (I for Inclusive, E for Exclusive)
-      },
-      items: validItems.map((item) => {
-        const itemAmount = parseFloat(item.amount || 0);
-        const discountRatio = totalAmountValue > 0 ? itemAmount / totalAmountValue : 0;
-        const itemDiscount = discountRatio * totalDiscountAmount;
-        const itemNetAmount = Math.max(itemAmount - itemDiscount, 0);
-        
-        return {
-          barcode: (item.barcode || "").toString(),
-          itemName: (item.itemName || "").toString(),
-          itemCode: (item.itemCode || "").toString(),
-          stock: (item.stock || "0").toString(),
-          mrp: (item.mrp || "0").toString(),
-          uom: (item.uom || "").toString(),
-          hsn: (item.hsn || "").toString(),
-          tax: (item.tax || "0").toString(),
-          srate: (item.sRate || "0").toString(),
-          qty: (parseFloat(item.qty || 0)).toFixed(2).toString(),
-          amount: item.amount.toString(),
-          taxamt: (item.taxAmount || "0").toString(), // Map taxAmount to taxamt
-          fSlNo: (item.fserialno || "").toString(), // Map fserialno to fSlNo
-          desc: (item.fdesc || "").toString(), // Map fdesc to desc
-          netAmount: itemNetAmount.toFixed(2).toString()
-        };
-      })
+   // Prepare request data
+const requestData = {
+  header: {
+    voucherNo: billDetails.billNo.toString(),
+    voucherDate: billDetails.billDate.toString(),
+    mobileNo: (billDetails.mobileNo || "").toString(),
+    customerCode: (billDetails.customerCode || "").toString(),
+    customerName: (billDetails.custName || "").toString(),
+    salesMansName: (billDetails.salesman || "").toString(),
+    salesMansCode: (billDetails.salesmanCode || "002").toString(),
+    compCode: (userData?.companyCode || "").toString(),
+    userCode: (userData?.userCode || "").toString(),
+    billAMT: Number(totalAmount || 0).toFixed(2),          // string
+    refNo: (billDetails.newBillNo || "").toString(),
+    discount: (discountPercent || 0).toString(),
+    discountAMT: Number(discountAmount || 0).toFixed(2),  // string
+    gstRrate: gstMode === "Inclusive" ? "I" : "E"
+  },
+
+  items: validItems.map((item) => {
+    const taxPercent = parseFloat(item.tax || item.inTax || 0);
+    const qtyVal = parseFloat(item.qty || 0);
+    const sRateVal = parseFloat(item.sRate || item.rate || 0);
+
+    // ---- TAX AMOUNT (NUMBER) ----
+    let taxAmt = 0;
+    if (item.taxAmount) {
+      taxAmt = parseFloat(item.taxAmount);
+    } else if (item.taxAmountValue) {
+      taxAmt = parseFloat(item.taxAmountValue);
+    } else {
+      const calc = calculateAmount(qtyVal, sRateVal, taxPercent);
+      taxAmt = calc?.taxAmount ? parseFloat(calc.taxAmount) : 0;
+    }
+
+    return {
+      barcode: (item.barcode || "").toString(),
+      itemName: (item.itemName || "").toString(),
+      itemCode: (item.itemCode || "").toString(),
+
+      // 🔴 MUST BE STRING (per API)
+      stock: (item.stock ?? 0).toString(),
+      mrp: (item.mrp ?? 0).toString(),
+      uom: (item.uom || "").toString(),
+      hsn: (item.hsn || "").toString(),
+      tax: (item.tax || "0").toString(),
+      srate: (item.sRate || item.rate || 0).toString(),
+      qty: (item.qty || 0).toString(),
+      amount: (item.amount || 0).toString(),
+
+      // ✅ ONLY NUMBERS
+      fSlNo: item.fserialno ? parseInt(item.fserialno, 10) : 0,
+      taxamt: Number(taxAmt.toFixed(2)),
+
+      // ❗ MUST BE NUMBER (not string)
+      desc: 0
     };
+  })
+};
+
 
     console.log("🔧 DEBUG - Updating sales return with data:", JSON.stringify(requestData, null, 2));
     console.log("🔧 DEBUG - Discount details:", {
@@ -2127,6 +2163,9 @@ const loadVoucherForEditing = async (voucherNo) => {
           qty: Math.abs(parseFloat(item.qty || 0)).toString(),
           amount: itemAmount.toFixed(2),
           itemCode: item.itemCode || `0000${index + 1}`,
+          taxAmount: item.taxamt !== null && item.taxamt !== undefined ? item.taxamt.toString() : "0.00",
+          fserialno: item.fSlNo || item.fslno || item.serialNo || "",
+          fdesc: item.desc !== null && item.desc !== undefined ? item.desc.toString() : "",
           netAmount: itemNetAmount.toFixed(2) // Store net amount per item
         };
       });
