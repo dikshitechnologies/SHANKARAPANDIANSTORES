@@ -152,8 +152,13 @@ export default function TestPage() {
           body {
             margin: 0;
             padding: 0;
-            font-size: 8pt;
+            font-size: 10pt;
             width: 80mm;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-shadow: 0.3px 0 #000;
           }
 
           .receipt {
@@ -330,11 +335,11 @@ export default function TestPage() {
           <hr className="dashed" />
 
           {/* Terms and Conditions */}
-          <div className="terms">
+          {/* <div className="terms">
             <div>( Incl. of all Taxes )</div>
             <div>-E & O E. No Exchange No Refund-</div>
             <div>-No Return for CHINA and WOODEN PRODUCTS-</div>
-          </div>
+          </div> */}
 
           {/* Thank You Message */}
           <div className="thank-you">*** Thank You Visit Again! ***</div>
