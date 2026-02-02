@@ -185,7 +185,7 @@ export default function TestPage() {
             width: 80mm;
             font-family: Arial, Helvetica, sans-serif;
             font-size: 13px;
-            font-weight: 900;
+            font-weight: 500;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
           }
@@ -210,7 +210,7 @@ export default function TestPage() {
 
           .company-name {
             font-size: 13pt;
-            font-weight: bold;
+           
             letter-spacing: 0.5pt;
             margin: 1mm 0;
           }
@@ -223,7 +223,7 @@ export default function TestPage() {
 
           .gst-number {
             font-size: 9pt;
-            font-weight: bold;
+           
             margin-bottom: 1mm;
           }
 
@@ -240,7 +240,7 @@ export default function TestPage() {
 
           .scrap-title {
             text-align: center;
-            font-weight: bold;
+           
             font-size: 11pt;
             margin: 2mm 0;
             padding: 1mm 0;
@@ -251,7 +251,7 @@ export default function TestPage() {
             text-align: right;
             margin-bottom: 1mm;
             font-size: 11pt;
-            font-weight: 600;
+        
           }
           .bill {
             display: flex;
@@ -262,7 +262,7 @@ export default function TestPage() {
             display: flex;
             justify-content: space-between;
             font-size: 9pt;
-            font-weight: bold;
+           
             margin-bottom: 1mm;
           }
 
@@ -302,7 +302,7 @@ export default function TestPage() {
          
 
           .total-row {
-            font-weight: bold;
+            
             font-size: 10pt;
             padding-top: 2mm;
           }
@@ -326,7 +326,7 @@ export default function TestPage() {
           table.items td:last-child {
             padding-right: 0;
             text-align: right;
-            font-family: "Courier New", monospace;
+            font-family: Arial, Helvetica, sans-serif;
             font-variant-numeric: tabular-nums;
           }
 
