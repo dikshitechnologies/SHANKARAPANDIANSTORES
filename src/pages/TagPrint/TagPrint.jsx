@@ -734,6 +734,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     updatedItems[index].qty = qty;
     updatedItems[index].amount = qty * (updatedItems[index].sRate || 0);
     setItems(updatedItems);
+    updatePrintItems(updatedItems);
   };
 
   const handleQtyKeyDown = (e, index) => {
@@ -853,8 +854,11 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
         <div style="display: flex; flex-wrap: wrap;">
     `);
     
-    printData.items.forEach((item, index) => {
-      for (let i = 0; i < printData.noOfPrints; i++) {
+    printData.items.forEach((item) => {
+      const qtyCount = Math.max(0, Math.floor(Number(item.qty) || 0));
+      if (qtyCount === 0) return;
+
+      for (let i = 0; i < qtyCount; i++) {
         printWindow.document.write(`
           <div class="tag">
             <div class="header">TAG PRINT</div>
@@ -908,7 +912,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
 
   const buildPreviewRows = (list) => {
     return list.flatMap((item) => {
-      const count = Math.max(0, parseInt(item.qty, 10) || 0);
+      const count = Math.max(0, Math.floor(Number(item.qty) || 0));
       if (count === 0) return [];
       return Array.from({ length: count }, (_, idx) => ({
         ...item,
@@ -917,7 +921,10 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     });
   };
 
-  const previewRows = buildPreviewRows(items.filter((item) => item.print === 'Y'));
+  // Calculate selected items based on print='Y'
+  const selectedItems = items.filter((item) => item.print === 'Y');
+  // Calculate preview rows based on current items with print='Y'
+  const previewRows = buildPreviewRows(selectedItems);
 
   return (
     <div style={styles.container}>
@@ -1169,7 +1176,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
             />
           </div>
           <div style={{ fontSize: TYPOGRAPHY.fontSize.sm, color: '#666' }}>
-            Selected for printing: {printItems.length} items ({printItems.length * noOfPrints} tags)
+            Selected for printing: {selectedItems.length} items
           </div>
         </div>
         
@@ -1191,7 +1198,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
             onClick={handlePrint}
             disabled={printItems.length === 0 || isLoading}
           >
-            {isLoading ? 'Printing...' : `Print (${printItems.length * noOfPrints})`}
+            {isLoading ? 'Printing...' : `Print`}
           </button>
         </div>
       </div>
