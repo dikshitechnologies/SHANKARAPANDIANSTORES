@@ -224,7 +224,7 @@ export default function TestPage() {
           }
           .cust-name {
             text-align: right;
-            font-size: 10pt;
+            font-size: 12pt;
             font-weight: bold;
             margin-bottom: 1mm;
           }
