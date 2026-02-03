@@ -197,6 +197,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
   const [gstChecked, setGstChecked] = useState(false);
   const [manualPrefixChecked, setManualPrefixChecked] = useState(false);
   const [pieceRateChecked, setPieceRateChecked] = useState(false);
+  const [discountChecked, setDiscountChecked] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -458,6 +459,12 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
     const newValue = !pieceRateChecked;
     setPieceRateChecked(newValue);
     handleChange('pieceRate', newValue ? 'Y' : 'N');
+  };
+
+  const handleDiscountToggle = () => {
+    const newValue = !discountChecked;
+    setDiscountChecked(newValue);
+    handleChange('discount', newValue ? 'Y' : 'N');
   };
 
   // UPDATED: Arrow key navigation with special handling for delete button
@@ -838,7 +845,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           fSellPrice: formData.sellingPrice || '',
           fCostPrice: formData.costPrice || '',
           fUnits: formData.unit || '',
-          sizes: sizesArray
+          sizes: sizesArray,
+          discount: formData.discount === 'Y' ? 'Y' : 'N'
         };
       } else {
 
@@ -882,6 +890,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           fCostPrice: formData.costPrice || '',
           // fUnits: fieldCodes.unitCode || ''
           fUnits: formData.unit || '',
+          discount: formData.discount === 'Y' ? 'Y' : 'N'
         };
       }
       console.log('Submitting data:', JSON.stringify(requestData));
@@ -1005,6 +1014,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
             fproduct: it.fproduct || '',
             pieceRate: it.pieceRate || it.fPieceRate || 'N',
             fPieceRate: it.fPieceRate || it.pieceRate || 'N',
+            discount: it.discount || 'N',
             brand: it.brand || '',
             category: it.category || '',
             model: it.model || '',
@@ -1292,6 +1302,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
     setGstChecked(false);
     setManualPrefixChecked(false);
     setPieceRateChecked(false);
+    setDiscountChecked(false);
     setMessage(null);
     setSearchTree('');
     // Reset popup initial search values
@@ -3657,6 +3668,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
             costPrice: item.fCostPrice || '',
             unit: item.fUnits || '',
             unitCode: item.funitcode || '',
+            discount: item.discount || 'N',
           }));
           setFieldCodes(prev => ({
             ...prev,
@@ -3673,6 +3685,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           setManualPrefixChecked(item.manualprefix === 'Y');
           const hasPieceRate = item.pieceRate === 'Y' || item.fPieceRate === 'Y';
           setPieceRateChecked(hasPieceRate);
+          const hasDiscount = item.discount === 'Y';
+          setDiscountChecked(hasDiscount);
           setMainGroup(item.fParent || '');
           setIsPopupOpen(false);
           if (actionType === 'delete') {
