@@ -342,7 +342,7 @@ export const generateSalesReturnPDF = async ({
       console.log('PDF opened successfully with autoPrint');
     } else {
       console.error('Failed to open print window - popup may be blocked');
-      alert('Could not open print window. Please allow popups for this site.');
+      // alert('Could not open print window. Please allow popups for this site.');
     }
     
     return 'PDF opened for printing';
