@@ -7,23 +7,26 @@ import { API_ENDPOINTS } from '../../../api/endpoints';
 const PrefixHistory = () => {
   // --- REFS ---
   const prefixRef = useRef(null);
-  const supplierRef = useRef(null);
-  const fromDateRef = useRef(null);
-  const toDateRef = useRef(null);
-  const searchButtonRef = useRef(null);
 
   // --- STATE MANAGEMENT ---
   const [prefix, setPrefix] = useState('');
-  const [supplier, setSupplier] = useState('');
-  const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
   const [hasSearched, setHasSearched] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   // API data states
-  const [prefixData, setPrefixData] = useState([]);
-  const [summaryData, setSummaryData] = useState(null);
+  const [prefixData, setPrefixData] = useState({
+    supplierName: '',
+    salesManName: '',
+    invoiceDate: '',
+    invoiceNo: '',
+    companyName: '',
+    itemPurchases: [],
+    itemTransactions: [],
+    transactionTotal: 0,
+    purchaseTotal: 0,
+    balanceQty: 0
+  });
 
   // --- SCREEN SIZE DETECTION ---
   const [screenSize, setScreenSize] = useState({
@@ -116,32 +119,44 @@ const PrefixHistory = () => {
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
     },
+    footerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderTop: '1px solid #e0e0e0',
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '12px',
+      position: 'sticky',
+      bottom: 0,
+      zIndex: 100,
+      boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
+    },
     filterRow: {
       display: 'flex',
-      alignItems: screenSize.isMobile || screenSize.isTablet ? 'stretch' : 'center',
+      alignItems: 'center',
       gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
       marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '14px' : '18px',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
-      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'column' : 'row',
     },
     formField: {
       display: 'flex',
-      alignItems: screenSize.isMobile || screenSize.isTablet ? 'stretch' : 'center',
+      alignItems: 'center',
       gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'column' : 'row',
-      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
-      flex: screenSize.isMobile || screenSize.isTablet ? '1 1 100%' : '0 1 auto',
+      flexDirection: screenSize.isMobile ? 'column' : 'row',
+      width: screenSize.isMobile ? '100%' : 'auto',
+      flex: screenSize.isMobile ? '1 1 100%' : '0 1 auto',
     },
     label: {
       fontFamily: TYPOGRAPHY.fontFamily,
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       color: '#333',
-      minWidth: screenSize.isMobile || screenSize.isTablet ? 'auto' : '80px',
+      minWidth: screenSize.isMobile ? 'auto' : '80px',
       whiteSpace: 'nowrap',
       flexShrink: 0,
-      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
+      width: screenSize.isMobile ? '100%' : 'auto',
       textAlign: 'left',
     },
     input: {
@@ -161,7 +176,7 @@ const PrefixHistory = () => {
       width: '100%',
       height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '100%' : '100px',
+      minWidth: screenSize.isMobile ? '100%' : '200px',
     },
     inputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -180,25 +195,7 @@ const PrefixHistory = () => {
       width: '100%',
       height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '100%' : '100px',
-    },
-    leftSide: {
-      display: 'flex',
-      alignItems: screenSize.isMobile || screenSize.isTablet ? 'stretch' : 'center',
-      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
-      flex: screenSize.isMobile || screenSize.isTablet ? '1 1 100%' : 1,
-      flexWrap: screenSize.isMobile || screenSize.isTablet ? 'wrap' : 'nowrap',
-      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'column' : 'row',
-      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
-    },
-    rightSide: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
-      flexShrink: 0,
-      width: screenSize.isMobile || screenSize.isTablet ? '100%' : 'auto',
-      flexDirection: screenSize.isMobile || screenSize.isTablet ? 'row' : 'row',
-      justifyContent: screenSize.isMobile || screenSize.isTablet ? 'space-between' : 'flex-end',
+      minWidth: screenSize.isMobile ? '100%' : '200px',
     },
     button: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
@@ -212,8 +209,8 @@ const PrefixHistory = () => {
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       boxShadow: '0 2px 8px rgba(27, 145, 218, 0.3)',
       letterSpacing: '0.3px',
-      flex: screenSize.isMobile || screenSize.isTablet ? 1 : '0 0 auto',
-      minWidth: screenSize.isMobile || screenSize.isTablet ? '0' : '100px',
+      flex: '0 0 auto',
+      minWidth: '100px',
       height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       display: 'flex',
       alignItems: 'center',
@@ -231,8 +228,8 @@ const PrefixHistory = () => {
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
       letterSpacing: '0.3px',
-      flex: screenSize.isMobile || screenSize.isTablet ? 1 : '0 0 auto',
-      minWidth: screenSize.isMobile || screenSize.isTablet ? '0' : '100px',
+      flex: '0 0 auto',
+      minWidth: '100px',
       height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       display: 'flex',
       alignItems: 'center',
@@ -266,15 +263,15 @@ const PrefixHistory = () => {
       border: '1px solid #e0e0e0',
       margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
       marginTop: 0,
-      marginBottom: screenSize.isMobile ? '70px' : screenSize.isTablet ? '80px' : '90px',
+      marginBottom: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '20px',
       WebkitOverflowScrolling: 'touch',
       width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
       boxSizing: 'border-box',
       flex: 'none',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '300px',
-      minHeight: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px',
+      maxHeight: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px',
+      minHeight: screenSize.isMobile ? '100px' : screenSize.isTablet ? '120px' : '150px',
     },
     table: {
       width: 'max-content',
@@ -297,10 +294,10 @@ const PrefixHistory = () => {
       zIndex: 10,
       border: '1px solid white',
       borderBottom: '2px solid white',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      minWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
       whiteSpace: 'nowrap',
-      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
+      maxWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
     },
     td: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -311,9 +308,9 @@ const PrefixHistory = () => {
       textAlign: 'center',
       border: '1px solid #ccc',
       color: '#333',
-      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      minWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
+      width: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
+      maxWidth: screenSize.isMobile ? '80px' : screenSize.isTablet ? '90px' : '100px',
     },
     totalRow: {
       background: '#e6f7ff',
@@ -340,6 +337,7 @@ const PrefixHistory = () => {
       borderRadius: '6px',
       padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '16px',
       marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '16px' : '20px',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
       display: 'flex',
       flexWrap: 'wrap',
       gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '12px' : '16px',
@@ -348,7 +346,7 @@ const PrefixHistory = () => {
       display: 'flex',
       flexDirection: 'column',
       flex: screenSize.isMobile ? '1 0 100%' : '0 0 auto',
-      minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? '45%' : '30%',
+      minWidth: screenSize.isMobile ? '100%' : screenSize.isTablet ? '45%' : '22%',
     },
     infoLabel: {
       fontSize: TYPOGRAPHY.fontSize.xs,
@@ -363,9 +361,13 @@ const PrefixHistory = () => {
     },
   };
 
-  // Helper function to convert YYYY-MM-DD to DD/MM/YYYY for API
-  const formatDateForAPI = (dateString) => {
-    const [year, month, day] = dateString.split('-');
+  // Format date to DD/MM/YYYY
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
 
@@ -378,7 +380,7 @@ const PrefixHistory = () => {
     }
   }, []);
 
-  // Handlers
+  // Handle search
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!prefix.trim()) {
@@ -388,35 +390,44 @@ const PrefixHistory = () => {
     
     setIsLoading(true);
     try {
-      // Convert dates to DD/MM/YYYY format
-      const apiFromDate = formatDateForAPI(fromDate);
-      const apiToDate = formatDateForAPI(toDate);
-      
-      // TODO: Replace with your actual API endpoint
       const response = await get(
-        API_ENDPOINTS.PREFIX_HISTORY.SEARCH(
-          prefix,
-          supplier,
-          apiFromDate,
-          apiToDate
-        )
+        API_ENDPOINTS.PREFIX_HISTORY.GET_BY_PREFIX(prefix)
       );
       
-      if (response.success && response.data) {
-        setPrefixData(response.data.details || []);
-        setSummaryData(response.data.summary || null);
+      if (response && response.supplierName !== undefined) {
+        setPrefixData(response);
         setHasSearched(true);
-        toast.success(response.message || 'Data loaded successfully');
+        toast.success('Prefix history loaded successfully');
       } else {
-        toast.error('No data found');
-        setPrefixData([]);
-        setSummaryData(null);
+        toast.error('No data found for this prefix');
+        setPrefixData({
+          supplierName: '',
+          salesManName: '',
+          invoiceDate: '',
+          invoiceNo: '',
+          companyName: '',
+          itemPurchases: [],
+          itemTransactions: [],
+          transactionTotal: 0,
+          purchaseTotal: 0,
+          balanceQty: 0
+        });
       }
     } catch (error) {
       toast.error('Failed to load prefix history');
       console.error('Error fetching prefix history:', error);
-      setPrefixData([]);
-      setSummaryData(null);
+      setPrefixData({
+        supplierName: '',
+        salesManName: '',
+        invoiceDate: '',
+        invoiceNo: '',
+        companyName: '',
+        itemPurchases: [],
+        itemTransactions: [],
+        transactionTotal: 0,
+        purchaseTotal: 0,
+        balanceQty: 0
+      });
     } finally {
       setIsLoading(false);
     }
@@ -424,62 +435,55 @@ const PrefixHistory = () => {
   
   const handleRefresh = () => {
     setPrefix('');
-    setSupplier('');
-    setFromDate(new Date().toISOString().split('T')[0]);
-    setToDate(new Date().toISOString().split('T')[0]);
     setHasSearched(false);
-    setPrefixData([]);
-    setSummaryData(null);
+    setPrefixData({
+      supplierName: '',
+      salesManName: '',
+      invoiceDate: '',
+      invoiceNo: '',
+      companyName: '',
+      itemPurchases: [],
+      itemTransactions: [],
+      transactionTotal: 0,
+      purchaseTotal: 0,
+      balanceQty: 0
+    });
+    if (prefixRef.current) {
+      prefixRef.current.focus();
+    }
   };
 
-  // Keyboard navigation handlers
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Keyboard navigation
   const handlePrefixKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      supplierRef.current?.focus();
+      handleSearch(e);
     }
   };
 
-  const handleSupplierKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      fromDateRef.current?.focus();
-    }
+  // Calculate summary values
+  const getSummaryData = () => {
+    // Combine purchases and transactions for summary
+    const allTransactions = [
+      ...prefixData.itemPurchases,
+      ...prefixData.itemTransactions
+    ];
+    
+    const purchaseQty = prefixData.purchaseTotal;
+    const salesReturnQty = Math.abs(prefixData.transactionTotal);
+    const closingStock = prefixData.balanceQty;
+    
+    return {
+      purchase: purchaseQty,
+      salesReturn: salesReturnQty > 0 ? salesReturnQty : '',
+      closingStock: closingStock
+    };
   };
 
-  const handleFromDateKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      toDateRef.current?.focus();
-    }
-  };
-
-  const handleToDateKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      searchButtonRef.current?.focus();
-    }
-  };
-
-  // Mock data for demonstration
-  const mockPrefixData = [
-    { 
-      billNo: 'DC00028AA', 
-      pcs: '0.00', 
-      gross: '22.000', 
-      counter: '1', 
-      design: '', 
-      section: '', 
-      size: '', 
-      div: '' 
-    }
-  ];
-
-  const mockSummaryData = {
-    purchase: '22.000',
-    salesReturn: '',
-    closingStock: '22.000'
-  };
+  const summaryData = getSummaryData();
 
   return (
     <div style={styles.container}>
@@ -487,154 +491,112 @@ const PrefixHistory = () => {
       <div style={styles.headerSection}>
         <form onSubmit={handleSearch}>
           <div style={styles.filterRow}>
-            {/* LEFT SIDE: Search fields */}
-            <div style={styles.leftSide}>
-              {/* Prefix */}
-              <div style={styles.formField}>
-                <label style={styles.label}>Prefix:</label>
-                <input
-                  ref={prefixRef}
-                  type="text"
-                  style={focusedField === 'prefix' ? styles.inputFocused : styles.input}
-                  value={prefix}
-                  onChange={e => setPrefix(e.target.value)}
-                  onKeyDown={handlePrefixKeyDown}
-                  onFocus={() => setFocusedField('prefix')}
-                  onBlur={() => setFocusedField('')}
-                  placeholder="Enter prefix"
-                />
-              </div>
-
-              {/* Supplier */}
-              <div style={styles.formField}>
-                <label style={styles.label}>Supplier:</label>
-                <input
-                  ref={supplierRef}
-                  type="text"
-                  style={focusedField === 'supplier' ? styles.inputFocused : styles.input}
-                  value={supplier}
-                  onChange={e => setSupplier(e.target.value)}
-                  onKeyDown={handleSupplierKeyDown}
-                  onFocus={() => setFocusedField('supplier')}
-                  onBlur={() => setFocusedField('')}
-                  placeholder="Enter supplier"
-                />
-              </div>
-
-              {/* From Date */}
-              <div style={styles.formField}>
-                <label style={styles.label}>From Date:</label>
-                <input
-                  ref={fromDateRef}
-                  type="date"
-                  style={focusedField === 'fromDate' ? styles.inputFocused : styles.input}
-                  value={fromDate}
-                  onChange={e => setFromDate(e.target.value)}
-                  onKeyDown={handleFromDateKeyDown}
-                  onFocus={() => setFocusedField('fromDate')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-
-              {/* To Date */}
-              <div style={styles.formField}>
-                <label style={styles.label}>To Date:</label>
-                <input
-                  ref={toDateRef}
-                  type="date"
-                  style={focusedField === 'toDate' ? styles.inputFocused : styles.input}
-                  value={toDate}
-                  onChange={e => setToDate(e.target.value)}
-                  onKeyDown={handleToDateKeyDown}
-                  onFocus={() => setFocusedField('toDate')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-            </div>
-
-            {/* RIGHT SIDE: Buttons */}
-            <div style={styles.rightSide}>
-              <button ref={searchButtonRef} type="submit" style={styles.button}>Search</button>
-              <button type="button" style={styles.buttonSecondary} onClick={handleRefresh}>Refresh</button>
+            {/* Prefix Input */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Prefix:</label>
+              <input
+                ref={prefixRef}
+                type="text"
+                style={focusedField === 'prefix' ? styles.inputFocused : styles.input}
+                value={prefix}
+                onChange={e => setPrefix(e.target.value)}
+                onKeyDown={handlePrefixKeyDown}
+                onFocus={() => setFocusedField('prefix')}
+                onBlur={() => setFocusedField('')}
+                placeholder="Enter prefix (e.g., 00006)"
+              />
             </div>
           </div>
         </form>
+
+        {/* Info Box (Prefix Details) */}
+        {hasSearched && prefixData.supplierName !== undefined && (
+          <div style={styles.infoBox}>
+            <div style={styles.infoItem}>
+              <span style={styles.infoLabel}>Prefix</span>
+              <span style={styles.infoValue}>{prefix}</span>
+            </div>
+            <div style={styles.infoItem}>
+              <span style={styles.infoLabel}>Supplier</span>
+              <span style={styles.infoValue}>{prefixData.supplierName || 'N/A'}</span>
+            </div>
+            <div style={styles.infoItem}>
+              <span style={styles.infoLabel}>Salesman</span>
+              <span style={styles.infoValue}>{prefixData.salesManName || 'N/A'}</span>
+            </div>
+            <div style={styles.infoItem}>
+              <span style={styles.infoLabel}>Date</span>
+              <span style={styles.infoValue}>{formatDate(prefixData.invoiceDate)}</span>
+            </div>
+            <div style={styles.infoItem}>
+              <span style={styles.infoLabel}>Ref No</span>
+              <span style={styles.infoValue}>{prefixData.invoiceNo || 'N/A'}</span>
+            </div>
+            <div style={styles.infoItem}>
+              <span style={styles.infoLabel}>Floor</span>
+              <span style={styles.infoValue}>{prefixData.companyName || 'N/A'}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table Section */}
       <div style={styles.tableSection}>
-        {/* Info Box (Prefix Details) */}
-        {hasSearched && (
-          <div style={styles.infoBox}>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Prefix</span>
-              <span style={styles.infoValue}>AADDLI</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Supplier</span>
-              <span style={styles.infoValue}>ABC SUPPLIER</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Gross</span>
-              <span style={styles.infoValue}>22.000</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Item Name</span>
-              <span style={styles.infoValue}>GOLD RING</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Ref No</span>
-              <span style={styles.infoValue}>DC00028AA</span>
-            </div>
-          </div>
-        )}
-
         {/* Main Table */}
         <div style={styles.mainTableContainer}>
           <table style={styles.table}>
             <thead>
               <tr>
                 <th style={styles.th}>Bill No.</th>
-                <th style={styles.th}>Pcs</th>
-                <th style={styles.th}>Gross</th>
-                <th style={styles.th}>Counter</th>
-                <th style={styles.th}>Design</th>
-                <th style={styles.th}>Section</th>
-                <th style={styles.th}>Size</th>
-                <th style={styles.th}>Div</th>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Qty</th>
+                <th style={styles.th}>Rate</th>
+                <th style={styles.th}>Amount</th>
               </tr>
             </thead>
             <tbody>
               {!hasSearched ? (
                 <tr>
-                  <td colSpan="8" style={styles.emptyMsg}>
-                    {/* Enter prefix and click "Search" to view prefix history */}
+                  <td colSpan="6" style={styles.emptyMsg}>
+                    Enter prefix and press Enter to view prefix history
                   </td>
                 </tr>
               ) : isLoading ? (
                 <tr>
-                  <td colSpan="8" style={styles.emptyMsg}>
+                  <td colSpan="6" style={styles.emptyMsg}>
                     Loading...
                   </td>
                 </tr>
-              ) : mockPrefixData.length === 0 ? (
+              ) : prefixData.itemPurchases.length === 0 && prefixData.itemTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={styles.emptyMsg}>
-                    No data found
+                  <td colSpan="6" style={styles.emptyMsg}>
+                    No transaction data found
                   </td>
                 </tr>
               ) : (
                 <>
-                  {mockPrefixData.map((item, idx) => (
-                    <tr key={idx}>
-                      <td style={styles.td}>{item.billNo}</td>
-                      <td style={styles.td}>{item.pcs}</td>
-                      <td style={styles.td}>{item.gross}</td>
-                      <td style={styles.td}>{item.counter}</td>
-                      <td style={styles.td}>{item.design}</td>
-                      <td style={styles.td}>{item.section}</td>
-                      <td style={styles.td}>{item.size}</td>
-                      <td style={styles.td}>{item.div}</td>
+                  {/* Display Purchase Items */}
+                  {prefixData.itemPurchases.map((item, idx) => (
+                    <tr key={`purchase-${idx}`}>
+                      <td style={styles.td}>{item.billno}</td>
+                      <td style={styles.td}>{item.billType}</td>
+                      <td style={styles.td}>{formatDate(item.date)}</td>
+                      <td style={styles.td}>{item.qty}</td>
+                      <td style={styles.td}>{item.rate}</td>
+                      <td style={styles.td}>{item.amount}</td>
+                    </tr>
+                  ))}
+                  
+                  {/* Display Transaction Items */}
+                  {prefixData.itemTransactions.map((item, idx) => (
+                    <tr key={`transaction-${idx}`}>
+                      <td style={styles.td}>{item.billno}</td>
+                      <td style={styles.td}>{item.billType}</td>
+                      <td style={styles.td}>{formatDate(item.date)}</td>
+                      <td style={styles.td}>{item.qty}</td>
+                      <td style={styles.td}>{item.rate}</td>
+                      <td style={styles.td}>{item.amount}</td>
                     </tr>
                   ))}
                 </>
@@ -644,28 +606,38 @@ const PrefixHistory = () => {
         </div>
 
         {/* Summary Table */}
-        {hasSearched && !isLoading && mockPrefixData.length > 0 && (
+        {hasSearched && !isLoading && (prefixData.itemPurchases.length > 0 || prefixData.itemTransactions.length > 0) && (
           <div style={styles.summaryTableContainer}>
             <table style={styles.table}>
               <thead>
                 <tr>
                   <th style={styles.th}>Summary</th>
                   <th style={styles.th}>Purchase</th>
-                  <th style={styles.th}>Sales & P.Return</th>
+                  <th style={styles.th}>Sales & Return</th>
                   <th style={styles.th}>Closing Stock</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td style={{...styles.td, fontWeight: TYPOGRAPHY.fontWeight.bold}}>Total</td>
-                  <td style={styles.td}>{mockSummaryData.purchase}</td>
-                  <td style={styles.td}>{mockSummaryData.salesReturn || ''}</td>
-                  <td style={styles.td}>{mockSummaryData.closingStock}</td>
+                  <td style={styles.td}>{summaryData.purchase}</td>
+                  <td style={styles.td}>{summaryData.salesReturn || '0'}</td>
+                  <td style={styles.td}>{summaryData.closingStock}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         )}
+      </div>
+
+      {/* Footer Section */}
+      <div style={styles.footerSection}>
+        <button type="button" style={styles.buttonSecondary} onClick={handleRefresh}>
+          Refresh
+        </button>
+        <button type="button" style={styles.button} onClick={handlePrint}>
+          Print
+        </button>
       </div>
     </div>
   );

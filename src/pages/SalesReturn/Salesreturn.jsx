@@ -247,8 +247,9 @@ const [roundOffValue, setRoundOffValue] = useState(0);
     fieldName: 'billDate'
   });
 
-// Net Amount - rounded off to nearest rupee (like SaleInvoice)
-const netAmountRounded = Math.round(totalAmount);
+// Net Amount - calculated as: Total Amount - Discount Amount, rounded off to nearest rupee
+const netAmountCalculated = parseFloat(totalAmount || 0) - parseFloat(discountAmount || 0);
+const netAmountRounded = Math.round(netAmountCalculated);
 const netAmount = Math.max(netAmountRounded, 0);
 
 useEffect(() => {
@@ -291,14 +292,13 @@ useEffect(() => {
   const qtyTotal = items.reduce((acc, item) => acc + (parseFloat(item.qty) || 0), 0);
   const amountTotal = items.reduce((acc, item) => acc + (parseFloat(item.amount) || 0), 0);
   
-  // Calculate round-off
+  // Don't calculate roundOff here - it comes from API only
   const roundedAmount = Math.round(amountTotal);
-  const roundOff = (roundedAmount - amountTotal).toFixed(2);
   
   setTotalQty(qtyTotal);
   setTotalAmount(amountTotal);
   setRoundedTotalAmount(roundedAmount);
-  setRoundOffValue(roundOff);
+  // Don't set roundOffValue here - only from API
 }, [items]);
 
 // Add this useEffect for arrow navigation in bill details popup
@@ -1066,6 +1066,19 @@ const handleApplyBillNumber = async () => {
       setDiscount(discountPercentValue.toString());
       setDiscountPercent(discountPercentValue);
       setDiscountAmount(discountAmountValue);
+      
+      // ✅ Extract and set round off value
+      let roundOffVal = 0;
+      if (header.roundOff !== undefined && header.roundOff !== null) {
+        roundOffVal = parseFloat(header.roundOff);
+      } else if (header.addLss !== undefined && header.addLss !== null && header.addLss !== "") {
+        roundOffVal = parseFloat(header.addLss);
+      } else if (header.roundOffValue !== undefined && header.roundOffValue !== null) {
+        roundOffVal = parseFloat(header.roundOffValue);
+      }
+      
+      setRoundOffValue(roundOffVal);
+      console.log("🔍 Round Off value from bill:", roundOffVal);
       /* ================= END DISCOUNT EXTRACTION ================= */
 
       const itemsArray = voucherDetails.items || voucherDetails.details || [];
@@ -1644,6 +1657,7 @@ const requestData = {
     refNo: (billDetails.newBillNo || "").toString(),
     discount: discountPercent.toString(),
     discountAMT: parseFloat(discountAmount || 0).toFixed(2).toString(),
+    roundoff: (roundOffValue || 0).toString(),
 
     // ✅ EXACT FIELD NAME
     gstRrate: gstMode === "Inclusive" ? "I" : "E"
@@ -1799,6 +1813,7 @@ const requestData = {
     refNo: (billDetails.newBillNo || "").toString(),
     discount: (discountPercent || 0).toString(),
     discountAMT: Number(discountAmount || 0).toFixed(2),  // string
+    roundoff: (roundOffValue || 0).toString(),
     gstRate: gstMode === "Inclusive" ? "I" : "E"
   },
 
@@ -2243,6 +2258,21 @@ const loadVoucherForEditing = async (voucherNo) => {
     localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
     // ==================== END DISCOUNT SETUP ====================
     
+    // ✅ Extract and set round off value from header
+    let roundOffVal = 0;
+    if (header.roundOff !== undefined && header.roundOff !== null) {
+      roundOffVal = parseFloat(header.roundOff);
+    } else if (header.roundoff !== undefined && header.roundoff !== null) {
+      roundOffVal = parseFloat(header.roundoff);
+    } else if (header.addLss !== undefined && header.addLss !== null && header.addLss !== "") {
+      roundOffVal = parseFloat(header.addLss);
+    } else if (header.roundOffValue !== undefined && header.roundOffValue !== null) {
+      roundOffVal = parseFloat(header.roundOffValue);
+    }
+    
+    setRoundOffValue(roundOffVal);
+    console.log("🔍 Round Off value loaded for editing:", roundOffVal);
+    
     setBillDetails(prev => ({
       ...prev,
       billNo: header.voucherNo || voucherNo,
@@ -2360,11 +2390,11 @@ useEffect(() => {
   
   // Apply round-off logic
   const roundedAmount = Math.round(netAmountBeforeRound);
-  const roundOffValue = (roundedAmount - netAmountBeforeRound).toFixed(2);
+  // Don't calculate roundOffValue here - only from API
   
   setDiscountAmount(calculatedDiscount.toFixed(2));
   setRoundedTotalAmount(roundedAmount);
-  setRoundOffValue(roundOffValue);
+  // Don't set roundOffValue here - only from API
 }, [totalAmount, discountPercent]);
 
 
@@ -2730,14 +2760,18 @@ useEffect(() => {
           // ✅ Fetch party balance for selected customer
           await fetchPartyBalance(customerCode);
           
-          // Focus on next field
+          // Focus on barcode field (first row, first column)
           setTimeout(() => {
-            mobileRef.current?.focus();
+            const barcodeInput = document.querySelector('input[data-row="0"][data-field="barcode"]');
+            if (barcodeInput) {
+              barcodeInput.focus();
+              barcodeInput.select();
+            }
             setFocusedElement({
-              type: 'header',
-              rowIndex: 1,
-              fieldIndex: 2,
-              fieldName: 'customer'
+              type: 'table',
+              rowIndex: 0,
+              fieldIndex: 0,
+              fieldName: 'barcode'
             });
           }, 100);
         }
@@ -4086,6 +4120,7 @@ const handlePrint = () => {
       color: '#333',
       minWidth: screenSize.isMobile ? '75px' : screenSize.isTablet ? '85px' : '95px',
       whiteSpace: 'nowrap',
+      
       flexShrink: 0,
       paddingTop: '2px',
     },
@@ -4998,7 +5033,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
       <label style={styles.inlineLabel}>Entry Date:</label>
       <input
         type="date"
-        style={{
+        style={{textAlign: 'center',
           ...(focusedField === 'billDate' ? styles.inlineInputFocused : styles.inlineInput),
           padding: screenSize.isMobile ? '10px 35px 10px 8px' : 
                   screenSize.isTablet ? '8px 35px 8px 10px' : 
@@ -5143,15 +5178,6 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
     ref={gstModeRef}
     readOnly
     onKeyDown={(e) => {
-      // If we programmatically focused this field due to Enter on previous field,
-      // ignore the immediate Enter to avoid double-jumping to customer.
-      if (e.key === 'Enter' && ignoreNextEnterRef.current) {
-        ignoreNextEnterRef.current = false;
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
       // ✅ SPACE → TOGGLE Inclusive / Exclusive
       if (e.key === ' ') {
         e.preventDefault();
@@ -5162,12 +5188,30 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         return;
       }
 
+      // ✅ ENTER → Move to Customer field
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        setTimeout(() => {
+          custNameRef.current?.focus();
+          custNameRef.current?.select();
+        }, 0);
+        setFocusedField('custName');
+        setFocusedElement({
+          type: 'header',
+          rowIndex: 1,
+          fieldIndex: 0,
+          fieldName: 'custName'
+        });
+        return;
+      }
+
       // ✅ Arrow navigation
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         
         // Handle arrow navigation manually for this field
-        if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        if (e.key === 'ArrowRight') {
           // Move to Customer field
           setTimeout(() => custNameRef.current?.focus(), 0);
           setFocusedField('custName');
@@ -5222,10 +5266,13 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
     }}
     onBlur={() => setFocusedField('')}
     style={
+      
       focusedField === 'gstMode'
         ? { 
+        
             ...styles.inlineInputFocused, 
             fontWeight: '600', 
+          
             cursor: 'pointer', 
             width: '100%',
             backgroundColor: '#f0f8ff'
@@ -5234,6 +5281,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
             ...styles.inlineInput, 
             fontWeight: '600', 
             cursor: 'pointer', 
+            textAlign: 'center',
             width: '100%',
             backgroundColor: '#f8fafc'
           }
@@ -5291,7 +5339,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         name="custName"
         onChange={handleInputChange}
         ref={custNameRef}
-        
+        onClick={() => openCustomerPopup(billDetails.custName)}
         onKeyDown={(e) => handleKeyDown(e, mobileRef, 'custName')}
         onFocus={() => {
           setFocusedField('custName');
@@ -5306,10 +5354,13 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         readOnly
       />
       <div 
+        onClick={() => openCustomerPopup(billDetails.custName)}
         style={{
           ...styles.searchIconInside,
           right: screenSize.isMobile ? '8px' : '10px',
-          fontSize: screenSize.isMobile ? '16px' : '18px'
+          fontSize: screenSize.isMobile ? '16px' : '18px',
+          pointerEvents: 'auto',
+          cursor: 'pointer'
         }}
         title="Click or press / to search"
       >
@@ -5344,7 +5395,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
 
   <input
     type="text"
-    style={{
+    style={{textAlign: 'center',
       ...(focusedField === 'mobileNo'
         ? styles.inlineInputFocused
         : styles.inlineInput),
@@ -5403,7 +5454,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
         value={partyBalance}
         readOnly
         tabIndex={-1}
-        style={{
+        style={{textAlign: 'center',
           ...styles.inlineInput,
           fontWeight: '600',
           
@@ -5987,7 +6038,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
              screenSize.isTablet ? '160px' :
              '150px'
 }}>
-  <label style={styles.inlineLabel}>Add less:</label>
+  <label style={styles.inlineLabel}>ROUND OFF</label>
   <input
     type="text"
     readOnly
@@ -6003,7 +6054,7 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
       cursor: 'not-allowed',
       pointerEvents: 'none'
     }}
-    value={roundOffValue}
+    value={roundOffValue || ''}
     name="roundOffValue"
   />
 </div>
@@ -6013,14 +6064,14 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
   ...styles.formField,
   flex: '1 1 auto',
   minWidth: screenSize.isMobile ? 'calc(100% - 8px)' :
-           screenSize.isTablet ? '240px' :
-           '220px',
+           screenSize.isTablet ? '320px' :
+           '380px',
   maxWidth: screenSize.isMobile ? 'calc(100% - 8px)' :
-            screenSize.isTablet ? '240px' :
-            '220px',
+            screenSize.isTablet ? '320px' :
+            '380px',
   flexBasis: screenSize.isMobile ? 'calc(100% - 8px)' :
-             screenSize.isTablet ? '240px' :
-             '220px'
+             screenSize.isTablet ? '320px' :
+             '380px'
 }}>
   <label style={styles.inlineLabel}>Net Amount:</label>
   <input
@@ -6039,8 +6090,8 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
       pointerEvents: 'none'
     }}
     value={netAmount.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     })}
     name="netAmount"
   />

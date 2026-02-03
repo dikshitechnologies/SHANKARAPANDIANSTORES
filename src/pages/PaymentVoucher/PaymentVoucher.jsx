@@ -1558,7 +1558,8 @@ const PaymentVoucher = () => {
       cashBank: item.cashBank || 'N/A',
       narration: item.narration || '',
       amount: parseFloat(item.amount) || 0
-    }))
+    })),
+    
   };
 };
 
