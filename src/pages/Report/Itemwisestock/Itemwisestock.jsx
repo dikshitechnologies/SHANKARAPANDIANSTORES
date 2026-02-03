@@ -23,7 +23,6 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
-// API BASE URL
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (date) => {
   const d = new Date(date);
@@ -48,6 +47,11 @@ const AccountPayables = () => {
   const [focusedField, setFocusedField] = useState('');
   const [companyDisplay, setCompanyDisplay] = useState('ALL');
   const [companySearchTerm, setCompanySearchTerm] = useState('');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [itemsList, setItemsList] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [showItemPopup, setShowItemPopup] = useState(false);
 
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -58,29 +62,6 @@ const AccountPayables = () => {
   // --- DATA ---
   const [payablesData, setPayablesData] = useState([]);
   const [companies, setCompanies] = useState([]);
-
-  // --- FETCH COMPANIES ON MOUNT ---
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`${API_BASE}${API_ENDPOINTS.ACC_PAY.COMPANIES}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setCompanies(data);
-        console.log('Companies loaded:', data);
-      } catch (error) {
-        console.error('Error fetching companies:', error);
-        // toast.error('Failed to load companies list');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCompanies();
-  }, []);
 
   // Update tempSelectedCompanies when popup opens based on current selection
   useEffect(() => {
@@ -116,6 +97,30 @@ const AccountPayables = () => {
   const handleCompanyClick = () => {
     // The useEffect above will handle setting tempSelectedCompanies
     setShowCompanyPopup(true);
+  };
+
+  const handleItemNameClick = async () => {
+    setShowItemPopup(true);
+    setLoadingItems(true);
+    setItemSearchTerm('');
+    
+    try {
+      // Fetch items from API
+      const apiUrl = `${API_BASE}${API_ENDPOINTS.ITEMWISE_STOCK.GET_ITEMS_LIST(1, 100)}`;
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseData = await response.json();
+      setItemsList(responseData.data || []);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      toast.error('Failed to load items. Please try again.');
+      setItemsList([]);
+    } finally {
+      setLoadingItems(false);
+    }
   };
 
   const handleCompanySelect = (company) => {
@@ -203,78 +208,44 @@ const AccountPayables = () => {
     setCompanySearchTerm(''); // Clear search term when popup closes
   };
 
+  const handleItemPopupClose = () => {
+    setShowItemPopup(false);
+    setItemSearchTerm('');
+  };
+
+  const handleItemSelect = (item) => {
+    setSelectedItem(item);
+    setShowItemPopup(false);
+    setItemSearchTerm('');
+  };
+
   const handleSearch = async () => {
-    if (!fromDate || !toDate || selectedCompanies.length === 0) {
-      toast.warning('Please fill all fields: From Date, To Date, and select at least one company', {
+    if (!fromDate || !toDate) {
+      toast.warning('Please fill all fields: From Date and To Date', {
         autoClose: 2000,
       });
       return;
     }
     
-    console.log('Searching Account Payables with:', {
+    console.log('Searching Itemwise Stock with:', {
       fromDate,
       toDate,
-      selectedCompanies
+      selectedItem,
     });
     
     setIsLoading(true);
     
     try {
-      // Prepare selected companies string
-      let selectedCompanyCodes;
-      if (selectedCompanies.includes('ALL')) {
-        selectedCompanyCodes = companies.map(c => c.fCompcode).join(',');
-      } else {
-        selectedCompanyCodes = selectedCompanies.join(',');
-      }
-      
-      // Build the API URL
-      const apiUrl = `${API_BASE}${API_ENDPOINTS.ACC_PAY.LIST(selectedCompanyCodes, 1, 20)}`;
-      console.log('API URL:', apiUrl);
-      
-      // Fetch data from API
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('API Response:', data);
-      
-      // Map the API data to match your table structure
-      const mappedData = data.map((item, index) => ({
-        no: item.no || index + 1,
-        accountName: item.accountName || 'N/A',
-        debit: item.debit?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
-        credit: item.credit?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
-        balance: Math.abs(item.netBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        drCr: item.balanceType || (item.netBalance > 0 ? 'DR' : 'CR')
-      }));
-      
-      // Calculate totals for summary row
-      const totalDebit = data.reduce((sum, item) => sum + (item.debit || 0), 0);
-      const totalCredit = data.reduce((sum, item) => sum + (item.credit || 0), 0);
-      const totalBalance = data.reduce((sum, item) => sum + Math.abs(item.netBalance || 0), 0);
-      
-      // Add total row if we have data
-      if (mappedData.length > 0) {
-        mappedData.push({
-          isTotal: true,
-          accountName: "Total",
-          debit: totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          credit: totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          balance: totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          drCr: ""
-        });
-      }
-      
-      setPayablesData(mappedData);
+      // TODO: Add your table API endpoint here
+      toast.info('Ready for table API integration', {
+        autoClose: 2000,
+      });
+      setPayablesData([]);
       setTableLoaded(true);
-      // toast.success(`Loaded ${data.length} records`);
       
     } catch (error) {
-      console.error('Error fetching payables:', error);
-      toast.error('Failed to load account payables data. Please try again.');
+      console.error('Error searching:', error);
+      toast.error('Failed to search. Please try again.');
       setPayablesData([]);
       setTableLoaded(false);
     } finally {
@@ -981,22 +952,22 @@ const AccountPayables = () => {
               <label style={styles.inlineLabel}>Item Name:</label>
               <div
                 style={
-                  focusedField === 'company'
+                  focusedField === 'itemName'
                     ? styles.companyInputFocused
                     : styles.companyInput
                 }
                 onClick={() => {
-                  handleCompanyClick();
-                  setFocusedField('company');
+                  handleItemNameClick();
+                  setFocusedField('itemName');
                 }}
                 ref={companyRef}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'company');
+                  handleKeyDown(e, 'itemName');
                   if (e.key === 'Enter') {
-                    handleCompanyClick();
+                    handleItemNameClick();
                   }
                 }}
-                onFocus={() => setFocusedField('company')}
+                onFocus={() => setFocusedField('itemName')}
                 onBlur={() => setFocusedField('')}
                 tabIndex={0}
               >
@@ -1008,7 +979,7 @@ const AccountPayables = () => {
                   whiteSpace: 'nowrap',
                   flex: 1
                 }}>
-                  {companyDisplay}
+                  {selectedItem ? selectedItem.fItemName : 'Select Item'}
                 </span>
                 <span style={{ 
                   color: '#1B91DA', 
@@ -1066,15 +1037,9 @@ const AccountPayables = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th }}>Date</th>
-                <th style={{ ...styles.th }}>Opg Pcs</th>
-                <th style={{ ...styles.th }}>Opg Gms</th>
-                <th style={{ ...styles.th }}>Pur Pcs</th>
-                <th style={{ ...styles.th }}>Pur Gms</th>
-                <th style={{ ...styles.th }}>Sal Pcs</th>
-                <th style={{ ...styles.th }}>Sal Gms</th>
-                <th style={{ ...styles.th }}>Bal Pcs</th>
-                <th style={{ ...styles.th }}>Bal Gms</th>
+                <th style={{ ...styles.th }}>No</th>
+                <th style={{ ...styles.th }}>Item Code</th>
+                <th style={{ ...styles.th }}>Item Name</th>
               </tr>
             </thead>
           <tbody>
@@ -1088,27 +1053,21 @@ const AccountPayables = () => {
             borderTop: '2px solid #1B91DA'
           } : {})
         }}>
-          <td style={styles.td}>{row.date || ''}</td>
-          <td style={styles.td}>{row.opgPcs || ''}</td>
-          <td style={styles.td}>{row.opgGms || ''}</td>
-          <td style={styles.td}>{row.purPcs || ''}</td>
-          <td style={styles.td}>{row.purGms || ''}</td>
-          <td style={styles.td}>{row.salPcs || ''}</td>
-          <td style={styles.td}>{row.salGms || ''}</td>
-          <td style={styles.td}>{row.balPcs || ''}</td>
-          <td style={styles.td}>{row.balGms || ''}</td>
+          <td style={styles.td}>{row.no || ''}</td>
+          <td style={styles.td}>{row.fItemcode || ''}</td>
+          <td style={styles.td}>{row.fItemName || ''}</td>
         </tr>
       ))
     ) : (
       <tr>
-        <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+        <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
           No records found
         </td>
       </tr>
     )
   ) : (
     <tr>
-      {/* <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+      {/* <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
         Use the Search button to load data
       </td> */}
     </tr>
@@ -1118,7 +1077,7 @@ const AccountPayables = () => {
         </div>
       </div>
 
-      {/* Footer Section with Totals - CENTERED */}
+      {/* Footer Section */}
       <div style={styles.footerSection}>
         <div style={{
           ...styles.balanceContainer,
@@ -1126,21 +1085,9 @@ const AccountPayables = () => {
           width: '100%',
         }}>
           <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Debit</span>
+            <span style={styles.balanceLabel}>Total Items</span>
             <span style={styles.balanceValue}>
-              ₹{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Credit</span>
-            <span style={styles.balanceValue}>
-              ₹{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Total Balance</span>
-            <span style={styles.balanceValue}>
-              ₹{totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {payablesData.length}
             </span>
           </div>
         </div>
@@ -1226,6 +1173,84 @@ const AccountPayables = () => {
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handlePopupOk}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Item Selection Popup */}
+      {showItemPopup && (
+        <div style={styles.popupOverlay} onClick={handleItemPopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Item
+              <button 
+                style={styles.closeButton}
+                onClick={handleItemPopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Search Bar */}
+            <div style={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={itemSearchTerm}
+                onChange={(e) => setItemSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
+            
+            <div style={styles.companyList}>
+              {loadingItems ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  Loading items...
+                </div>
+              ) : itemsList.length > 0 ? (
+                itemsList
+                  .filter(item => 
+                    item.fItemName.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+                    item.fItemcode.toLowerCase().includes(itemSearchTerm.toLowerCase())
+                  )
+                  .map((item) => {
+                    const isSelected = selectedItem && selectedItem.fItemcode === item.fItemcode;
+                    return (
+                      <div 
+                        key={item.fItemcode} 
+                        style={isSelected ? styles.selectedCompanyItem : styles.companyItem}
+                        onClick={() => handleItemSelect(item)}
+                      >
+                        <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                          {isSelected && <div style={styles.checkmark}>✓</div>}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <span style={styles.companyText}>{item.fItemName}</span>
+                          <span style={{ fontSize: '12px', color: '#999', marginLeft: '8px' }}>({item.fItemcode})</span>
+                        </div>
+                      </div>
+                    );
+                  })
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  No items found
+                </div>
+              )}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handleItemPopupClose}
                 >
                   OK
                 </button>
