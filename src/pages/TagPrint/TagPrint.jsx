@@ -95,7 +95,7 @@ const TagPrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
-      height: '100vh',
+      height: '93vh',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -120,9 +120,9 @@ const TagPrint = () => {
       display: 'flex',
       flexDirection: 'column',
       minHeight: 0,
-      overflow: 'auto',
+    //   overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
-      paddingBottom: screenSize.isMobile ? '120px' : '100px',
+      paddingBottom: screenSize.isMobile ? '300px' : '250px',
     },
     filterRow: {
       display: 'flex',
@@ -334,9 +334,9 @@ const TagPrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       padding: '8px 6px',
       textAlign: 'center',
-      border: '1px solid #4CAF50',
-      color: '#4CAF50',
-      backgroundColor: '#E8F5E9',
+      border: '1px solid #ccc',
+      color: '#333',
+      backgroundColor: '#f5f5f5',
       cursor: 'pointer',
       transition: 'background-color 0.2s ease',
     },
@@ -346,9 +346,9 @@ const TagPrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.bold,
       padding: '8px 6px',
       textAlign: 'center',
-      border: '1px solid #f44336',
-      color: '#f44336',
-      backgroundColor: '#FFEBEE',
+      border: '1px solid #ccc',
+      color: '#333',
+      backgroundColor: '#f5f5f5',
       cursor: 'pointer',
       transition: 'background-color 0.2s ease',
     },
@@ -410,7 +410,7 @@ const TagPrint = () => {
       width: screenSize.isMobile ? '90%' : screenSize.isTablet ? '70%' : '50%',
       maxWidth: '500px',
       maxHeight: '80vh',
-      overflow: 'hidden',
+    //   overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
     },
@@ -482,6 +482,36 @@ const TagPrint = () => {
     paginationInfo: {
       fontSize: TYPOGRAPHY.fontSize.sm,
       color: '#666',
+    },
+    previewSection: {
+      backgroundColor: 'white',
+      borderRadius: 10,
+      overflowX: 'auto',
+      overflowY: 'visible',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      border: '1px solid #e0e0e0',
+      margin: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '16px',
+      marginBottom: screenSize.isMobile ? '90px' : screenSize.isTablet ? '100px' : '110px',
+      WebkitOverflowScrolling: 'touch',
+      width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
+      boxSizing: 'border-box',
+      flex: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: 'none',
+    },
+    previewTableWrapper: {
+      maxHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '240px' : '280px',
+      overflowY: 'auto',
+      overflowX: 'auto'
+    },
+    previewLabel: {
+      padding: screenSize.isMobile ? '8px 12px' : '12px 16px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      backgroundColor: '#f5f5f5',
+      borderBottom: '1px solid #e0e0e0',
+      color: '#333',
     },
   };
 
@@ -572,8 +602,10 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
 
     const response = await apiService.get(endpoint);
 
-    // API returns array directly
-    const list = Array.isArray(response.data) ? response.data : [];
+    // API may return array directly OR { data, totalCount, page, pageSize }
+    const list = Array.isArray(response.data)
+      ? response.data
+      : (Array.isArray(response.data?.data) ? response.data.data : []);
 
     return list;
   } catch (error) {
@@ -608,11 +640,18 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
       setIsLoading(true);
       
       // Call API to get items
-      const endpoint = API_ENDPOINTS.TAG_PRINT.GET_TAG_PRINT_ITEMS(tagNo);
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      const compCode = userInfo.fcompcode || '001';
+      const endpoint = API_ENDPOINTS.TAG_PRINT.GET_TAG_PRINT_ITEMS({
+        voucher: tagNo,
+        compCode,
+        page: 1,
+        pageSize: 10,
+      });
       const response = await apiService.get(endpoint);
       
       // Transform API response to match table format
-      const apiData = response.data || [];
+      const apiData = Array.isArray(response.data?.data) ? response.data.data : (response.data || []);
       const transformedItems = apiData.map((item, index) => ({
         sNo: index + 1,
         barcode: item.barcode || '',
@@ -620,8 +659,8 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
         qty: item.qty || 1,
         print: 'N',
         selected: false,
-        unit: item.unit || '',
-        hsn: item.hsn || '',
+        unit: item.fUnit || item.unit || '',
+        hsn: item.fhsn || item.hsn || '',
         mrp: item.mrp || 0,
         inTax: item.inTax || 0,
         sRate: item.sRate || 0,
@@ -703,19 +742,22 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     updatePrintItems(updatedItems);
   };
 
+  const handleQtyKeyDown = (e, index) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const updatedItems = [...items];
+      const qty = parseFloat(e.target.value) || 0;
+      updatedItems[index].qty = qty;
+      updatedItems[index].amount = qty * (updatedItems[index].sRate || 0);
+      setItems(updatedItems);
+      updatePrintItems(updatedItems);
+    }
+  };
+
   // Update print items based on selections
   const updatePrintItems = (itemsList) => {
-    const selectedItems = itemsList.filter(item => item.selected && item.print === 'Y');
-    const printArray = [];
-    
-    selectedItems.forEach(item => {
-      const printCount = Math.max(1, Math.floor(item.qty || 1));
-      for (let i = 0; i < printCount; i++) {
-        printArray.push({ ...item, printIndex: i + 1 });
-      }
-    });
-    
-    setPrintItems(printArray);
+    const selectedItems = itemsList.filter(item => item.print === 'Y');
+    setPrintItems(selectedItems);
   };
 
   // Handle select all checkbox
@@ -817,8 +859,11 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
         <div style="display: flex; flex-wrap: wrap;">
     `);
     
-    printData.items.forEach((item, index) => {
-      for (let i = 0; i < printData.noOfPrints; i++) {
+    printData.items.forEach((item) => {
+      const qtyCount = Math.max(0, Math.floor(Number(item.qty) || 0));
+      if (qtyCount === 0) return;
+
+      for (let i = 0; i < qtyCount; i++) {
         printWindow.document.write(`
           <div class="tag">
             <div class="header">TAG PRINT</div>
@@ -869,6 +914,22 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
       printWindow.print();
     }, 1000);
   };
+
+  const buildPreviewRows = (list) => {
+    return list.flatMap((item) => {
+      const count = Math.max(0, Math.floor(Number(item.qty) || 0));
+      if (count === 0) return [];
+      return Array.from({ length: count }, (_, idx) => ({
+        ...item,
+        _previewIndex: idx + 1,
+      }));
+    });
+  };
+
+  // Calculate selected items based on print='Y'
+  const selectedItems = items.filter((item) => item.print === 'Y');
+  // Calculate preview rows based on current items with print='Y'
+  const previewRows = buildPreviewRows(selectedItems);
 
   return (
     <div style={styles.container}>
@@ -997,21 +1058,22 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                       <td style={styles.td}>{item.barcode}</td>
                       <td style={styles.td}>{item.itemName}</td>
                       <td style={styles.td}>
-                        {/* Editable Qty field */}
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={item.qty}
                           onChange={(e) => handleQtyChange(idx, e.target.value)}
-                          step="0.01"
-                          min="0"
+                          onKeyDown={(e) => handleQtyKeyDown(e, idx)}
                           style={{
                             width: '100%',
-                            padding: '2px',
-                            border: '1px solid #ddd',
-                            borderRadius: '3px',
-                            fontSize: TYPOGRAPHY.fontSize.sm,
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            padding: '4px 2px',
+                            fontSize: 'inherit',
+                            fontFamily: 'inherit',
                             textAlign: 'center',
-                            outline: 'none'
+                            outline: 'none',
+                            cursor: 'text'
                           }}
                         />
                       </td>
@@ -1042,6 +1104,57 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
         </div>
       </div>
 
+        {/* Preview Section - Shows print items before actual footer */}
+        <div style={styles.previewSection}>
+          <div style={styles.previewLabel}>
+            Print Preview - Items to Print
+          </div>
+          <div style={styles.previewTableWrapper}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={{...styles.th, width: '50px'}}>No.</th>
+                  <th style={{...styles.th, width: '120px'}}>Item Name</th>
+                  <th style={{...styles.th, width: '80px'}}>Prefix</th>
+                  <th style={{...styles.th, width: '80px'}}>Short Name</th>
+                  <th style={{...styles.th, width: '80px'}}>W.P</th>
+                  <th style={{...styles.th, width: '80px'}}>R.P</th>
+                  <th style={{...styles.th, width: '80px'}}>Qty</th>
+                  <th style={{...styles.th, width: '80px'}}>Pcs</th>
+                  <th style={{...styles.th, width: '80px'}}>Print</th>
+                  <th style={{...styles.th, width: '80px'}}>BARCODE</th>
+                  <th style={{...styles.th, width: '80px'}}>CP</th>
+                  <th style={{...styles.th, width: '100px'}}>SI No</th>
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.length === 0 ? (
+                  <tr>
+                    <td colSpan="12" style={styles.td}>&nbsp;</td>
+                  </tr>
+                ) : (
+                  previewRows.map((item, idx) => (
+                    <tr key={idx}>
+                      <td style={styles.td}>{idx + 1}</td>
+                      <td style={styles.td}>{item.itemName || 'N/A'}</td>
+                      <td style={styles.td}>{prefix || 'N/A'}</td>
+                      <td style={styles.td}>{item.hsn || 'N/A'}</td>
+                      <td style={styles.td}>₹{item.mrp?.toFixed(2) || '0.00'}</td>
+                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
+                      <td style={styles.td}>{item.qty || '0'}</td>
+                      <td style={styles.td}>1</td>
+                      <td style={styles.td}>Y</td>
+                      <td style={styles.td}>{item.barcode || 'N/A'}</td>
+                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
+                      <td style={styles.td}>{item.sNo || idx + 1}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       {/* Footer Section */}
       <div style={styles.footer}>
         <div style={styles.footerLeft}>
@@ -1057,7 +1170,6 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
               Select All
             </span>
           </div>
-          
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: TYPOGRAPHY.fontSize.sm, fontWeight: TYPOGRAPHY.fontWeight.medium }}>
               No of Prints:
@@ -1070,9 +1182,8 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
               min="1"
             />
           </div>
-          
           <div style={{ fontSize: TYPOGRAPHY.fontSize.sm, color: '#666' }}>
-            Selected for printing: {printItems.length} items ({printItems.length * noOfPrints} tags)
+            Selected for printing: {selectedItems.length} items
           </div>
         </div>
         
@@ -1094,7 +1205,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
             onClick={handlePrint}
             disabled={printItems.length === 0 || isLoading}
           >
-            {isLoading ? 'Printing...' : `Print (${printItems.length * noOfPrints})`}
+            {isLoading ? 'Printing...' : `Print`}
           </button>
         </div>
       </div>
