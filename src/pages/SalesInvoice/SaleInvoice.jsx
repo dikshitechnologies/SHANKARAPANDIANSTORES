@@ -13,6 +13,7 @@ import { PERMISSION_CODES } from '../../constants/permissions';
 import { getCompCode, getUCode } from '../../utils/userUtils';
 import { PopupScreenModal } from '../../components/PopupScreens.jsx';
 import PrintReceipt from '../PrintReceipt/PrintReceipt';
+import PrintSalesInvoice from '../PrintSalesInvoice/PrintSalesInvoice';
 
 const TABLE_FIELDS = [
   'barcode',
@@ -244,6 +245,9 @@ const [taxList, setTaxList] = useState([]);
   
   // State for printing
   const [printBillData, setPrintBillData] = useState(null);
+  const [printType, setPrintType] = useState('thermal'); // 'thermal' or 'a4'
+  const [showA4PrintModal, setShowA4PrintModal] = useState(false);
+  const [a4PrintPayload, setA4PrintPayload] = useState(null);
   
   // ✅ Total Amount - keep full decimals for table
   const roundedTotalAmount = totalAmount; // Keep full decimal value
@@ -435,7 +439,7 @@ const selectAllOnFocus = useCallback((e, fieldKey) => {
         }
       }
     } catch (err) {
-      setBillDetails(prev => ({ ...prev, billNo: 'SE000001' }));
+      setBillDetails(prev => ({ ...prev, billNo: '' }));
     } finally {
       setIsLoading(false);
     }
@@ -2898,6 +2902,8 @@ const itemsData = validItems.map(item => {
       salesmanName: billDetails.salesman,
       customercode: billDetails.custCode || '',
       customerName: billDetails.custName,
+      mobileNo: billDetails.mobileNo || '',
+      gstno: billDetails.gstno || '',
       netAmount: netAmountRounded,
       items: validItems.map(item => ({
         itemName: item.itemName || 'N/A',
@@ -2915,13 +2921,40 @@ const itemsData = validItems.map(item => {
   const handleConfirmedPrint = () => {
     setPrintConfirmationOpen(false);
 
-    // Trigger print via PrintReceipt ref
-    if (printReceiptRef.current) {
-      printReceiptRef.current.print();
+    if (printType === 'thermal') {
+      // Trigger thermal print via PrintReceipt ref
+      if (printReceiptRef.current) {
+        printReceiptRef.current.print();
+      }
+      // Reset form after thermal print
+      resetForm();
+    } else if (printType === 'a4') {
+      // Prepare A4 print payload
+      const payload = {
+        billDetails: printBillData,
+        items: items.filter(item => item.itemName && item.itemName.trim() !== ''),
+        totals: {
+          subTotal: totalAmount,
+          gstTotals: items.reduce((sum, item) => {
+            const qty = parseFloat(item.qty) || 0;
+            const rate = parseFloat(item.sRate) || 0;
+            const tax = parseFloat(item.tax) || 0;
+            const amount = qty * rate;
+            const taxAmount = (amount * tax) / 100;
+            return sum + taxAmount;
+          }, 0),
+          net: netAmountRounded
+        }
+      };
+      
+      setA4PrintPayload(payload);
+      setShowA4PrintModal(true);
+      
+      // Reset form after A4 print initiated
+      setTimeout(() => {
+        resetForm();
+      }, 500);
     }
-    
-    // Reset form after print
-    resetForm();
   };
 
   // --- RESPONSIVE STYLES ---
@@ -4506,6 +4539,8 @@ const itemsData = validItems.map(item => {
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
+          {/* Print Type Selection */}
+         
           <ActionButtons
             activeButton={activeTopAction}
             onButtonClick={(type) => {
@@ -4520,7 +4555,53 @@ const itemsData = validItems.map(item => {
             <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
-        
+         <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',           
+            padding: '10px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '6px',
+            border: '1px solid #e0e0e0'
+          }}>            
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}>
+                <input
+                  type="radio"
+                  name="printType"
+                  value="thermal"
+                  checked={printType === 'thermal'}
+                  onChange={(e) => setPrintType(e.target.value)}
+                  style={{ cursor: 'pointer', accentColor: '#1B91DA' }}
+                />
+                <span style={{ color: '#555' }}>Thermal</span>
+              </label>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}>
+                <input
+                  type="radio"
+                  name="printType"
+                  value="a4"
+                  checked={printType === 'a4'}
+                  onChange={(e) => setPrintType(e.target.value)}
+                  style={{ cursor: 'pointer', accentColor: '#1B91DA' }}
+                />
+                <span style={{ color: '#555' }}>A4 Format</span>
+              </label>
+            </div>
+          </div>
+          
         <div style={styles.totalsContainer}>
           <div style={styles.totalItem}>
             <span style={styles.totalLabel}>Total Quantity</span>
@@ -5141,6 +5222,21 @@ const itemsData = validItems.map(item => {
           ref={printReceiptRef}
           billData={printBillData}
           mode="sales_invoice"
+        />
+      )}
+
+      {/* A4 Print Modal */}
+      {showA4PrintModal && a4PrintPayload && (
+        <PrintSalesInvoice
+          isOpen={showA4PrintModal}
+          onClose={() => {
+            setShowA4PrintModal(false);
+            setA4PrintPayload(null);
+          }}
+          billDetails={a4PrintPayload.billDetails}
+          items={a4PrintPayload.items}
+          totals={a4PrintPayload.totals}
+          userData={userData}
         />
       )}
 
