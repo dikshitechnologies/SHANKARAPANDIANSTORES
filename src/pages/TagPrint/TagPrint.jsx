@@ -1041,7 +1041,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                   <td colSpan="11" style={styles.emptyMsg}>
                     {hasSearched 
                       ? 'No items found. Select a purchase number to view items.' 
-                      : 'Select a purchase number and click Search to view items.'}
+                      : ''}
                   </td>
                 </tr>
               ) : isLoading ? (

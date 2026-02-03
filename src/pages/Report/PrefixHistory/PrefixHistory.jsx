@@ -501,7 +501,7 @@ const PrefixHistory = () => {
                   onKeyDown={handlePrefixKeyDown}
                   onFocus={() => setFocusedField('prefix')}
                   onBlur={() => setFocusedField('')}
-                  placeholder="Enter prefix"
+                  // placeholder="Enter prefix"
                 />
               </div>
 
@@ -517,7 +517,7 @@ const PrefixHistory = () => {
                   onKeyDown={handleSupplierKeyDown}
                   onFocus={() => setFocusedField('supplier')}
                   onBlur={() => setFocusedField('')}
-                  placeholder="Enter supplier"
+                  // placeholder="Enter supplier"
                 />
               </div>
 
