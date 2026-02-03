@@ -1706,6 +1706,16 @@ if (e.key === 'Enter') {
           cstsNo: billDetails.gstno || '',
           add3: billDetails.city || '',
           add4: billDetails.mobileNo || '',
+           fExtPer: "",
+          fExtAmt: "",
+          fFreight: "",
+          fTRans: "",
+          fLrNo: "",
+          fLrDt: "",
+          fTrAmount: "",
+          fTrTax: "",
+          fTrTotal: "",
+          transportName: ""
         },
         items: items
           .filter((it) => it.itemcode && it.itemcode.trim() !== '')
