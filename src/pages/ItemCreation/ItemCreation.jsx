@@ -2119,8 +2119,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
           font-weight: bold;
         }
         .checkbox-label {
-          font-size: 14px;
-          font-weight: 500;
+          font-size: 20px;
+          font-weight: 600;
           color: #374151;
           user-select: none;
         }
