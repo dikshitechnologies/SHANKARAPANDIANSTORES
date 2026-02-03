@@ -585,29 +585,45 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
 
     if (!fromDate || !toDate) {
       console.warn('Dates missing – API not called');
-      return { data: [], hasMore: false, page };
+      return [];
     }
 
     const formattedFromDate = formatDateForAPI(fromDate);
     const formattedToDate = formatDateForAPI(toDate);
 
+    const pageSize = 20; // Batch size for dynamic fetching
+
     const endpoint = API_ENDPOINTS.TAG_PRINT.GET_TAG_PRINT_LIST({
       fromDate: formattedFromDate,
       toDate: formattedToDate,
-      search: typeof searchText === 'string' ? searchText : '',
+      search: typeof searchText === 'string' ? searchText.trim() : '',
       fcompcode,
       page,
-      pageSize: 10,
+      pageSize,
     });
+
+    console.log('API ENDPOINT →', endpoint);
 
     const response = await apiService.get(endpoint);
 
-    // API may return array directly OR { data, totalCount, page, pageSize }
-    const list = Array.isArray(response.data)
+    console.log('RESPONSE DATA →', response.data);
+
+    // Handle different API response formats
+    const apiData = Array.isArray(response.data)
       ? response.data
       : (Array.isArray(response.data?.data) ? response.data.data : []);
+    
+    // Transform data for popup display
+    const transformedData = apiData.map((item, index) => ({
+      id: (page - 1) * pageSize + index + 1,
+      tagNO: item.tagNO || item.code || '',
+      ...item
+    }));
 
-    return list;
+    console.log('TRANSFORMED DATA →', transformedData, 'Length:', transformedData.length, 'Page:', page);
+
+    // Return array directly for PopupListSelector
+    return transformedData;
   } catch (error) {
     console.error('Error fetching purchase numbers:', error);
     toast.error('Failed to load purchase numbers');
@@ -830,89 +846,169 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     }
   };
 
-  // Generate print content (simplified version)
+  // Generate print content - Generate individual barcode tags for each preview row
   const generatePrintContent = (printData) => {
-    const printWindow = window.open('', '_blank');
+    // Create hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
     
-    printWindow.document.write(`
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    
+    iframeDoc.open();
+    iframeDoc.write(`
       <!DOCTYPE html>
       <html>
       <head>
         <title>Tag Print - ${printData.purchaseNo}</title>
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .tag { border: 1px solid #000; padding: 10px; margin: 10px; width: 300px; }
-          .header { font-weight: bold; font-size: 16px; margin-bottom: 10px; text-align: center; }
-          .row { display: flex; justify-content: space-between; margin: 5px 0; }
-          .label { font-weight: bold; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: Arial, sans-serif; 
+            padding: 0;
+            margin: 0;
+            background: #fff;
+          }
+          .barcode-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            padding: 0;
+            margin: 0;
+          }
+          .barcode-tag {
+            width: auto;
+            border: none;
+            padding: 0;
+            margin: 10px;
+            page-break-inside: avoid;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+          }
+          .barcode-display {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+          }
+          .barcode-svg {
+            max-width: 100%;
+            height: auto;
+          }
+          .barcode-text {
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 5px;
+            text-align: center;
+            color: #000;
+          }
           @media print {
-            body { margin: 0; padding: 0; }
-            .tag { page-break-inside: avoid; margin: 5px; }
-            .no-print { display: none; }
+            body { 
+              margin: 0; 
+              padding: 0; 
+            }
+            .barcode-tag { 
+              page-break-inside: avoid;
+              margin: 10px;
+            }
+            .barcode-container {
+              gap: 0;
+              padding: 0;
+              margin: 0;
+            }
           }
         </style>
       </head>
       <body>
-        <button class="no-print" onclick="window.print()" style="padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-          Print Now
-        </button>
-        <div style="display: flex; flex-wrap: wrap;">
+        <div class="barcode-container">
     `);
     
-    printData.items.forEach((item) => {
-      const qtyCount = Math.max(0, Math.floor(Number(item.qty) || 0));
-      if (qtyCount === 0) return;
-
-      for (let i = 0; i < qtyCount; i++) {
-        printWindow.document.write(`
-          <div class="tag">
-            <div class="header">TAG PRINT</div>
-            <div class="row">
-              <span class="label">Purchase No:</span>
-              <span>${printData.purchaseNo || 'N/A'}</span>
-            </div>
-            <div class="row">
-              <span class="label">Item Name:</span>
-              <span>${item.itemName || 'N/A'}</span>
-            </div>
-            <div class="row">
-              <span class="label">Barcode:</span>
-              <span>${item.barcode || 'N/A'}</span>
-            </div>
-            <div class="row">
-              <span class="label">MRP:</span>
-              <span>₹${item.mrp?.toFixed(2) || '0.00'}</span>
-            </div>
-            <div class="row">
-              <span class="label">S. Rate:</span>
-              <span>₹${item.sRate?.toFixed(2) || '0.00'}</span>
-            </div>
-            <div class="row">
-              <span class="label">Qty:</span>
-              <span>${item.qty || '0'}</span>
-            </div>
-            <div class="row">
-              <span class="label">Print Date:</span>
-              <span>${new Date().toLocaleDateString()}</span>
-            </div>
+    // Generate one barcode tag for each preview row
+    previewRows.forEach((row, index) => {
+      const tagNumber = index + 1;
+      const itemName = (row.itemName || 'N/A').replace(/[|]/g, '-');
+      const prefixValue = (prefix || 'N/A').replace(/[|]/g, '-');
+      const hsnValue = (row.hsn || 'N/A').replace(/[|]/g, '-');
+      const mrpValue = row.mrp?.toFixed(2) || '0.00';
+      const sRateValue = row.sRate?.toFixed(2) || '0.00';
+      const cpValue = row.sRate?.toFixed(2) || '0.00';
+      const dateValue = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+      const qtyValue = row.qty || '0';
+      
+      // Encode all data into barcode with pipe delimiter
+      const encodedData = `${hsnValue}|${qtyValue}|${sRateValue}`;
+      const barcodeId = `barcode-${index}`;
+      
+      iframeDoc.write(`
+        <div class="barcode-tag">
+          <div class="barcode-display">
+            <svg id="${barcodeId}" class="barcode-svg"></svg>
+            <div class="barcode-text">${hsnValue} - 1 - ₹${sRateValue}</div>
           </div>
-        `);
-      }
+        </div>
+      `);
     });
     
-    printWindow.document.write(`
+    iframeDoc.write(`
         </div>
+        <script>
+          // Generate barcodes after DOM is loaded
+          window.addEventListener('load', function() {
+            ${previewRows.map((row, index) => {
+              const tagNumber = index + 1;
+              const itemName = (row.itemName || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
+              const prefixValue = (prefix || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
+              const hsnValue = (row.hsn || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
+              const mrpValue = row.mrp?.toFixed(2) || '0.00';
+              const sRateValue = row.sRate?.toFixed(2) || '0.00';
+              const cpValue = row.sRate?.toFixed(2) || '0.00';
+              const dateValue = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+              const qtyValue = row.qty || '0';
+              
+              const encodedData = `${hsnValue}|${qtyValue}|${sRateValue}`;
+              const barcodeId = `barcode-${index}`;
+              
+              return `
+                try {
+                  JsBarcode("#${barcodeId}", "${encodedData}", {
+                    format: "CODE128",
+                    width: 6,
+                    height: 250,
+                    displayValue: false,
+                    margin: 0,
+                    background: "transparent"
+                  });
+                } catch (e) {
+                  console.error('Barcode generation error:', e);
+                }
+              `;
+            }).join('\n')}
+            
+            // Trigger print after barcodes are generated
+            setTimeout(function() {
+              window.print();
+              // Remove iframe after printing
+              setTimeout(function() {
+                window.parent.document.body.removeChild(window.frameElement);
+              }, 100);
+            }, 500);
+          });
+        </script>
       </body>
       </html>
     `);
     
-    printWindow.document.close();
-    printWindow.focus();
-    
-    // Auto print after a delay
-    setTimeout(() => {
-      printWindow.print();
-    }, 1000);
+    iframeDoc.close();
   };
 
   const buildPreviewRows = (list) => {
@@ -1116,7 +1212,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                   <th style={{...styles.th, width: '50px'}}>No.</th>
                   <th style={{...styles.th, width: '120px'}}>Item Name</th>
                   <th style={{...styles.th, width: '80px'}}>Prefix</th>
-                  <th style={{...styles.th, width: '80px'}}>Short Name</th>
+                  <th style={{...styles.th, width: '80px'}}>HSN</th>
                   <th style={{...styles.th, width: '80px'}}>W.P</th>
                   <th style={{...styles.th, width: '80px'}}>R.P</th>
                   <th style={{...styles.th, width: '80px'}}>Qty</th>

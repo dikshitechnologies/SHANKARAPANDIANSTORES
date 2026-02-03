@@ -1062,7 +1062,7 @@ export default function LedgerCreation({ onCreated }) {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1400px;
+          max-width: 1200px;
           border-radius: 0px;
           padding: 24px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));

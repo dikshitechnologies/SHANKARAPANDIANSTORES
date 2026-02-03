@@ -247,7 +247,7 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "SCRAP_PROCUREMENT",
     },
-    { name: 'Test page', path: '/Transaction/test', icon: <DollarOutlined />, permission: 'TENDER' },
+    // { name: 'Test page', path: '/Transaction/test', icon: <DollarOutlined />, permission: 'TENDER' },
     {
       name: "Bill Collector",
       path: "/transactions/bill-collector",
