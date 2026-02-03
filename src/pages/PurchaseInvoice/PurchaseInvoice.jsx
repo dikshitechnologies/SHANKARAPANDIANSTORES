@@ -10,8 +10,6 @@ import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import { PopupScreenModal } from '../../components/PopupScreens.jsx';
-// import TransportPopup from './TransportPopup.jsx'; // Assuming you'll move this too
-import PrintPDF, { generatePurchaseInvoicePDF } from '../PrintPurchaseInvoice/PrintPurchaseInvoice.jsx'; // Import the new component
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -34,7 +32,584 @@ const Icon = {
     </svg>
   ),
 }
+// Updated TransportPopup component
+const TransportPopup = ({ isOpen, onClose, transportData, onTransportDataChange }) => {
+  const [localData, setLocalData] = useState({
+    transportName: transportData?.transportName || '', // New field for transport name
+    lrNo: transportData?.lrNo || '',
+    lrDate: transportData?.lrDate || new Date().toISOString().substring(0, 10),
+    amount: transportData?.amount || '',
+    gstPercent: transportData?.gstPercent || '',
+    total: transportData?.total || ''
+  });
+  const [showTransPopup, setShowTransPopup] = useState(false);
+  const [transportSearchTerm, setTransportSearchTerm] = useState('');
 
+  useEffect(() => {
+    setLocalData({
+      transportName: transportData?.transportName || '',
+      lrNo: transportData?.lrNo || '',
+      lrDate: transportData?.lrDate || new Date().toISOString().substring(0, 10),
+      amount: transportData?.amount || '',
+      gstPercent: transportData?.gstPercent || '',
+      total: transportData?.total || ''
+    });
+  }, [transportData]);
+
+  // Calculate total whenever amount or GST percent changes
+  useEffect(() => {
+    const amountNum = parseFloat(localData.amount) || 0;
+    const gstPercentNum = parseFloat(localData.gstPercent) || 0;
+    const calculatedTotal = amountNum * (gstPercentNum / 100);
+    setLocalData(prev => ({
+      ...prev,
+      total: calculatedTotal.toFixed(2)
+    }));
+  }, [localData.amount, localData.gstPercent]);
+
+const fetchTransportList = async (search = '', pageNum = 1) => {
+  try {
+    // Call the function with parameters
+    const endpoint = API_ENDPOINTS.PURCHASE_INVOICE.GET_TRANSPORT_LIST(pageNum, 20, search);
+    console.log('Fetching transport from:', endpoint);
+    
+    const response = await axiosInstance.get(endpoint);
+    const responseData = response?.data || {};
+    const data = responseData.data || [];
+    
+    console.log('Fetched transport data:', data);
+    
+    let items = Array.isArray(data) ? data.map((transport, index) => ({
+      id: transport.fCode || `transport-${index}`,
+      code: transport.fCode || '',
+      name: transport.fTransport || '',
+      displayName: `${transport.fTransport}`
+    })) : [];
+    
+    // Note: The API already filters by search, but we can do additional client-side filtering if needed
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase().trim();
+      items = items.filter(item => 
+        item.name?.toLowerCase().includes(searchLower) ||
+        item.displayName?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return items;
+  } catch (err) {
+    console.error('Error fetching transport list:', err);
+    return [];
+  }
+};
+
+  // Handle transport selection from popup
+  const handleTransportSelect = (selectedTransport) => {
+    if (!selectedTransport) return;
+    
+    setLocalData(prev => ({
+      ...prev,
+      transportName: selectedTransport.name || '',
+      transportCode: selectedTransport.code || ''
+    }));
+    
+    setShowTransPopup(false);
+    setTransportSearchTerm('');
+    
+    // Focus back to transport input after selection
+    setTimeout(() => {
+      const transportInput = document.querySelector('input[name="transportName"]');
+      if (transportInput) {
+        transportInput.focus();
+        transportInput.select();
+      }
+    }, 100);
+  };
+
+  if (!isOpen) return null;
+
+  const handleNumberInput = (value, field) => {
+    // Allow empty string
+    if (value === '') {
+      setLocalData(prev => ({ ...prev, [field]: '' }));
+      return '';
+    }
+    
+    // Remove any non-numeric characters except decimal point
+    const sanitizedValue = value
+      .replace(/[^\d.]/g, '') // Remove non-numeric except .
+      .replace(/(\..*)\./g, '$1'); // Allow only one decimal point
+    
+    // Allow any valid number format during typing
+    const isValidNumber = /^\d*\.?\d*$/.test(sanitizedValue);
+    
+    if (isValidNumber) {
+      setLocalData(prev => ({ ...prev, [field]: sanitizedValue }));
+    }
+    return sanitizedValue;
+  };
+
+  const handleBlur = (field) => {
+    const value = localData[field];
+    
+    if (value === '' || value === '-') {
+      return;
+    }
+    
+    try {
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        // Format to 2 decimal places if needed
+        // But don't add .00 if it's a whole number
+        if (num % 1 === 0) {
+          setLocalData(prev => ({ ...prev, [field]: num.toString() }));
+        } else {
+          setLocalData(prev => ({ ...prev, [field]: num.toFixed(2) }));
+        }
+      }
+    } catch (error) {
+      // Invalid number, clear it
+      setLocalData(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleSave = () => {
+    // Update all transport-related fields in the parent component
+    onTransportDataChange(localData);
+    onClose();
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '20px',
+        width: '90%',
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+          borderBottom: '1px solid #eee',
+          paddingBottom: '10px',
+        }}>
+          <h3 style={{
+            margin: 0,
+            color: '#1B91DA',
+            fontSize: '18px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            <Icon.Truck size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+            Transport Details
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              cursor: 'pointer',
+              color: '#666',
+              padding: '5px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '15px',
+          marginBottom: '15px',
+        }}>
+          {/* Transport Field with Search */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              width: '80px',
+              minWidth: '80px',
+              color: '#333',
+            }}>
+              Transport:
+            </label>
+            <div style={{ position: 'relative', display: 'flex', flex: 1 }}>
+              <input
+                type="text"
+                name="transportName"
+                value={localData.transportName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setLocalData(prev => ({ 
+                    ...prev, 
+                    transportName: value
+                  }));
+                  
+                  // Open popup when typing
+                  if (value.length > 0) {
+                    setTransportSearchTerm(value);
+                    setTimeout(() => setShowTransPopup(true), 300);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '5px 12px',
+                  border: '1px solid #1B91DA',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  paddingRight: '40px',
+                }}
+                // placeholder="Search transport..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === '/' || e.key === 'F2') {
+                    e.preventDefault();
+                    setTransportSearchTerm(localData.transportName || '');
+                    setShowTransPopup(true);
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const lrNoInput = document.querySelector('input[name="lrNo"]');
+                    if (lrNoInput) lrNoInput.focus();
+                  }
+                }}
+                onFocus={(e) => {
+                  e.target.select();
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    if (!showTransPopup) {
+                      setTransportSearchTerm('');
+                    }
+                  }, 200);
+                }}
+              />
+              <button
+                type="button"
+                aria-label="Search transport"
+                title="Search transport"
+                onClick={() => {
+                  setTransportSearchTerm(localData.transportName || '');
+                  setShowTransPopup(true);
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  color: '#1B91DA',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  zIndex: 1,
+                  border: 'none',
+                  width: '24px',
+                  height: '24px',
+                }}
+              >
+                <Icon.Search size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* LR No */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              LR No:
+            </label>
+            <input
+              type="text"
+              name="lrNo"
+              value={localData.lrNo}
+              onChange={(e) => setLocalData(prev => ({ ...prev, lrNo: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              // placeholder="Enter LR No"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const lrDateInput = document.querySelector('input[name="lrDate"]');
+                  if (lrDateInput) lrDateInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* LR Date */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              LR Date
+            </label>
+            <input
+              type="date"
+              name="lrDate"
+              value={localData.lrDate}
+              onChange={(e) => setLocalData(prev => ({ ...prev, lrDate: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const amountInput = document.querySelector('input[name="amount"]');
+                  if (amountInput) amountInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* Amount */}
+          <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              Amount
+            </label>
+            <input
+              type="text"
+              name="amount"
+              value={localData.amount}
+              onChange={(e) => {
+                handleNumberInput(e.target.value, 'amount');
+              }}
+              onBlur={() => handleBlur('amount')}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              // placeholder="0.00"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const gstPercentInput = document.querySelector('input[name="gstPercent"]');
+                  if (gstPercentInput) gstPercentInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* GST % */}
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              GST %
+            </label>
+            <input
+              type="text"
+              name="gstPercent"
+              value={localData.gstPercent}
+              onChange={(e) => {
+                handleNumberInput(e.target.value, 'gstPercent');
+              }}
+              onBlur={() => handleBlur('gstPercent')}
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              // placeholder="0.00"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const totalInput = document.querySelector('input[name="total"]');
+                  if (totalInput) totalInput.focus();
+                }
+              }}
+            />
+          </div>
+
+          {/* Total */}
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '500',
+              color: '#333',
+              width: '80px',
+              minWidth: '80px',
+            }}>
+              Total
+            </label>
+            <input
+              type="text"
+              name="total"
+              value={localData.total}
+              readOnly
+              style={{
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #1B91DA',
+                borderRadius: '4px',
+                fontSize: '16px',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSave();
+                }
+              }}
+            />            
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          marginTop: '25px',
+          justifyContent: 'flex-end',
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onClose();
+              }
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            style={{
+              padding: '8px 20px',
+              backgroundColor: '#1B91DA',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+      
+      {/* Transport List Popup */}
+      <PopupListSelector
+        open={showTransPopup}
+        onClose={() => {
+          setShowTransPopup(false);
+          setTransportSearchTerm('');
+        }}
+        title="Select Transport"
+        fetchItems={() => fetchTransportList(transportSearchTerm)}
+        displayFieldKeys={['displayName']}
+        headerNames={['Transport']}
+        searchFields={['name']}
+        columnWidths={{ displayName: '100%' }}
+        searchPlaceholder="Search by transport name or code..."
+        initialSearch={transportSearchTerm}
+        onSelect={handleTransportSelect}
+      />
+    </div>
+  );
+};
 // Calculation helpers
 const calculateTotals = (items = []) => {
   const subTotal = items.reduce((acc, it) => {
@@ -89,7 +664,6 @@ const calculateTotals = (items = []) => {
 };
 
 const PurchaseInvoice = () => {
-   const { userData } = useAuth() || {};
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -103,8 +677,6 @@ const PurchaseInvoice = () => {
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
-  const [showPrintModal, setShowPrintModal] = useState(false);
-  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
   const [allTax, setAllTax] = useState([]);
   
   // Confirmation popup states
@@ -139,7 +711,7 @@ const PurchaseInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date(userData.date).toISOString().substring(0, 10),
+    billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -197,7 +769,6 @@ const PurchaseInvoice = () => {
   // 3. Totals State
   const [netTotal, setNetTotal] = useState(0);
   const [gstTotal, setGstTotal] = useState(0);
-  
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
   const dateRef = useRef(null);
@@ -230,13 +801,14 @@ const PurchaseInvoice = () => {
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
+  // const [showTransPopup, setShowTransPopup] = useState(false);
   const [showGroupNamePopup, setShowGroupNamePopup] = useState(false);
   const [showBillListPopup, setShowBillListPopup] = useState(false);
   const [showItemCodePopup, setShowItemCodePopup] = useState(false);
   const [popupMode, setPopupMode] = useState(''); // 'edit' or 'delete'
   const [selectedRowId, setSelectedRowId] = useState(null); // Track which row is being edited
   const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
-  // const [showTransportPopup, setShowTransportPopup] = useState(false);
+  const [showTransportPopup, setShowTransportPopup] = useState(false);
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('null');
 
@@ -250,7 +822,7 @@ const PurchaseInvoice = () => {
   });
 
   // Auth context for company code
- 
+  const { userData } = useAuth() || {};
   // Also get fseudo from context in case userData.fseudo is missing
   const { fseudo } = useAuth() || {};
 
@@ -2072,13 +2644,17 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
               API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), 
               payload
             );
+            createNewForm();
             console.log('Save response:', res);
             
             // Close the confirmation popup first
             setShowConfirmPopup(false);
             
-            // Show print confirmation popup on success
-            setPrintConfirmationOpen(true);
+            // Show success message and reset form
+            showAlertConfirmation(
+              `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
+              'warning'
+            );
             
           } catch (err) {
             const status = err?.response?.status;
@@ -2107,43 +2683,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     }
   };
 
-  // Handle print confirmation
-  const handlePrintConfirm = () => {
-    setPrintConfirmationOpen(false);
-    setShowPrintModal(true);
-    
-    // Show success message after opening print
-    showAlertConfirmation(
-      `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
-      null,
-      'success'
-    );
+  const handlePrint = () => {
+    showAlertConfirmation('Print functionality to be implemented', null, 'info');
   };
-
-  // Updated handlePrint function
- const handlePrint = () => {
-  if (!billDetails.invNo || billDetails.invNo.trim() === '') {
-    showAlertConfirmation('Please save the invoice before printing', null, 'warning');
-    return;
-  }
-  
-  const validItems = items.filter(item => item.name && item.name.trim() !== '');
-  if (validItems.length === 0) {
-    showAlertConfirmation('No items to print. Please add items first.', null, 'warning');
-    return;
-  }
-  
-  if (!billDetails.customerName || billDetails.customerName.trim() === '') {
-    showAlertConfirmation('Please select a supplier before printing', null, 'warning');
-    return;
-  }
-  
-  // Calculate totals
-  const totals = calculateTotals(items);
-  
-  // Show print modal
-  setShowPrintModal(true);
-};
 
   // Handle delete row
   const handleDeleteRow = (id) => {
@@ -2722,6 +3264,46 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
       minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
     },
+    // uomHint: {
+    //   position: 'absolute',
+    //   top: '-25px',
+    //   left: '50%',
+    //   transform: 'translateX(-50%)',
+    //   backgroundColor: '#1B91DA',
+    //   color: 'white',
+    //   padding: '3px 8px',
+    //   borderRadius: '3px',
+    //   fontSize: '10px',
+    //   fontWeight: 'bold',
+    //   whiteSpace: 'nowrap',
+    //   zIndex: 100,
+    //   pointerEvents: 'none',
+    //   opacity: 0,
+    //   transition: 'opacity 0.2s ease',
+    // },
+    // uomHintVisible: {
+    //   position: 'absolute',
+    //   top: '-25px',
+    //   left: '50%',
+    //   transform: 'translateX(-50%)',
+    //   backgroundColor: '#1B91DA',
+    //   color: 'white',
+    //   padding: '3px 8px',
+    //   borderRadius: '3px',
+    //   fontSize: '10px',
+    //   fontWeight: 'bold',
+    //   whiteSpace: 'nowrap',
+    //   zIndex: 100,
+    //   pointerEvents: 'none',
+    //   opacity: 1,
+    //   transition: 'opacity 0.2s ease',
+    // },
+    // chargesContainer: {
+    //   display: 'flex',
+    //   alignItems: 'center',
+    //   gap: '5px',
+    //   marginRight: '10px'
+    // },
     chargesInput: {
       width: '70px',
       border: '1px solid #1B91DA',
@@ -3786,37 +4368,6 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
      
 </div>
 
-<PrintPDF
-  isOpen={showPrintModal}
-  onClose={() => setShowPrintModal(false)}
-  invoiceData={billDetails}
-  items={items.filter(item => item.name && item.name.trim() !== '')}
-  totals={calculateTotals(items)}
-  transportData={transportData}
-  chargesAmount={chargesAmount}
-  addLessAmount={addLessAmount}
-  freightAmount={freightAmount}
-  userData={userData}
-/>
-
-{/* Print Confirmation Popup */}
-<ConfirmationPopup
-  isOpen={printConfirmationOpen}
-  title="Print Confirmation"
-  message="Do you want to print the purchase invoice?"
-  confirmText="Yes"
-  cancelText="No"
-  onConfirm={handlePrintConfirm}
-  onCancel={() => {
-    setPrintConfirmationOpen(false);
-    showAlertConfirmation(
-      `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
-      null,
-      'success'
-    );
-  }}
-/>
-
       {/* Purchase Bill List Popup for Edit/Delete */}
       <PopupListSelector
         open={showBillListPopup}
@@ -3937,14 +4488,14 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       />
 
       {/* Transport Popup */}
-      {/* <TransportPopup
+      <TransportPopup
         isOpen={showTransportPopup}
         onClose={() => setShowTransportPopup(false)}
         transportData={transportData}
         onTransportDataChange={(data) => {
           setTransportData(data);
         }}
-      /> */}
+      />
       
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
@@ -4029,7 +4580,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     }}
     onClick={() => {
       console.log('Truck icon clicked');
-      // setShowTransportPopup(true);
+      setShowTransportPopup(true);
     }}
     title="Click to edit transport details"
     onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
