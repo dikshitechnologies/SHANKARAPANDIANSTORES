@@ -82,114 +82,157 @@ export const generatePurchaseInvoicePDF = async ({
     let yPos = 10;
     const labelWidth = 28;   // keeps ":" aligned
     const valueGap = 2;
-    // const marginTop = 10;
     
-    
-      // Add Logo
-      const imgProps = doc.getImageProperties(logo);
-      const imgWidth = 30; // desired width in mm
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-      doc.addImage(logo, 'JPEG', marginLeft, yPos, imgWidth, imgHeight,{align: 'center'});
-    //   yPos += imgHeight + 5;
+    // ================= HEADER =================
 
-    // Company Header - Centered
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SANKARAPANDIAN STORE', pageWidth / 2, yPos, { align: 'center' });
-    //page name
-    yPos += 8;
-    doc.setFontSize(14);
-    doc.text('PURCHASE INVOICE', pageWidth / 2, yPos, { align: 'center' });
-    
-    yPos += 15;
-    
-    // Create two columns layout
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    
-    // Left Column: Invoice Details
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
 
-    const leftX = marginLeft;
-    const midX = pageWidth / 2 - 35;
-    const transX = pageWidth - marginRight - 70;
-    
-    // -------- SECTION TITLES --------
-    doc.setFont('helvetica', 'bold');
-    doc.text('BILL DETAILS', leftX, yPos - 5);
-    doc.text('SUPPLIER DETAILS', midX, yPos - 5);
-    doc.text('TRANSPORT DETAILS', transX, yPos - 5);
-    doc.setFont('helvetica', 'normal');
+// ---- LOGO ----
+const imgProps = doc.getImageProperties(logo);
+const imgWidth = 25;
+const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+// ---- LEFT COLUMN WIDTH ----
+const leftColumnWidth = imgWidth + 60;
 
-    /* ---------------- LEFT (INVOICE) ---------------- */
-    doc.text('Invoice No', leftX, yPos);
-    doc.text(':', leftX + labelWidth, yPos);
-    doc.text(invoiceData.invNo || '', leftX + labelWidth + valueGap, yPos);
+// ---- LOGO (centered in left block) ----
+const logoX = (leftColumnWidth - imgWidth) / 2;
 
-    doc.text('Date', leftX, yPos + 5);
-    doc.text(':', leftX + labelWidth, yPos + 5);
-    doc.text(formatDate(invoiceData.billDate), leftX + labelWidth + valueGap, yPos + 5);
+doc.addImage(
+  logo,
+  'JPEG',
+  logoX,
+  yPos,
+  imgWidth,
+  imgHeight
+);
 
-    doc.text('Bill No', leftX, yPos + 10);
-    doc.text(':', leftX + labelWidth, yPos + 10);
-    doc.text(invoiceData.purNo || '', leftX + labelWidth + valueGap, yPos + 10);
+// ---- STORE NAME (ONE LINE UNDER LOGO) ----
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(11);
 
-    doc.text('Bill Date', leftX, yPos + 15);
-    doc.text(':', leftX + labelWidth, yPos + 15);
-    doc.text(formatDate(invoiceData.purDate), leftX + labelWidth + valueGap, yPos + 15);
+const storeNameY = yPos + imgHeight + 7;
 
-    doc.text('GST Type', leftX, yPos + 20);
-    doc.text(':', leftX + labelWidth, yPos + 20);
-    doc.text(
-      invoiceData.gstType === 'I' ? 'IGST' : 'CGST/SGST',
-      leftX + labelWidth + valueGap,
-      yPos + 20
-    );
+doc.text(
+  'Sankarapandian Stores',
+   leftColumnWidth / 2,
+  storeNameY,
+  { align: 'center' }
+);
 
-    /* ---------------- MIDDLE (SUPPLIER) ---------------- */
-    doc.text('Supplier Name', midX, yPos);
-    doc.text(':', midX + labelWidth, yPos);
-    doc.text(invoiceData.customerName || '', midX + labelWidth + valueGap, yPos);
 
-    doc.text('GSTIN', midX, yPos + 5);
-    doc.text(':', midX + labelWidth, yPos + 5);
-    doc.text(invoiceData.gstno || '', midX + labelWidth + valueGap, yPos + 5);
 
-    doc.text('Mobile', midX, yPos + 10);
-    doc.text(':', midX + labelWidth, yPos + 10);
-    doc.text(invoiceData.mobileNo || '', midX + labelWidth + valueGap, yPos + 10);
 
-    doc.text('City', midX, yPos + 15);
-    doc.text(':', midX + labelWidth, yPos + 15);
-    doc.text(invoiceData.city || '', midX + labelWidth + valueGap, yPos + 15);
+// ---- RIGHT SIDE X POSITIONS ----
+const leftX = marginLeft + imgWidth + 45;
+const midX = leftX + 65;
+const transX = midX + 70;
 
-    /* ---------------- RIGHT (TRANSPORT) ---------------- */
-    doc.setFont('helvetica', 'bold');
-    doc.text('TRANSPORT DETAILS', transX, yPos - 5);
-    doc.setFont('helvetica', 'normal');
+// ---- SECTION TITLES ----
+doc.setFontSize(10);
+doc.setFont('helvetica', 'bold');
 
-    doc.text('Name', transX, yPos);
-    doc.text(':', transX + labelWidth, yPos);
-    doc.text(transportData?.transportName || '', transX + labelWidth + valueGap, yPos);
+const titleY = yPos + 5;
 
-    doc.text('LR No', transX, yPos + 5);
-    doc.text(':', transX + labelWidth, yPos + 5);
-    doc.text(transportData?.lrNo || '', transX + labelWidth + valueGap, yPos + 5);
+doc.text('BILL DETAILS', leftX, titleY);
+doc.text('SUPPLIER DETAILS', midX, titleY);
+doc.text('TRANSPORT DETAILS', transX, titleY);
 
-    doc.text('LR Date', transX, yPos + 10);
-    doc.text(':', transX + labelWidth, yPos + 10);
-    doc.text(formatDate(transportData?.lrDate), transX + labelWidth + valueGap, yPos + 10);
+// ---- CONTENT START (BELOW LOGO + COMPANY INFO) ----
+doc.setFontSize(9);
+doc.setFont('helvetica', 'normal');
 
-    doc.text('Amount', transX, yPos + 15);
-    doc.text(':', transX + labelWidth, yPos + 15);
-    doc.text(
-      `₹${formatCurrency(transportData?.amount || 0)}`,
-      transX + labelWidth + valueGap,
-      yPos + 15
-    );
+// IMPORTANT: content starts after company info
+let contentY = titleY + 6;
 
-    yPos += 25;
+
+/* -------- BILL DETAILS -------- */
+doc.text('Invoice No', leftX, contentY);
+doc.text(':', leftX + labelWidth, contentY);
+doc.text(invoiceData.invNo || '', leftX + labelWidth + valueGap, contentY);
+
+doc.text('Date', leftX, contentY + 5);
+doc.text(':', leftX + labelWidth, contentY + 5);
+doc.text(formatDate(invoiceData.billDate), leftX + labelWidth + valueGap, contentY + 5);
+
+doc.text('Bill No', leftX, contentY + 10);
+doc.text(':', leftX + labelWidth, contentY + 10);
+doc.text(invoiceData.purNo || '', leftX + labelWidth + valueGap, contentY + 10);
+
+doc.text('Bill Date', leftX, contentY + 15);
+doc.text(':', leftX + labelWidth, contentY + 15);
+doc.text(formatDate(invoiceData.purDate), leftX + labelWidth + valueGap, contentY + 15);
+
+doc.text('GST Type', leftX, contentY + 20);
+doc.text(':', leftX + labelWidth, contentY + 20);
+doc.text(
+  invoiceData.gstType === 'I' ? 'IGST' : 'CGST/SGST',
+  leftX + labelWidth + valueGap,
+  contentY + 20
+);
+
+/* -------- SUPPLIER DETAILS -------- */
+doc.text('Supplier Name', midX, contentY);
+doc.text(':', midX + labelWidth, contentY);
+doc.text(invoiceData.customerName || '', midX + labelWidth + valueGap, contentY);
+
+doc.text('GSTIN', midX, contentY + 5);
+doc.text(':', midX + labelWidth, contentY + 5);
+doc.text(invoiceData.gstno || '', midX + labelWidth + valueGap, contentY + 5);
+
+doc.text('Mobile', midX, contentY + 10);
+doc.text(':', midX + labelWidth, contentY + 10);
+doc.text(invoiceData.mobileNo || '', midX + labelWidth + valueGap, contentY + 10);
+
+doc.text('City', midX, contentY + 15);
+doc.text(':', midX + labelWidth, contentY + 15);
+doc.text(invoiceData.city || '', midX + labelWidth + valueGap, contentY + 15);
+
+/* -------- TRANSPORT DETAILS -------- */
+doc.text('Name', transX, contentY);
+doc.text(':', transX + labelWidth, contentY);
+doc.text(transportData?.transportName || '', transX + labelWidth + valueGap, contentY);
+
+doc.text('LR No', transX, contentY + 5);
+doc.text(':', transX + labelWidth, contentY + 5);
+doc.text(transportData?.lrNo || '', transX + labelWidth + valueGap, contentY + 5);
+
+doc.text('LR Date', transX, contentY + 10);
+doc.text(':', transX + labelWidth, contentY + 10);
+doc.text(formatDate(transportData?.lrDate), transX + labelWidth + valueGap, contentY + 10);
+
+doc.text('Amount', transX, contentY + 15);
+doc.text(':', transX + labelWidth, contentY + 15);
+
+// ✅ Plain text, no alignment tricks
+doc.text(
+  `Rs. ${Number(transportData?.amount || 0).toFixed(2)}`,
+  transX + labelWidth + valueGap,
+  contentY + 15
+);
+
+
+
+
+
+// ---- MOVE yPos FOR TABLE ----
+yPos = contentY + 28;
+
+// ===== INVOICE TITLE (ABOVE TABLE) =====
+doc.setFont('helvetica', 'bold');
+doc.setFontSize(14);
+
+const invoiceTitleY = yPos + 8;
+
+// Center text on page
+doc.text(
+  'PURCHASE INVOICE',
+  pageWidth / 2,
+  invoiceTitleY,
+  { align: 'center' }
+);
+
+
+// Move yPos below title
+yPos = invoiceTitleY + 8;
 
     // Items Table Header
     doc.setFillColor(27, 145, 218); // #1B91DA color
@@ -222,7 +265,11 @@ export const generatePurchaseInvoicePDF = async ({
     
     validItems.forEach((item, index) => {
       // Calculate rowHeight FIRST based on item name length
-      const particularsLines = doc.splitTextToSize(item.name || '', colWidths[2] - 4);
+      const particularsLines = doc.splitTextToSize(
+  (item.name || '').trim(),
+  colWidths[2] - 6
+);
+
       const rowHeight = Math.max(7, particularsLines.length * 4.5);
       
       // Add new page if running out of space
@@ -269,12 +316,19 @@ export const generatePurchaseInvoicePDF = async ({
       xPos += colWidths[1];
       
       // Particulars (Item Name) - col 2
+      // Particulars (Item Name) - col 2 (with top gap)
+      const particularsTopPadding = 1;
+
       doc.text(
         particularsLines,
-        xPos + colWidths[2] / 2,
-        yPos + rowHeight / 2 - (particularsLines.length - 1) * 2.25,
-        { align: 'center' }
+        xPos + 3,                     // left padding
+        yPos + particularsTopPadding + 4,
+        {
+          maxWidth: colWidths[2] - 6,  // wrap inside column
+          align: 'left'
+        }
       );
+
       xPos += colWidths[2];
       
       // UOM (col 3)
@@ -381,21 +435,51 @@ export const generatePurchaseInvoicePDF = async ({
     
     // Footer with authorized signatory at bottom-right
     const pageHeight = doc.internal.pageSize.getHeight();
-    const footerBaseY = pageHeight - 18;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+const footerBaseY = pageHeight - 18;
 
-    // Authorized Signatory (bottom-right)
-    const authX = pageWidth - marginRight - 30;
-    doc.text('Authorized Signatory:', authX, footerBaseY);
-    doc.text('___________________', authX, footerBaseY + 5);
-    doc.text('For SANKARAPANDIAN STORE', authX + 10, footerBaseY + 10, { align: 'center' });
+doc.setFont('helvetica', 'normal');
+doc.setFontSize(8);
+
+// right-side alignment base
+const footerCenterX = pageWidth - marginRight - 20;
+
+// FIRST LINE
+doc.text(
+  'For SANKARAPANDIAN STORE',
+  footerCenterX,
+  footerBaseY,
+  { align: 'center' }
+);
+
+// SECOND LINE (below it)
+doc.text(
+  'Authorized Signatory',
+  footerCenterX,
+  footerBaseY + 12,
+  { align: 'center' }
+);
+
+   
     
-    // Save PDF
-    const fileName = `Purchase_Invoice_${invoiceData.invNo || 'DRAFT'}_${new Date().getTime()}.pdf`;
-    doc.save(fileName);
     
-    return fileName;
+    // Generate PDF as blob and open in new window
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    
+    // Open in new window and print
+    const printWindow = window.open(pdfUrl, '_blank');
+    
+    if (printWindow) {
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          // Clean up the URL object after print
+          URL.revokeObjectURL(pdfUrl);
+        }, 300);
+      };
+    }
+    
+    return 'PDF opened for printing';
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;
@@ -415,184 +499,38 @@ const PrintPDF = ({
   freightAmount,
   userData
 }) => {
-  const [loading, setLoading] = useState(false);
-  
-  const handleGeneratePDF = async () => {
-    try {
-      setLoading(true);
-      await generatePurchaseInvoicePDF({
-        invoiceData,
-        items,
-        totals,
-        transportData,
-        chargesAmount,
-        addLessAmount,
-        freightAmount,
-        userData
-      });
+  React.useEffect(() => {
+    if (isOpen) {
+      // Auto-generate and print PDF when component opens
+      const generateAndPrint = async () => {
+        try {
+          await generatePurchaseInvoicePDF({
+            invoiceData,
+            items,
+            totals,
+            transportData,
+            chargesAmount,
+            addLessAmount,
+            freightAmount,
+            userData
+          });
+          // Close the modal after PDF generation
+          setTimeout(() => {
+            onClose();
+          }, 1000);
+        } catch (error) {
+          console.error('Error generating PDF:', error);
+          alert(error.message || 'Failed to generate PDF. Please try again.');
+          onClose();
+        }
+      };
       
-      // Show success message
-      alert('PDF generated successfully!');
-      onClose();
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert(error.message || 'Failed to generate PDF. Please try again.');
-    } finally {
-      setLoading(false);
+      generateAndPrint();
     }
-  };
+  }, [isOpen, invoiceData, items, totals, transportData, chargesAmount, addLessAmount, freightAmount, userData, onClose]);
 
-  if (!isOpen) return null;
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000,
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '20px',
-        width: '90%',
-        maxWidth: '500px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px',
-          borderBottom: '1px solid #eee',
-          paddingBottom: '10px',
-        }}>
-          <h3 style={{
-            margin: 0,
-            color: '#1B91DA',
-            fontSize: '18px',
-            fontWeight: '600',
-          }}>
-            Generate Purchase Invoice PDF (Landscape)
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '20px',
-              cursor: 'pointer',
-              color: '#666',
-              padding: '5px',
-              borderRadius: '4px',
-            }}
-            aria-label="Close"
-            disabled={loading}
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ 
-            padding: '10px', 
-            backgroundColor: '#f0f8ff', 
-            borderRadius: '5px',
-            marginBottom: '15px'
-          }}>
-            <p style={{ margin: '0 0 5px 0', color: '#333' }}>
-              <strong>Invoice No:</strong> {invoiceData.invNo || 'DRAFT'}
-            </p>
-            <p style={{ margin: '0 0 5px 0', color: '#333' }}>
-              <strong>Supplier:</strong> {invoiceData.customerName || 'N/A'}
-            </p>
-            <p style={{ margin: '0 0 5px 0', color: '#333' }}>
-              <strong>Date:</strong> {formatDate(invoiceData.billDate)}
-            </p>
-            <p style={{ margin: '0 0 5px 0', color: '#333' }}>
-              <strong>Total Items:</strong> {items.filter(item => item.name).length}
-            </p>
-            <p style={{ margin: '0 0 5px 0', color: '#333', fontWeight: 'bold' }}>
-              <strong>Net Total:</strong> ₹{formatCurrency(totals.net)}
-            </p>
-          </div>
-          
-          <p style={{ margin: '0 0 15px 0', color: '#666', fontSize: '14px' }}>
-            PDF will be generated in LANDSCAPE orientation (A4) with the exact alignment shown in your example.
-          </p>
-        </div>
-
-        <div style={{
-          display: 'flex',
-          gap: '10px',
-          justifyContent: 'flex-end',
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-              minWidth: '80px',
-            }}
-            disabled={loading}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleGeneratePDF}
-            style={{
-              padding: '8px 20px',
-              backgroundColor: '#1B91DA',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-              minWidth: '120px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-            }}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span>Generating...</span>
-                <div style={{
-                  width: '16px',
-                  height: '16px',
-                  border: '2px solid #fff',
-                  borderTop: '2px solid transparent',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-              </>
-            ) : (
-              'Generate PDF'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  // Return null - no modal UI needed, PDF generates automatically
+  return null;
 };
 
 export default PrintPDF;

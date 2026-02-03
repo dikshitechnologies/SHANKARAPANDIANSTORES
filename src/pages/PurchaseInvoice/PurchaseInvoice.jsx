@@ -103,6 +103,7 @@ const PurchaseInvoice = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
   const [allTax, setAllTax] = useState([]);
   
   // Confirmation popup states
@@ -2070,18 +2071,13 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
               API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), 
               payload
             );
-            handlePrint();
-            // createNewForm();
             console.log('Save response:', res);
             
             // Close the confirmation popup first
             setShowConfirmPopup(false);
             
-            // Show success message and reset form
-            showAlertConfirmation(
-              `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
-              'warning'
-            );
+            // Show print confirmation popup on success
+            setPrintConfirmationOpen(true);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -2108,6 +2104,19 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       console.warn('Save error:', e);
       showAlertConfirmation('Failed to save purchase', null, 'danger');
     }
+  };
+
+  // Handle print confirmation
+  const handlePrintConfirm = () => {
+    setPrintConfirmationOpen(false);
+    setShowPrintModal(true);
+    
+    // Show success message after opening print
+    showAlertConfirmation(
+      `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
+      null,
+      'success'
+    );
   };
 
   // Updated handlePrint function
@@ -3787,6 +3796,24 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   addLessAmount={addLessAmount}
   freightAmount={freightAmount}
   userData={userData}
+/>
+
+{/* Print Confirmation Popup */}
+<ConfirmationPopup
+  isOpen={printConfirmationOpen}
+  title="Print Confirmation"
+  message="Do you want to print the purchase invoice?"
+  confirmText="Yes"
+  cancelText="No"
+  onConfirm={handlePrintConfirm}
+  onCancel={() => {
+    setPrintConfirmationOpen(false);
+    showAlertConfirmation(
+      `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
+      null,
+      'success'
+    );
+  }}
 />
 
       {/* Purchase Bill List Popup for Edit/Delete */}
