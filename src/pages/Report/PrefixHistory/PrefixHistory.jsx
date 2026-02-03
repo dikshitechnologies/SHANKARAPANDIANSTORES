@@ -121,15 +121,16 @@ const PrefixHistory = () => {
       WebkitOverflowScrolling: 'touch',
     },
     footerSection: {
-      flex: '0 0 auto',
       backgroundColor: 'white',
       borderTop: '1px solid #e0e0e0',
       padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
       display: 'flex',
       justifyContent: 'flex-end',
       gap: '12px',
-      position: 'sticky',
+      position: 'fixed',
       bottom: 0,
+      left: 0,
+      right: 0,
       zIndex: 100,
       boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
     },
@@ -139,7 +140,7 @@ const PrefixHistory = () => {
       gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
       marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '14px' : '18px',
       flexWrap: 'wrap',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
     },
     formField: {
       display: 'flex',
@@ -147,7 +148,8 @@ const PrefixHistory = () => {
       gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       flexDirection: screenSize.isMobile ? 'column' : 'row',
       width: screenSize.isMobile ? '100%' : 'auto',
-      flex: screenSize.isMobile ? '1 1 100%' : '0 1 auto',
+      flex: screenSize.isMobile ? '1 1 100%' : '0 0 auto',
+      minWidth: screenSize.isMobile ? '100%' : 'auto',
     },
     label: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -562,7 +564,7 @@ const PrefixHistory = () => {
               <label style={styles.label}>Floor:</label>
               <input
                 type="text"
-                style={styles.input}
+                style={{...styles.input, width: '460px'}}
                 value={prefixData.companyName || ''}
                 readOnly
                 // placeholder=""
