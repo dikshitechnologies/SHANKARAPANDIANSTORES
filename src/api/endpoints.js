@@ -437,6 +437,8 @@ PAYMENTVOUCHER: {
     &fcompcode=${params.fcompcode}
     &page=${params.page}
     &pageSize=${params.pageSize}`,
+  GET_TAG_PRINT_ITEMS: (params) =>
+    `tagprint/TagPrintDetails?voucher=${encodeURIComponent(params.voucher)}&compCode=${encodeURIComponent(params.compCode)}&page=${params.page}&pageSize=${params.pageSize}`,
 },
 
 
