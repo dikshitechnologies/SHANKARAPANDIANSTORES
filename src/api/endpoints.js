@@ -446,4 +446,9 @@ PAYMENTVOUCHER: {
     // If you need other endpoints for prefix history
   },
 
+  ITEMWISE_STOCK: {
+    GET_ITEMS_LIST: (page = 1, pageSize = 10) =>
+      `ItemwiseStock/GetItemslist?page=${page}&pageSize=${pageSize}`,
+  },
+
 };
