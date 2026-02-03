@@ -441,5 +441,9 @@ PAYMENTVOUCHER: {
     `tagprint/TagPrintDetails?voucher=${encodeURIComponent(params.voucher)}&compCode=${encodeURIComponent(params.compCode)}&page=${params.page}&pageSize=${params.pageSize}`,
 },
 
+  PREFIX_HISTORY: {
+    GET_BY_PREFIX: (prefix) => `/Prefixhistory/GetByPrefix?prefix=${prefix}`,
+    // If you need other endpoints for prefix history
+  },
 
 };

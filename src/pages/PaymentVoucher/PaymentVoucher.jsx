@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { EditButton, DeleteButton, SaveButton, ClearButton, AddButton, ActionButtons, ActionButtons1, PrintButton } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import SaveConfirmationModal from '../../components/SaveConfirmationModal/SaveConfirmationModal';
+import PrintVoucher from '../PrintVoucher/PrintVoucher'; // Add this import
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import apiService from '../../api/apiService';
 import axiosInstance from '../../api/axiosInstance';
@@ -171,7 +172,7 @@ const PaymentVoucher = () => {
   const accountNameRef = useRef(null);
   const gstTypeRef = useRef(null);
   const balanceRef = useRef(null);
-  
+  const printVoucherRef = useRef(null); 
   // Payment table refs
   const paymentCashBankRefs = useRef([]);
   const paymentCrDrRefs = useRef([]);
@@ -205,6 +206,9 @@ const PaymentVoucher = () => {
 
   // Mobile view state
   const [isMobileView, setIsMobileView] = useState(false);
+
+  // State to hold voucher data for printing
+  const [printVoucherData, setPrintVoucherData] = useState(null);
 
   // Initialize refs arrays
   useEffect(() => {
@@ -1538,6 +1542,27 @@ const PaymentVoucher = () => {
     return date.toISOString().substring(0, 10);
   };
 
+  // Build voucher data for printing
+  const buildVoucherData = () => {
+  const validItems = paymentItems.filter(item => 
+    item.cashBank && item.cashBank.trim() !== '' && 
+    item.amount && parseFloat(item.amount) > 0
+  );
+  
+  return {
+    voucherNo: voucherDetails.voucherNo,
+    voucherDate: voucherDetails.date,
+    accountName: voucherDetails.accountName,
+    netAmount: totalAmount,
+    items: validItems.map(item => ({
+      cashBank: item.cashBank || 'N/A',
+      narration: item.narration || '',
+      amount: parseFloat(item.amount) || 0
+    })),
+    
+  };
+};
+
   const savePaymentVoucher = async (updatedParticulars = null) => {
     try {
       if (!voucherDetails.voucherNo) {
@@ -1671,9 +1696,28 @@ const PaymentVoucher = () => {
 
       if (response) {
         setError(null);
-        resetForm();
-        await fetchNextVoucherNo();
-        await fetchSavedVouchers();
+        
+        // Build voucher data for printing BEFORE clearing form
+        const voucherDataForPrint = buildVoucherData();
+        console.log('voucherDataForPrint:', voucherDataForPrint);
+        
+        // Store the voucher data in state for PrintVoucher component
+        setPrintVoucherData(voucherDataForPrint);
+        
+        // Show print confirmation after successful save
+        setTimeout(() => {
+          console.log('Showing print confirmation popup');
+          setConfirmationPopup({
+            isOpen: true,
+            title: 'Print Confirmation',
+            message: 'Would you like to print the voucher?',
+            type: 'success',
+            confirmText: 'Yes',
+            cancelText: 'No',
+            action: 'printConfirmation',
+            isLoading: false
+          });
+        }, 100);
       }
     } catch (err) {
       console.error('Error saving voucher:', err);
@@ -1691,6 +1735,18 @@ const PaymentVoucher = () => {
       toast.error(`Error: ${errorMsg}`, { autoClose: 3000 });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (printVoucherRef.current && printVoucherRef.current.print) {
+      console.log('Printing voucher...');
+      printVoucherRef.current.print();
+    } else {
+      toast.error('No data to print', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
     }
   };
 
@@ -2795,7 +2851,7 @@ const PaymentVoucher = () => {
             <PrintButton 
               onClick={() => {
                 setActiveFooterAction('print');
-                console.log('Print clicked');
+                handlePrint();
               }} 
               disabled={false}
               isActive={activeFooterAction === 'all' || activeFooterAction === 'print'}
@@ -2884,8 +2940,30 @@ const PaymentVoucher = () => {
           type={confirmationPopup.type}
           confirmText={confirmationPopup.confirmText}
           cancelText={confirmationPopup.cancelText}
-          onConfirm={handleConfirmationAction}
-          onClose={() => setConfirmationPopup(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={() => {
+            if (confirmationPopup.action === 'printConfirmation') {
+              if (confirmationPopup.confirmText === 'Yes') {
+                // Trigger print with the saved data
+                if (printVoucherRef.current && printVoucherRef.current.print) {
+                  setTimeout(() => {
+                    printVoucherRef.current.print();
+                  }, 100);
+                }
+              }
+              // Clear form after print confirmation
+              resetForm();
+              setConfirmationPopup(prev => ({ ...prev, isOpen: false }));
+            } else {
+              handleConfirmationAction();
+            }
+          }}
+          onCancel={() => {
+            if (confirmationPopup.action === 'printConfirmation') {
+              // Clear form when user says no
+              resetForm();
+            }
+            setConfirmationPopup(prev => ({ ...prev, isOpen: false }));
+          }}
         />
       )}
 
@@ -2897,6 +2975,9 @@ const PaymentVoucher = () => {
         message={"Do you want to save ?"}
         type={"success"}
       />
+
+      {/* PrintVoucher Component - Hidden, used for printing */}
+      <PrintVoucher ref={printVoucherRef} billData={printVoucherData} mode="payment-voucher" />
     </div>
   );
 };
