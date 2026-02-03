@@ -68,9 +68,45 @@ function BillCollector() {
   };
 
   // Handle row click to open Tender Modal
-  const handleRowClick = (billRow) => {
-    setSelectedBillData(billRow);
-    setIsTenderModalOpen(true);
+  const handleRowClick = async (billRow) => {
+    try {
+      setLoading(true);
+      
+      // Fetch discount flag for items in this bill
+      const discountData = await apiService.get(
+        API_ENDPOINTS.BILLCOLLECTOR.GET_ITEMS_DISCOUNT_FLAG(billRow.billNo)
+      );
+      
+      console.log("Discount flag data:", discountData);
+      
+      // Check if discount is allowed
+      // If any item has discFlag = "Y", discount is NOT allowed
+      // If all items have discFlag = "N" or "", discount is allowed
+      let isDiscountAllowed = true;
+      
+      if (discountData && Array.isArray(discountData)) {
+        isDiscountAllowed = !discountData.some(item => item.discFlag === "Y");
+      }
+      
+      console.log("Is discount allowed:", isDiscountAllowed);
+      
+      // Add discount permission to bill data
+      setSelectedBillData({
+        ...billRow,
+        isDiscountAllowed: isDiscountAllowed
+      });
+      setIsTenderModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching discount flag:", error);
+      // If API fails, allow discount by default
+      setSelectedBillData({
+        ...billRow,
+        isDiscountAllowed: true
+      });
+      setIsTenderModalOpen(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCloseTenderModal = () => {
