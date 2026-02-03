@@ -63,7 +63,8 @@ const AccountPayables = () => {
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const companyRef = useRef(null);
+  const companyNameRef = useRef(null);
+  const itemNameRef = useRef(null);
   const searchButtonRef = useRef(null);
 
   // --- DATA ---
@@ -406,9 +407,12 @@ const AccountPayables = () => {
           toDateRef.current?.focus();
           break;
         case 'toDate':
-          companyRef.current?.focus();
+          companyNameRef.current?.focus();
           break;
-        case 'company':
+        case 'companyName':
+          itemNameRef.current?.focus();
+          break;
+        case 'itemName':
           searchButtonRef.current?.focus();
           break;
         default:
@@ -1081,6 +1085,7 @@ const AccountPayables = () => {
             }}>
               <label style={styles.inlineLabel}>Company Name:</label>
               <div
+                ref={companyNameRef}
                 style={
                   focusedField === 'companyName'
                     ? styles.companyInputFocused
@@ -1091,10 +1096,12 @@ const AccountPayables = () => {
                   setFocusedField('companyName');
                 }}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'companyName');
                   if (e.key === 'Enter') {
-                    handleCompanyNameClick();
+                    e.preventDefault();
+                    itemNameRef.current?.focus();
+                    return;
                   }
+                  handleKeyDown(e, 'companyName');
                 }}
                 onFocus={() => setFocusedField('companyName')}
                 onBlur={() => setFocusedField('')}
@@ -1135,12 +1142,14 @@ const AccountPayables = () => {
                   handleItemNameClick();
                   setFocusedField('itemName');
                 }}
-                ref={companyRef}
+                ref={itemNameRef}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'itemName');
                   if (e.key === 'Enter') {
-                    handleItemNameClick();
+                    e.preventDefault();
+                    searchButtonRef.current?.focus();
+                    return;
                   }
+                  handleKeyDown(e, 'itemName');
                 }}
                 onFocus={() => setFocusedField('itemName')}
                 onBlur={() => setFocusedField('')}
@@ -1212,8 +1221,8 @@ const AccountPayables = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th }}>S.No</th>
-                <th style={{ ...styles.th }}>Item Name</th>
+                <th style={{ ...styles.th, minWidth: '10px', width: '10px', maxWidth: '10px' }}>S.No</th>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Item Name</th>
                 <th style={{ ...styles.th }}>Date</th>
                 <th style={{ ...styles.th }}>Opg Qty</th>
                 <th style={{ ...styles.th }}>Purchase Qty</th>
@@ -1232,7 +1241,7 @@ const AccountPayables = () => {
             borderTop: '2px solid #1B91DA'
           } : {})
         }}>
-          <td style={styles.td}>{index + 1}</td>
+          <td style={{ ...styles.td, minWidth: '40px', width: '40px', maxWidth: '40px' }}>{index + 1}</td>
           <td style={styles.td}>{row.fItemName || ''}</td>
           <td style={styles.td}>{row.date || ''}</td>
           <td style={styles.td}>{row.opgQty || ''}</td>

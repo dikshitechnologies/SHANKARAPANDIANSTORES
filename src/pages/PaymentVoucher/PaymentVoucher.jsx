@@ -2857,7 +2857,7 @@ const PaymentVoucher = () => {
               isActive={activeFooterAction === 'all' || activeFooterAction === 'save'}
               buttonType="save"
             />
-            <PrintButton 
+            {/* <PrintButton 
               onClick={() => {
                 setActiveFooterAction('print');
                 handlePrint();
@@ -2865,7 +2865,7 @@ const PaymentVoucher = () => {
               disabled={false}
               isActive={activeFooterAction === 'all' || activeFooterAction === 'print'}
               buttonType="print"
-            />
+            /> */}
           </div>
         </div>
       </div>

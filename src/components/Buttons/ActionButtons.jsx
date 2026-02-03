@@ -75,7 +75,7 @@ export const ActionButtons1 = React.forwardRef(({ onClear, onSave, onPrint, acti
     <div style={styles.buttonContainer}>
       <ClearButton onClick={handleClick('clear', onClear)} disabled={disabledClear} isActive={activeButton === 'all' || activeButton === 'clear'} />
       <SaveButton ref={ref} type="button" onClick={handleClick('save', onSave)} disabled={disabledSave} isActive={activeButton === 'all' || activeButton === 'save'} />
-      <PrintButton onClick={handleClick('print', onPrint)} disabled={disabledPrint} isActive={activeButton === 'all' || activeButton === 'print'} />
+      {/* <PrintButton onClick={handleClick('print', onPrint)} disabled={disabledPrint} isActive={activeButton === 'all' || activeButton === 'print'} /> */}
     </div>
   );
 });
@@ -228,6 +228,7 @@ const styles = {
     backgroundColor: '#ffffff',
     padding: '0.4rem',
     borderRadius: '50px',
+    border: '2px solid #1976d2',
     boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
   }
 };   

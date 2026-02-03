@@ -665,6 +665,7 @@ const calculateTotals = (items = []) => {
 };
 
 const PurchaseInvoice = () => {
+  const { userData } = useAuth() || {};
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -714,7 +715,7 @@ const PurchaseInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: new Date(userData?.date).toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -825,7 +826,7 @@ const PurchaseInvoice = () => {
   });
 
   // Auth context for company code
-  const { userData } = useAuth() || {};
+  
   // Also get fseudo from context in case userData.fseudo is missing
   const { fseudo } = useAuth() || {};
 
@@ -2190,7 +2191,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           item.sudo
             .toLowerCase()
             .split("")
-            .map(c => letterToNum[c] ?? "")
+            .map(c => c === '.' ? '.' : (letterToNum[c] ?? ""))
             .join("")
         ) || 0
       : Number(item.profitPercent) || 0;
@@ -2325,7 +2326,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     // Handle / key for item code search popup
     if (e.key === '/') {
       e.preventDefault();
-      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+      // handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
       return;
     }
 
@@ -2686,6 +2687,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   const handlePrintConfirm = () => {
     setPrintConfirmationOpen(false);
     setShowPrintModal(true);
+    setTimeout(() => {
+      clearForm();
+    }, 1000);
     
     // Show success message after opening print
     // showAlertConfirmation(
@@ -4099,7 +4103,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 data-field="sudo"
                 onChange={(e) => {
                   const value = e.target.value.toUpperCase();
-                  if (/^[A-Z]*$/.test(value)) {
+                  if (/^[A-Z,.]*$/.test(value)) {
                     handleItemChange(item.id, 'sudo', value);
                   }
                 }}
@@ -4378,7 +4382,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
 <ConfirmationPopup
   isOpen={printConfirmationOpen}
   title="Print Confirmation"
-  message="Do you want to print the purchase invoice?"
+  message="Do you want to print?"
   confirmText="Yes"
   cancelText="No"
   onConfirm={handlePrintConfirm}
@@ -4628,7 +4632,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           <ActionButtons1
             onClear={handleClear}
             onSave={handleSave}
-            onPrint={handlePrint}
+            // onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
