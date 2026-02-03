@@ -1486,7 +1486,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   // Handle / key for item code search popup
   if (e.key === '/') {
     e.preventDefault();
-    handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+    // handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
     return;
   }
 

@@ -2051,11 +2051,11 @@ const handleServiceChargeFieldKeyDown = (e) => {
       <ConfirmationPopup
         isOpen={printConfirmationOpen}
         title="Print Confirmation"
-        message="Do you want to print the tax invoice?"
+        message="Do you want to print?"
         confirmText="Yes"
         cancelText="No"
         onConfirm={handlePrintConfirm}
-        onCancel={() => setPrintConfirmationOpen(false)}
+        onClose={() => setPrintConfirmationOpen(false)}
       />
 
     </div>

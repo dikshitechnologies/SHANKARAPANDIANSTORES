@@ -2191,7 +2191,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           item.sudo
             .toLowerCase()
             .split("")
-            .map(c => letterToNum[c] ?? "")
+            .map(c => c === '.' ? '.' : (letterToNum[c] ?? ""))
             .join("")
         ) || 0
       : Number(item.profitPercent) || 0;
@@ -2326,7 +2326,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     // Handle / key for item code search popup
     if (e.key === '/') {
       e.preventDefault();
-      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+      // handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
       return;
     }
 
@@ -4103,7 +4103,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 data-field="sudo"
                 onChange={(e) => {
                   const value = e.target.value.toUpperCase();
-                  if (/^[A-Z]*$/.test(value)) {
+                  if (/^[A-Z,.]*$/.test(value)) {
                     handleItemChange(item.id, 'sudo', value);
                   }
                 }}
@@ -4632,7 +4632,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           <ActionButtons1
             onClear={handleClear}
             onSave={handleSave}
-            onPrint={handlePrint}
+            // onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
