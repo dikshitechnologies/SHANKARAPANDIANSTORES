@@ -431,7 +431,15 @@ const PaymentVoucher = () => {
       }
     }
   };
-
+ const handlePrintCancel = () => {
+            if (confirmationPopup.action === 'printConfirmation') {
+              setTimeout(() => {
+                resetForm();
+                setPrintVoucherData(null);
+              }, 100);
+            }
+            setConfirmationPopup(prev => ({ ...prev, isOpen: false }));
+          };
   // Focus on header field
   const focusOnHeaderField = (fieldName) => {
     setNavigationStep(fieldName);
@@ -2957,12 +2965,16 @@ const PaymentVoucher = () => {
               handleConfirmationAction();
             }
           }}
-          onCancel={() => {
+         onClose={() => {
+            // console.log('🟢 onClose triggered for printConfirmation:', confirmationPopup.action);
             if (confirmationPopup.action === 'printConfirmation') {
-              // Clear form when user says no
+              // console.log('🟢 Calling resetForm()...');
               resetForm();
             }
-            setConfirmationPopup(prev => ({ ...prev, isOpen: false }));
+            setConfirmationPopup(prev => {
+              // console.log('🟢 Closing popup');
+              return { ...prev, isOpen: false };
+            });
           }}
         />
       )}

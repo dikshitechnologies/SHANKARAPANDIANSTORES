@@ -286,6 +286,8 @@ CATEGORY: {
   getTaxList: (page = 1, pageSize = 10) =>
   `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
 
+   getLastBillNoByCustomer: (customerCode) =>
+    `Salesinvoices/GetLastBillNo?customerCode=${customerCode}`,
 },
 
   Scrap_Procurement: {
@@ -444,6 +446,11 @@ PAYMENTVOUCHER: {
   PREFIX_HISTORY: {
     GET_BY_PREFIX: (prefix) => `/Prefixhistory/GetByPrefix?prefix=${prefix}`,
     // If you need other endpoints for prefix history
+  },
+
+  ITEMWISE_STOCK: {
+    GET_ITEMS_LIST: (page = 1, pageSize = 10) =>
+      `ItemwiseStock/GetItemslist?page=${page}&pageSize=${pageSize}`,
   },
 
 };

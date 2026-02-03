@@ -1,17 +1,18 @@
 import React, { useState,useRef, useEffect } from 'react';
-import { FaPencilRuler, FaRecycle, FaTags, FaThList, FaBoxOpen,FaCubes, FaRulerCombined, FaBalanceScale } from 'react-icons/fa';
+import { FaPencilRuler, FaRecycle } from 'react-icons/fa';
+import { HiOutlineTag, HiOutlineViewGrid, HiOutlineCube, HiOutlineTemplate, HiOutlineAdjustments, HiOutlineScale } from 'react-icons/hi';
 
 const BASE = '/SPSTORE/#/embed';
 
 const screens = {
   design: { url: `${BASE}/design`, icon: <FaPencilRuler />, label: 'Design Creation' },
   scrap: { url: `${BASE}/scrap`, icon: <FaRecycle />, label: 'Scrap Page' },
-  brand: { url: `${BASE}/brand`, icon: <FaTags />, label: 'Brand' },
-  category: { url: `${BASE}/category`, icon: <FaThList />, label: 'Category' },
-  product: { url: `${BASE}/product`, icon: <FaBoxOpen />, label: 'Product' },
-  model: { url: `${BASE}/masters/model-creation`, icon: <FaCubes />, label: 'Model' },         // FaCubes for Model
-    size: { url: `${BASE}/masters/size-creation`, icon: <FaRulerCombined />, label: 'Size' },     // FaRulerCombined for Size
-    unit: { url: `${BASE}/masters/unit-creation`, icon: <FaBalanceScale />, label: 'Unit' },      // FaBalanceScale for Unit
+  brand: { url: `${BASE}/brand`, icon: <HiOutlineTag style={{ color: '#60A5FA' }} />, label: 'Brand' },
+  category: { url: `${BASE}/category`, icon: <HiOutlineViewGrid style={{ color: '#60A5FA' }} />, label: 'Category' },
+  product: { url: `${BASE}/product`, icon: <HiOutlineCube style={{ color: '#60A5FA' }} />, label: 'Product' },
+  model: { url: `${BASE}/masters/model-creation`, icon: <HiOutlineTemplate style={{ color: '#60A5FA' }} />, label: 'Model' },
+  size: { url: `${BASE}/masters/size-creation`, icon: <HiOutlineAdjustments style={{ color: '#60A5FA' }} />, label: 'Size' },
+  unit: { url: `${BASE}/masters/unit-creation`, icon: <HiOutlineScale style={{ color: '#60A5FA' }} />, label: 'Unit' },
 }
 
 

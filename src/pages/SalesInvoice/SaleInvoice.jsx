@@ -1368,24 +1368,16 @@ const handleCustomerSelect = async (customer) => {
       const type = balanceResp?.data?.amount1 || "";
       setPartyBalance(`${amount} ${type}`);
 
-      // ✅ 2. FETCH LAST BILL AMOUNT - USE THE LEDGER API
+      // ✅ 2. FETCH LAST BILL AMOUNT - USE THE NEW API
       try {
-        // Get today's date and date 1 year ago for default range
-        const today = new Date();
-        const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-        
-        const fromDate = oneYearAgo.toISOString().split('T')[0]; // YYYY-MM-DD
-        const toDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
-        
-        // Call ledger API - same API used in customer history
-        const ledgerResp = await axiosInstance.get(
-          API_ENDPOINTS.sales_return.getLedger(customerCode, companyCode, fromDate, toDate)
+        const lastBillResp = await axiosInstance.get(
+          API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getLastBillNoByCustomer(customerCode)
         );
         
-        // Extract last bill amount from ledger response
-        const lastAmt = ledgerResp?.data?.latestBillAmount ?? 
-                       ledgerResp?.data?.lastBillAmount ?? 
-                       "0.00";
+        // Response: { "lastBillNo": "C00118AA", "billAmount": 648 }
+        const lastAmt = lastBillResp?.data?.billAmount ?? 
+                       lastBillResp?.data?.data?.billAmount ?? 
+                       0;
         
         setLastBillAmount(Number(lastAmt).toFixed(2));
         console.log("Last bill amount fetched:", lastAmt);
