@@ -3703,10 +3703,10 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
-        displayFieldKeys={['fItemName', 'fParent']}
-        searchFields={['fItemName', 'fParent']}
-        headerNames={['Item Name', 'Group']}
-        columnWidths={{ fItemName: '70%', fParent: '30%' }}
+        displayFieldKeys={['fItemName']}
+        searchFields={['fItemName']}
+        headerNames={['Item Name']}
+        columnWidths={{ fItemName: '100%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
