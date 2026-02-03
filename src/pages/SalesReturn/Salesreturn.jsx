@@ -4096,8 +4096,7 @@ const handlePrint = () => {
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       paddingTop: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
       paddingBottom: screenSize.isMobile ? '5px' : screenSize.isTablet ? '6px' : '8px',
-      paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
-      paddingRight: screenSize.isMobile ? '30px' : screenSize.isTablet ? '34px' : '34px',
+     
       border: '1px solid #ddd',
       borderRadius: screenSize.isMobile ? '3px' : '4px',
       boxSizing: 'border-box',
@@ -5908,15 +5907,15 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
 <div style={{
   ...styles.formField,
   flex: '1 1 auto',
-  minWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-           screenSize.isTablet ? 'calc(25% - 10px)' :
-           'calc(16.66% - 12px)',
-  maxWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-            screenSize.isTablet ? 'calc(25% - 10px)' :
-            'calc(16.66% - 12px)',
-  flexBasis: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-             screenSize.isTablet ? 'calc(25% - 10px)' :
-             'calc(16.66% - 12px)'
+  minWidth: screenSize.isMobile ? 'calc(50% - 8px)' :
+           screenSize.isTablet ? '160px' :
+           '150px',
+  maxWidth: screenSize.isMobile ? 'calc(50% - 8px)' :
+            screenSize.isTablet ? '160px' :
+            '150px',
+  flexBasis: screenSize.isMobile ? 'calc(50% - 8px)' :
+             screenSize.isTablet ? '160px' :
+             '150px'
 }}>
   <label style={styles.inlineLabel}>Discount %:</label>
   <input
@@ -5943,15 +5942,15 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
 <div style={{
   ...styles.formField,
   flex: '1 1 auto',
-  minWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-           screenSize.isTablet ? 'calc(25% - 10px)' :
-           'calc(16.66% - 12px)',
-  maxWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-            screenSize.isTablet ? 'calc(25% - 10px)' :
-            'calc(16.66% - 12px)',
-  flexBasis: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-             screenSize.isTablet ? 'calc(25% - 10px)' :
-             'calc(16.66% - 12px)'
+  minWidth: screenSize.isMobile ? 'calc(50% - 8px)' :
+           screenSize.isTablet ? '160px' :
+           '150px',
+  maxWidth: screenSize.isMobile ? 'calc(50% - 8px)' :
+            screenSize.isTablet ? '160px' :
+            '150px',
+  flexBasis: screenSize.isMobile ? 'calc(50% - 8px)' :
+             screenSize.isTablet ? '160px' :
+             '150px'
 }}>
   <label style={styles.inlineLabel}>Discount Amt:</label>
   <input
@@ -5974,19 +5973,54 @@ console.log("Rendering bill details for billNo:", billNo, "with items:", itemsAr
   />
 </div>
 
+{/* Round Off Field */}
+<div style={{
+  ...styles.formField,
+  flex: '1 1 auto',
+  minWidth: screenSize.isMobile ? 'calc(50% - 8px)' :
+           screenSize.isTablet ? '160px' :
+           '150px',
+  maxWidth: screenSize.isMobile ? 'calc(50% - 8px)' :
+            screenSize.isTablet ? '160px' :
+            '150px',
+  flexBasis: screenSize.isMobile ? 'calc(50% - 8px)' :
+             screenSize.isTablet ? '160px' :
+             '150px'
+}}>
+  <label style={styles.inlineLabel}>Add less:</label>
+  <input
+    type="text"
+    readOnly
+    tabIndex={-1}
+    style={{
+      ...styles.inlineInput,
+      padding: screenSize.isMobile ? '10px 8px' : '8px 10px',
+      fontSize: screenSize.isMobile ? '14px' : 'inherit',
+      textAlign: 'center',
+      fontWeight: 'bold',
+      color: '#6a1b9a',
+      backgroundColor: '#f3f6f9',
+      cursor: 'not-allowed',
+      pointerEvents: 'none'
+    }}
+    value={roundOffValue}
+    name="roundOffValue"
+  />
+</div>
+
 {/* Net Amount Field (Read-only) */}
 <div style={{
   ...styles.formField,
   flex: '1 1 auto',
-  minWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-           screenSize.isTablet ? 'calc(25% - 10px)' :
-           'calc(16.66% - 12px)',
-  maxWidth: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-            screenSize.isTablet ? 'calc(25% - 10px)' :
-            'calc(16.66% - 12px)',
-  flexBasis: screenSize.isMobile ? 'calc(33.33% - 8px)' :
-             screenSize.isTablet ? 'calc(25% - 10px)' :
-             'calc(16.66% - 12px)'
+  minWidth: screenSize.isMobile ? 'calc(100% - 8px)' :
+           screenSize.isTablet ? '240px' :
+           '220px',
+  maxWidth: screenSize.isMobile ? 'calc(100% - 8px)' :
+            screenSize.isTablet ? '240px' :
+            '220px',
+  flexBasis: screenSize.isMobile ? 'calc(100% - 8px)' :
+             screenSize.isTablet ? '240px' :
+             '220px'
 }}>
   <label style={styles.inlineLabel}>Net Amount:</label>
   <input

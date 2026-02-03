@@ -2,14 +2,13 @@ import React, { useRef, useEffect, forwardRef } from "react";
 import logo from "../../assets/logo1.jpeg";
 import QRCode from "qrcode";
 
-const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) => {
-    console.log("PrintVoucher billData:", billData);
+const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
   const printRef = useRef(null);
   const qrcodeRef = useRef(null);
 
   // Initialize QR code when component mounts
   useEffect(() => {
-    if ((mode === "payment-voucher" || mode === "receipt-voucher") && qrcodeRef.current && billData?.voucherNo) {
+    if ((mode === "tax_invoice") && qrcodeRef.current && billData?.voucherNo) {
       qrcodeRef.current.innerHTML = "";
       QRCode.toString(
         billData.voucherNo,
@@ -38,7 +37,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
       <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>Payment Voucher</title>
+        <title>Sales Invoice Receipt</title>
         <style>
           @page {
             size: 80mm auto;
@@ -113,7 +112,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
             margin: 1mm 0;
           }
 
-          .voucher-title {
+          .invoice-title {
             text-align: center;
             font-weight: bold;
             font-size: 11pt;
@@ -123,7 +122,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
             color: #ffffff;
           }
 
-          .cust-name {
+          .salesman-name {
             text-align: right;
             margin-bottom: 1mm;
             font-size: 11pt;
@@ -146,7 +145,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
 
           .customer-info {
             font-size: 9pt;
-            margin-bottom: 1mm;
+            margin-bottom: 2mm;
             margin-top: 1mm;
           }
 
@@ -224,36 +223,49 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
     }, 500);
   };
 
-  const renderPaymentVoucher = () => {
+  const renderSalesInvoice = () => {
     if (!billData) return null;
+
+    const totalAmount = billData.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || billData.netAmount || 0;
+    const totalQty = billData.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0;
 
     return (
       <div>
-        <div className="voucher-title">
-          <h3>PAYMENT VOUCHER</h3>
+        <div className="invoice-title">
+          <h3>TAX INVOICE</h3>
+        </div>
+        <div className="salesman-name">
+          <h6>Salesman: {billData.salesmanName || 'N/A'}</h6>
         </div>
 
-        {/* Voucher number and date */}
+        {/* Bill number and date */}
         <div className="bill">
           <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
             <div style={{ fontSize: "9pt" }}>
-              <span>No:&nbsp;</span>
+              <span>Invoice No:&nbsp;</span>
               <span>{billData.voucherNo || 'N/A'}</span>
             </div>
             <div style={{ fontSize: "9pt" }}>
-              <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
               <span>
                 {billData.voucherDate ? (() => {
-                  const date = new Date(billData.voucherDate);
-                  const day = String(date.getDate()).padStart(2, '0');
-                  const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
-                  const year = date.getFullYear();
-                  return `${day}-${month}-${year}`;
+                  try {
+                    const date = new Date(billData.voucherDate);
+                    if (isNaN(date.getTime())) {
+                      return 'N/A';
+                    }
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+                    const year = date.getFullYear();
+                    return `${day}-${month}-${year}`;
+                  } catch (e) {
+                    return 'N/A';
+                  }
                 })() : 'N/A'}
               </span>
             </div>
             <div style={{ fontSize: "9pt" }}>
-              <span>Time:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>Time:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
               <span>{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
             </div>
           </div>
@@ -264,162 +276,131 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
 
         {/* Customer Info */}
         <div className="customer-info">
-          Customer: {billData.customerName || billData.paidTo || 'N/A'}
+          <p>Customer: {billData.customerName || 'N/A'}</p>         
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
-        {/* Amount Section */}
-        <table className="items" style={{ fontSize: "9pt", marginTop: "2mm", width: "100%", borderCollapse: "collapse" }}>
+        {/* Main Table - FIXED STRUCTURE */}
+        <table className="items" style={{ width: "100%", marginRight: 0 }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #000" }}>Cash/Bank</th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #000" }}>Narration</th>
-              <th style={{ textAlign: "right", borderBottom: "1px solid #000" }}>Amount</th>
+              <th style={{ textAlign: "left", width: "100%" }} colSpan="5">Particulars</th>
+            </tr>
+            <tr>
+              <th style={{ textAlign: "left", width: "15%"}} colSpan="1">HSN</th>
+              <th style={{ textAlign: "left", width: "15%" }} colSpan="1">Tax</th>
+              <th style={{ textAlign: "left", width: "20%" }} colSpan="1">Rate</th>
+              <th style={{ textAlign: "left", width: "20%" }} colSpan="1">Qty</th>
+              <th style={{ textAlign: "right", width: "30%" }} colSpan="1">Amount</th>
             </tr>
           </thead>
-          <tbody>
-            {Array.isArray(billData.items) && billData.ite6? (
-              billData.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td style={{ textAlign: "left" }}>{item.cashBank || '-'}</td>
-                  <td style={{ textAlign: "left" }}>{item.narration || '-'}</td>
-                  <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>{(item.amount || 0).toFixed(2)}</td>
+          
+          <tbody>            
+            
+            {billData.items && billData.items.map((item, index) => (
+              <React.Fragment key={index}>
+                <tr>
+                  <td style={{ textAlign: "left", fontWeight: "bold" }} colSpan="5">{item.itemName || 'N/A'}</td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td style={{ textAlign: "left" }}>-</td>
-                <td style={{ textAlign: "left" }}>-</td>
-                <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>{(billData.amount || 0).toFixed(2)}</td>
-              </tr>
-            )}
+                {item.description && (
+                  <tr>
+                    <td style={{ textAlign: "left", paddingLeft: "10pt", fontSize: "8pt" }} colSpan="5">{item.description}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.hsn || '-'}</td>
+                  <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.tax || '-'}</td>
+                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.rate || 0).toFixed(2)}</td>
+                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.qty || 0).toFixed(3)}</td>
+                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.amount || 0).toFixed(2)}</td>
+                </tr>
+              </React.Fragment>
+            ))}
+            
             <tr>
-              <td colSpan="3"><hr className="dashed" style={{ margin: 0, width: "100%" }} /></td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Payment Details */}
-        <div style={{ marginTop: "3mm", fontSize: "9pt" }}>
-          <div>Payment Mode: {billData.paymentMode || 'N/A'}</div>
-          {billData.referenceNo && (
-            <div style={{ marginTop: "1mm" }}>Reference No: {billData.referenceNo}</div>
-          )}
-          {billData.remarks && (
-            <div style={{ marginTop: "1mm" }}>Remarks: {billData.remarks}</div>
-          )}
-        </div>
-
-        <hr className="dashed" style={{ marginTop: "3mm" }} />
-
-        {/* Signatures */}
-        <div style={{ marginTop: "5mm", fontSize: "9pt" }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Paid By</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Received By</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Thank You Message */}
-        <div className="thank-you">*** Thank You ***</div>
-      </div>
-    );
-  };
-
-  const renderReceiptVoucher = () => {
-    if (!billData) return null;
-
-    return (
-      <div>
-        <div className="voucher-title">
-          <h3>RECEIPT VOUCHER</h3>
-        </div>
-
-        {/* Voucher number and date */}
-        <div className="bill">
-          <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-            <div style={{ fontSize: "9pt" }}>
-              <span>Voucher No:&nbsp;</span>
-              <span>{billData.voucherNo || 'N/A'}</span>
-            </div>
-            <div style={{ fontSize: "9pt" }}>
-              <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;</span>
-              <span>
-                {billData.voucherDate ? (() => {
-                  const date = new Date(billData.voucherDate);
-                  const day = String(date.getDate()).padStart(2, '0');
-                  const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
-                  const year = date.getFullYear();
-                  return `${day}-${month}-${year}`;
-                })() : 'N/A'}
-              </span>
-            </div>
-            <div style={{ fontSize: "9pt" }}>
-              <span>Time:&nbsp;&nbsp;&nbsp;&nbsp;</span>
-              <span>{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-            </div>
-          </div>
-          <div ref={qrcodeRef} style={{ display: "flex", justifyContent: "center", width: "50px", height: "50px" }}></div>
-        </div>
-
-        <hr className="dashed" style={{ margin: 0, width: "100%" }} />
-
-        {/* Customer Info */}
-        <div className="customer-info">
-          Received From: {billData.customerName || billData.receivedFrom || 'N/A'}
-        </div>
-        <hr className="dashed" style={{ margin: 0, width: "100%" }} />
-
-        {/* Amount Section */}
-        <table className="items" style={{ fontSize: "9pt", marginTop: "5mm" }}>
-          <tbody>
-            <tr>
-              <td style={{ textAlign: "left", width: "60%" }}>Amount Received:</td>
-              <td style={{ textAlign: "right", width: "40%", fontWeight: "bold", fontSize: "14pt" }}>
-                {(billData.amount || 0).toFixed(2)}
+              <td colSpan="5">
+                <hr className="dashed" style={{ margin: 0, width: "100%" }} />
               </td>
             </tr>
-            <tr>
-              <td colSpan="2"><hr className="dashed" style={{ margin: 0, width: "100%" }} /></td>
+            
+            {/* Total Amount */}
+            <tr className="total-row">
+              <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
+                Grand Total
+              </td>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
+                {totalAmount.toFixed(2)}
+              </td>
+            </tr>
+            <tr className="total-row">
+              <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
+                Amount
+              </td>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
+                {totalAmount.toFixed(2)}
+              </td>
             </tr>
           </tbody>
         </table>
-
-        {/* Payment Details */}
-        <div style={{ marginTop: "3mm", fontSize: "9pt" }}>
-          <div>Payment Mode: {billData.paymentMode || 'N/A'}</div>
-          {billData.referenceNo && (
-            <div style={{ marginTop: "1mm" }}>Reference No: {billData.referenceNo}</div>
-          )}
-          {billData.remarks && (
-            <div style={{ marginTop: "1mm" }}>Remarks: {billData.remarks}</div>
-          )}
+        
+        <div className="total-info" style={{ marginTop: "2mm", fontSize: "9pt", display: "flex", flexDirection: "row", gap: "5mm" }}>
+            <p>Total Items: {billData.items?.length || 0}</p>
+            <p>Total Qty: {totalQty.toFixed(3)}</p>
         </div>
+        <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
-        <hr className="dashed" style={{ marginTop: "3mm" }} />
-
-        {/* Signatures */}
-        <div style={{ marginTop: "5mm", fontSize: "9pt" }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Paid By</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Received By</div>
-            </div>
+        {/* Payment Mode Table */}
+        {billData.modeofPayment && Array.isArray(billData.modeofPayment) && billData.modeofPayment.length > 0 && (
+          <div style={{ marginTop: "2mm", width: "100%", overflow: "visible" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8pt", tableLayout: "fixed" }}>
+              <tbody>
+                <tr>
+                  {billData.modeofPayment.map((payment, index) => (
+                    <td 
+                      key={`method-${index}`}
+                      style={{ 
+                        border: "1pt solid #070808", 
+                        textAlign: "center", 
+                        padding: "3pt 2pt", 
+                        fontWeight: "bold",
+                        width: `${100 / billData.modeofPayment.length}%`,
+                        fontSize: "8pt",
+                        wordBreak: "break-word"
+                      }}
+                    >
+                      {payment.method || payment.fMethod || 'N/A'}
+                    </td>
+                  ))}
+                </tr>  
+                <tr>
+                  {billData.modeofPayment.map((payment, index) => (
+                    <td 
+                      key={`amount-${index}`}
+                      style={{ 
+                        border: "1pt solid #070808", 
+                        textAlign: "center", 
+                        padding: "3pt 2pt",
+                        width: `${100 / billData.modeofPayment.length}%`,
+                        fontSize: "8pt"
+                      }}
+                    >
+                      {(payment.amount || 0).toFixed(2)}
+                    </td>
+                  ))}
+                </tr>                       
+              </tbody>
+            </table>
           </div>
+        )}
+
+        {/* Terms and Conditions */}
+        <div className="terms">
+          <div>( Incl. of all Taxes )</div>
+          <div>-E & O E. No Exchange No Refund-</div>
         </div>
 
         {/* Thank You Message */}
-        <div className="thank-you">*** Thank You ***</div>
+        <div className="thank-you">*** Thank You Visit Again! ***</div>
       </div>
     );
   };
@@ -458,14 +439,13 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
           </div>
 
           {/* Dynamic Content */}
-          {mode === "payment-voucher" && renderPaymentVoucher()}
-          {mode === "receipt-voucher" && renderReceiptVoucher()}
+          {mode === "tax_invoice" && renderSalesInvoice()}
         </div>
       </div>
 
       {/* Print Button */}
       <button
-        className="print-receipt-button-inner"
+        className="print-invoice-button-inner"
         onClick={handlePrint}
         style={{
           padding: "10px 20px",
@@ -479,12 +459,12 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
           display: "none"
         }}
       >
-        Print Receipt
+        Print Invoice
       </button>
     </div>
   );
 });
 
-PrintVoucher.displayName = 'PrintVoucher';
+PrintInvoice.displayName = 'PrintInvoice';
 
-export default PrintVoucher;
+export default PrintInvoice;
