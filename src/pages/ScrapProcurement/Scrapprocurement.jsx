@@ -22,6 +22,7 @@ const Icon = {
 }
 
 const Scrapprocurement = () => {
+  const { userData } = useAuth() || {};
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -48,7 +49,7 @@ const Scrapprocurement = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: new Date(userData.date).toISOString().substring(0, 10),
     mobileNo: '',
     empName: '',
     salesman: '',
@@ -131,7 +132,7 @@ const Scrapprocurement = () => {
   });
 
   // Auth context for company code
-  const { userData } = useAuth() || {};
+  
 
   // NEW STATES FOR VOUCHER POPUPS
   const [showVoucherListPopup, setShowVoucherListPopup] = useState(false);

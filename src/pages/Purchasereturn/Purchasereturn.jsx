@@ -39,6 +39,7 @@ const calculateTotals = (items = []) => {
 };
 
 const PurchaseReturn = () => {
+    const { userData } = useAuth() || {};
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -73,7 +74,7 @@ const PurchaseReturn = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: new Date(userData.date).toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -176,7 +177,7 @@ const PurchaseReturn = () => {
   });
 
   // Auth context for company code
-  const { userData } = useAuth() || {};
+  
   // Also get fseudo from context in case userData.fseudo is missing
   const { fseudo } = useAuth() || {};
 
