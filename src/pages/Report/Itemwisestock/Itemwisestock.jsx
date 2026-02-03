@@ -1212,8 +1212,8 @@ const AccountPayables = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th }}>S.No</th>
-                <th style={{ ...styles.th }}>Item Name</th>
+                <th style={{ ...styles.th, minWidth: '10px', width: '10px', maxWidth: '10px' }}>S.No</th>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Item Name</th>
                 <th style={{ ...styles.th }}>Date</th>
                 <th style={{ ...styles.th }}>Opg Qty</th>
                 <th style={{ ...styles.th }}>Purchase Qty</th>
@@ -1232,7 +1232,7 @@ const AccountPayables = () => {
             borderTop: '2px solid #1B91DA'
           } : {})
         }}>
-          <td style={styles.td}>{index + 1}</td>
+          <td style={{ ...styles.td, minWidth: '40px', width: '40px', maxWidth: '40px' }}>{index + 1}</td>
           <td style={styles.td}>{row.fItemName || ''}</td>
           <td style={styles.td}>{row.date || ''}</td>
           <td style={styles.td}>{row.opgQty || ''}</td>
