@@ -457,6 +457,9 @@ PAYMENTVOUCHER: {
 
     GET_COMPANY_LIST: () =>
     `CompanyCreation/GetCompanyList`,
+
+      GET_ITEM_STOCK_BY_DATE: (itemCode, compCode, startDate, endDate) =>
+    `ItemwiseStock/GetitemStock?itemCode=${itemCode}&compCode=${compCode}&startDate=${startDate}&endDate=${endDate}`,
   },
 
 };

@@ -307,23 +307,69 @@ const AccountPayables = () => {
       });
       return;
     }
-    
-    console.log('Searching Itemwise Stock with:', {
-      fromDate,
-      toDate,
-      companyName,
-      selectedItem,
-    });
+
+    if (!selectedItem) {
+      toast.warning('Please select an item', {
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    if (!selectedCompanyNames || selectedCompanyNames.length === 0) {
+      toast.warning('Please select at least one company', {
+        autoClose: 2000,
+      });
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      // TODO: Add your table API endpoint here
-      toast.info('Ready for table API integration', {
-        autoClose: 2000,
-      });
-      setPayablesData([]);
+      // Fetch data for each selected company and item
+      const allResults = [];
+
+      for (const compCode of selectedCompanyNames) {
+        const apiUrl = `${API_BASE}${API_ENDPOINTS.ITEMWISE_STOCK.GET_ITEM_STOCK_BY_DATE(
+          selectedItem.fItemcode,
+          compCode,
+          fromDate,
+          toDate
+        )}`;
+
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        
+        // Map API response fields to table fields
+        if (Array.isArray(responseData)) {
+          const mappedData = responseData.map((item, index) => ({
+            no: index + 1,
+            fItemName: item.itemName || '',
+            date: item.fDate ? new Date(item.fDate).toISOString().substring(0, 10) : '',
+            opgQty: item.opgqty || 0,
+            purchaseQty: item.purchaseQty || 0,
+            salesQty: item.salesQty || 0,
+            balanceQty: item.balanceQty || 0,
+          }));
+          allResults.push(...mappedData);
+        }
+      }
+
+      setPayablesData(allResults);
       setTableLoaded(true);
+
+      if (allResults.length === 0) {
+        toast.info('No records found for the selected criteria', {
+          autoClose: 2000,
+        });
+      } else {
+        toast.success(`Found ${allResults.length} records`, {
+          autoClose: 2000,
+        });
+      }
       
     } catch (error) {
       console.error('Error searching:', error);
