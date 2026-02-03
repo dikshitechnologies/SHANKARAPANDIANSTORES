@@ -9,6 +9,7 @@ import axiosInstance from "../../api/axiosInstance";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import PopupListSelector from '../Listpopup/PopupListSelector';
+import PrintInvoice from '../../pages/PrintInvoice/PrintInvoice';
 import js from '@eslint/js';
 const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
@@ -50,6 +51,11 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const transportChargePercentRef = useRef(null);
   const transportAmountRef = useRef(null);
   const serviceChargeAmountRef = useRef(null);
+
+  // Print Invoice refs and state
+  const printInvoiceRef = useRef(null);
+  const [printBillData, setPrintBillData] = useState(null);
+  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
 
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: '', issue: '', closing: 0 },
@@ -1105,6 +1111,9 @@ const handleServiceChargeFieldKeyDown = (e) => {
       if (response) {
         setConfirmSaveOpen(false);
         
+        // Fetch invoice details for printing FIRST, which will also show the popup
+        await fetchInvoiceDetailsForPrint();
+        
         const resetFormData = {
           billNo: '',
           salesman: '',
@@ -1154,9 +1163,10 @@ const handleServiceChargeFieldKeyDown = (e) => {
           onSaveSuccess();
         }
         
-        if (onClose) {
-          onClose();
-        }
+        // Don't close the modal after save - keep it open
+        // if (onClose) {
+        //   onClose();
+        // }
         
         setTimeout(() => {
           if (billDiscountPercentRef.current) {
@@ -1176,6 +1186,95 @@ const handleServiceChargeFieldKeyDown = (e) => {
     }
   };
 
+  // Fetch invoice details and prepare for printing
+  const fetchInvoiceDetailsForPrint = async () => {
+    try {
+      if (!billData?.billNo) {
+        console.error('No bill number available');
+        return;
+      }
+
+      const response = await apiService.get(
+        `Salesinvoices/GetVoucherDetails?voucherNo=${billData.billNo}`
+      );
+
+      console.log('API Full Response:', response);
+      console.log('API Response.data:', response?.data);
+
+      // Data might be at response.data OR directly at response
+      const apiData = response?.data || response;
+      console.log('API Data being used:', apiData);
+
+      if (apiData) {
+        // The API might return data directly or in a nested structure
+        const header = apiData.header || apiData;
+        const items = apiData.items || apiData.fItems || [];
+        
+        console.log('Header:', header);
+        console.log('Items:', items);
+        
+        // Build payment mode data from current form state
+        const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
+          return sum + ((Number(data.collect) || 0) * Number(denom));
+        }, 0);
+        
+        const cashAmount = totalCollectedCash || 0;
+        const upiAmount = parseFloat(formData.upi) || 0;
+        const cardAmount = parseFloat(formData.card) || 0;
+        const balanceAmount = parseFloat(formData.balance) || 0;
+        
+        // Build modeofPayment array with CASH, UPI, CARD, BALANCE
+        const modeOfPaymentData = [];
+        if (cashAmount > 0) modeOfPaymentData.push({ method: 'CASH', amount: cashAmount });
+        if (upiAmount > 0) modeOfPaymentData.push({ method: 'UPI', amount: upiAmount });
+        if (cardAmount > 0) modeOfPaymentData.push({ method: 'CARD', amount: cardAmount });
+        if (balanceAmount !== 0) modeOfPaymentData.push({ method: 'BALANCE', amount: Math.abs(balanceAmount) });
+        
+        const printData = {
+          voucherNo: header?.voucherNo || header?.fVoucherNo || billData.billNo,
+          voucherDate: header?.voucherDate || header?.fVoucherDate || new Date().toISOString(),
+          customerName: header?.customerName || header?.fCustNme || '',
+          customerCode: header?.customerCode || header?.fCustCode || '',
+          salesmanName: header?.sManName || header?.fSalesmanName || '',
+          salesCode: header?.sManCode || header?.fSalesmanCode || '',
+          billAmount: header?.billAmt || header?.fBillAmt || 0,
+          netAmount: header?.billAmt || header?.fBillAmt || 0,
+          items: (Array.isArray(items) ? items : [])?.map(item => ({
+            itemName: item.fitemNme || item.itemName || '',
+            itemCode: item.fItemcode || item.itemCode || '',
+            rate: parseFloat(item.fRate || item.rate) || 0,
+            qty: parseFloat(item.fTotQty || item.qty) || 0,
+            amount: parseFloat(item.fAmount || item.amount) || 0,
+            tax: parseFloat(item.fTax || item.tax) || 0,
+            hsn: item.fHSN || item.hsn || '',
+            description: item.fdesc || item.description || ''
+          })) || [],
+          modeofPayment: modeOfPaymentData
+        };
+
+        console.log('Final print data:', printData);
+        setPrintBillData(printData);
+      } else {
+        console.warn('No data found in API response');
+      }
+      
+      // Always show the popup regardless of API response
+      setPrintConfirmationOpen(true);
+    } catch (error) {
+      console.error('Error fetching invoice details:', error);
+      // Still show the popup even on error
+      setPrintConfirmationOpen(true);
+    }
+  };
+
+  const handlePrintConfirm = () => {
+    // Trigger the print function
+    if (printInvoiceRef.current) {
+      printInvoiceRef.current.print();
+    }
+    setPrintConfirmationOpen(false);
+  };
+
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete?')) {
       console.log('Deleted');
@@ -1184,8 +1283,8 @@ const handleServiceChargeFieldKeyDown = (e) => {
   };
 
   const handlePrint = () => {
-    console.log('Printing...');
-    window.print();
+    console.log('Fetching invoice details for printing...');
+    fetchInvoiceDetailsForPrint();
   };
 
   const handleClear = () => {
@@ -1943,6 +2042,19 @@ const handleServiceChargeFieldKeyDown = (e) => {
   }}
 />
 
+      {/* Print Invoice Component */}
+      <PrintInvoice ref={printInvoiceRef} billData={printBillData} mode="tax_invoice" />
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={printConfirmationOpen}
+        title="Print Confirmation"
+        message="Do you want to print the tax invoice?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={handlePrintConfirm}
+        onCancel={() => setPrintConfirmationOpen(false)}
+      />
 
     </div>
   );
