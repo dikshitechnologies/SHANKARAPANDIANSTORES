@@ -549,7 +549,7 @@ const Navbar = () => {
                     </span>
                   </button>
                   {activeDropdown === "transactions" && (
-                    <div className={styles["dropdown-container"]}>
+                    <div className={`${styles["dropdown-container"]} ${styles.masters}`}>
                       <DropdownMenu
                         items={filteredTransactionItems}
                         onItemClick={() => setActiveDropdown(null)}
@@ -588,7 +588,7 @@ const Navbar = () => {
                   </button>
 
                   {activeDropdown === "reports" && (
-                    <div className={styles["dropdown-container"]}>
+                    <div className={`${styles["dropdown-container"]} ${styles.masters}`}>
                       <DropdownMenu
                         items={filteredReportItems}
                         onItemClick={() => setActiveDropdown(null)}
@@ -621,12 +621,12 @@ const Navbar = () => {
                         icon: <LogoutOutlined />,
                         onClick: showLogoutConfirm,
                       },
-                      {
-                        key: "exit",
-                        label: "Exit",
-                        icon: <CloseOutlined />,
-                        onClick: handleExit,
-                      },
+                      // {
+                      //   key: "exit",
+                      //   label: "Exit",
+                      //   icon: <CloseOutlined />,
+                      //   onClick: handleExit,
+                      // },
                     ],
                   }}
                   placement="bottomRight"
