@@ -454,6 +454,9 @@ PAYMENTVOUCHER: {
   ITEMWISE_STOCK: {
     GET_ITEMS_LIST: (page = 1, pageSize = 10) =>
       `ItemwiseStock/GetItemslist?page=${page}&pageSize=${pageSize}`,
+
+    GET_COMPANY_LIST: () =>
+    `CompanyCreation/GetCompanyList`,
   },
 
 };

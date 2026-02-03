@@ -52,6 +52,13 @@ const AccountPayables = () => {
   const [itemsList, setItemsList] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [showItemPopup, setShowItemPopup] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [companyNameSearchTerm, setCompanyNameSearchTerm] = useState('');
+  const [companyList, setCompanyList] = useState([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [showCompanyNamePopup, setShowCompanyNamePopup] = useState(false);
+  const [selectedCompanyNames, setSelectedCompanyNames] = useState([]);
+  const [selectAllCompanies, setSelectAllCompanies] = useState(false);
 
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -120,6 +127,32 @@ const AccountPayables = () => {
       setItemsList([]);
     } finally {
       setLoadingItems(false);
+    }
+  };
+
+  const handleCompanyNameClick = async () => {
+    setShowCompanyNamePopup(true);
+    setLoadingCompanies(true);
+    setCompanyNameSearchTerm('');
+    setSelectedCompanyNames([]);
+    setSelectAllCompanies(false);
+    
+    try {
+      // Fetch companies from API
+      const apiUrl = `${API_BASE}${API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_LIST}`;
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseData = await response.json();
+      setCompanyList(responseData || []);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      toast.error('Failed to load companies. Please try again.');
+      setCompanyList([]);
+    } finally {
+      setLoadingCompanies(false);
     }
   };
 
@@ -219,6 +252,54 @@ const AccountPayables = () => {
     setItemSearchTerm('');
   };
 
+  const handleCompanyNameSelect = (company) => {
+    setCompanyName(company.fcompname || company.name || '');
+    setShowCompanyNamePopup(false);
+    setCompanyNameSearchTerm('');
+  };
+
+  const handleCompanyNameSelectMultiple = (company) => {
+    if (selectedCompanyNames.includes(company.fcompcode)) {
+      setSelectedCompanyNames(selectedCompanyNames.filter(code => code !== company.fcompcode));
+      setSelectAllCompanies(false);
+    } else {
+      const updated = [...selectedCompanyNames, company.fcompcode];
+      setSelectedCompanyNames(updated);
+      
+      // Check if all companies are selected
+      if (updated.length === companyList.length) {
+        setSelectAllCompanies(true);
+      }
+    }
+  };
+
+  const handleSelectAllCompanies = () => {
+    if (selectAllCompanies) {
+      setSelectedCompanyNames([]);
+      setSelectAllCompanies(false);
+    } else {
+      setSelectedCompanyNames(companyList.map(c => c.fcompcode));
+      setSelectAllCompanies(true);
+    }
+  };
+
+  const handleCompanyNamePopupOk = () => {
+    if (selectedCompanyNames.length > 0) {
+      const selectedNames = companyList
+        .filter(c => selectedCompanyNames.includes(c.fcompcode))
+        .map(c => c.fcompname)
+        .join(', ');
+      setCompanyName(selectedNames);
+    }
+    setShowCompanyNamePopup(false);
+    setCompanyNameSearchTerm('');
+  };
+
+  const handleCompanyNamePopupClose = () => {
+    setShowCompanyNamePopup(false);
+    setCompanyNameSearchTerm('');
+  };
+
   const handleSearch = async () => {
     if (!fromDate || !toDate) {
       toast.warning('Please fill all fields: From Date and To Date', {
@@ -230,6 +311,7 @@ const AccountPayables = () => {
     console.log('Searching Itemwise Stock with:', {
       fromDate,
       toDate,
+      companyName,
       selectedItem,
     });
     
@@ -259,6 +341,8 @@ const AccountPayables = () => {
     const today = formatDate(new Date());
     setFromDate(today);
     setToDate(today);
+    setCompanyName('');
+    setSelectedItem(null);
     setSelectedCompanies(['ALL']);
     setCompanyDisplay('ALL');
     setTempSelectedCompanies([]);
@@ -943,6 +1027,51 @@ const AccountPayables = () => {
               />
             </div>
 
+            {/* Company Name */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? '100%' : '200px',
+              flex: 1,
+            }}>
+              <label style={styles.inlineLabel}>Company Name:</label>
+              <div
+                style={
+                  focusedField === 'companyName'
+                    ? styles.companyInputFocused
+                    : styles.companyInput
+                }
+                onClick={() => {
+                  handleCompanyNameClick();
+                  setFocusedField('companyName');
+                }}
+                onKeyDown={(e) => {
+                  handleKeyDown(e, 'companyName');
+                  if (e.key === 'Enter') {
+                    handleCompanyNameClick();
+                  }
+                }}
+                onFocus={() => setFocusedField('companyName')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  color: '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {companyName ? companyName : 'Select Company'}
+                </span>
+                <span style={{ 
+                  color: '#1B91DA', 
+                  fontSize: '10px', 
+                  marginLeft: '8px' 
+                }}>▼</span>
+              </div>
+            </div>
+
             {/* Company */}
             <div style={{
               ...styles.formField,
@@ -1037,9 +1166,13 @@ const AccountPayables = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th }}>No</th>
-                <th style={{ ...styles.th }}>Item Code</th>
+                <th style={{ ...styles.th }}>S.No</th>
                 <th style={{ ...styles.th }}>Item Name</th>
+                <th style={{ ...styles.th }}>Date</th>
+                <th style={{ ...styles.th }}>Opg Qty</th>
+                <th style={{ ...styles.th }}>Purchase Qty</th>
+                <th style={{ ...styles.th }}>Sales Qty</th>
+                <th style={{ ...styles.th }}>Balance Qty</th>
               </tr>
             </thead>
           <tbody>
@@ -1053,21 +1186,23 @@ const AccountPayables = () => {
             borderTop: '2px solid #1B91DA'
           } : {})
         }}>
-          <td style={styles.td}>{row.no || ''}</td>
-          <td style={styles.td}>{row.fItemcode || ''}</td>
+          <td style={styles.td}>{index + 1}</td>
           <td style={styles.td}>{row.fItemName || ''}</td>
+          <td style={styles.td}>{row.date || ''}</td>
+          <td style={styles.td}>{row.opgQty || ''}</td>
+          <td style={styles.td}>{row.purchaseQty || ''}</td>
+          <td style={styles.td}>{row.salesQty || ''}</td>
+          <td style={styles.td}>{row.balanceQty || ''}</td>
         </tr>
       ))
     ) : (
       <tr>
-        <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-          No records found
-        </td>
+        
       </tr>
     )
   ) : (
     <tr>
-      {/* <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+      {/* <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
         Use the Search button to load data
       </td> */}
     </tr>
@@ -1234,7 +1369,6 @@ const AccountPayables = () => {
                         </div>
                         <div style={{ flex: 1 }}>
                           <span style={styles.companyText}>{item.fItemName}</span>
-                          <span style={{ fontSize: '12px', color: '#999', marginLeft: '8px' }}>({item.fItemcode})</span>
                         </div>
                       </div>
                     );
@@ -1251,6 +1385,100 @@ const AccountPayables = () => {
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handleItemPopupClose}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Company Name Selection Popup */}
+      {showCompanyNamePopup && (
+        <div style={styles.popupOverlay} onClick={handleCompanyNamePopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Company
+              <button 
+                style={styles.closeButton}
+                onClick={handleCompanyNamePopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Search Bar */}
+            <div style={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search companies..."
+                value={companyNameSearchTerm}
+                onChange={(e) => setCompanyNameSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
+            
+            <div style={styles.companyList}>
+              {loadingCompanies ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  Loading companies...
+                </div>
+              ) : companyList.length > 0 ? (
+                <>
+                  {/* All Checkbox */}
+                  <div 
+                    style={selectAllCompanies ? styles.selectedCompanyItem : styles.companyItem}
+                    onClick={handleSelectAllCompanies}
+                  >
+                    <div style={selectAllCompanies ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                      {selectAllCompanies && <div style={styles.checkmark}>✓</div>}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{...styles.companyText, fontWeight: 'bold'}}>All Companies</span>
+                    </div>
+                  </div>
+                  
+                  {/* Individual Companies */}
+                  {companyList
+                    .filter(company => 
+                      (company.fcompname || '').toLowerCase().includes(companyNameSearchTerm.toLowerCase()) ||
+                      (company.fcompcode || '').toLowerCase().includes(companyNameSearchTerm.toLowerCase())
+                    )
+                    .map((company) => {
+                      const isSelected = selectedCompanyNames.includes(company.fcompcode);
+                      return (
+                        <div 
+                          key={company.fcompcode} 
+                          style={isSelected ? styles.selectedCompanyItem : styles.companyItem}
+                          onClick={() => handleCompanyNameSelectMultiple(company)}
+                        >
+                          <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                            {isSelected && <div style={styles.checkmark}>✓</div>}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <span style={styles.companyText}>{company.fcompname}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  }
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  No companies found
+                </div>
+              )}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handleCompanyNamePopupOk}
                 >
                   OK
                 </button>

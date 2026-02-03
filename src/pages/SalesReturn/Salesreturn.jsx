@@ -1710,6 +1710,10 @@ const requestData = {
         discountPercent,
         discountAmount
       };
+      resetForm();
+      setDiscountPercent(0);
+      setDiscountAmount(0);
+      setDiscount("");
       
       // Save discount data to localStorage with voucher number as key
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
@@ -1876,6 +1880,10 @@ const requestData = {
         discountPercent,
         discountAmount
       };
+      resetForm();
+      setDiscountPercent(0);
+            setDiscountAmount(0);
+            setDiscount("");
       
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       
@@ -4118,11 +4126,10 @@ const handlePrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#333',
-      minWidth: screenSize.isMobile ? '75px' : screenSize.isTablet ? '85px' : '95px',
-      whiteSpace: 'nowrap',
-      
-      flexShrink: 0,
-      paddingTop: '2px',
+     textAlign: 'center',
+      marginRight: screenSize.isMobile ? '6px' : '8px',
+    
+ 
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
