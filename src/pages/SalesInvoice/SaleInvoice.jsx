@@ -12,7 +12,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import { getCompCode, getUCode } from '../../utils/userUtils';
 import { PopupScreenModal } from '../../components/PopupScreens.jsx';
-
+import PrintReceipt from '../PrintReceipt/PrintReceipt';
 
 const TABLE_FIELDS = [
   'barcode',
@@ -241,6 +241,9 @@ const [taxList, setTaxList] = useState([]);
   const [customerHistoryLoading, setCustomerHistoryLoading] = useState(false);
   const [customerHistoryError, setCustomerHistoryError] = useState('');
   
+  // State for printing
+  const [printBillData, setPrintBillData] = useState(null);
+  
   // ✅ Total Amount - keep full decimals for table
   const roundedTotalAmount = totalAmount; // Keep full decimal value
   
@@ -268,6 +271,7 @@ const [taxList, setTaxList] = useState([]);
   const custNameRef = useRef(null);
   const barcodeRef = useRef(null);
   const addLessRef = useRef(null);
+  const printReceiptRef = useRef(null);
 
   const HEADER_FIELDS = [
   'billDate',
@@ -2692,16 +2696,18 @@ const itemsData = validItems.map(item => {
         const message = response.data.message || `Invoice ${isEditing ? 'updated' : 'saved'} successfully`;
         const savedBillNo = response.data.voucherNo || billDetails.billNo;
         
-        // toast.success(
-        //   `Invoice ${isEditing ? "updated" : "saved"} successfully\nInvoice No: ${savedBillNo}`,
-        //   { autoClose: 3000 }
-        // );
+        // Build print data for printing
+        const billDataForPrint = buildBillData();
+        setPrintBillData(billDataForPrint);
+        
+        // Show print confirmation popup
+        setPrintConfirmationOpen(true);
         
         // Refresh saved invoices list
         await fetchSavedInvoices(1, '');
         
-        // Reset form completely after save
-        resetForm();
+        // Don't reset form yet - wait for print confirmation
+        // resetForm();
         
         return response.data;
       }
@@ -2886,6 +2892,29 @@ const itemsData = validItems.map(item => {
     await saveSalesInvoice();
   };
 
+  // Build billData for printing
+  const buildBillData = () => {
+    const validItems = items.filter(item => 
+      item.itemName && item.itemName.trim() !== '' && 
+      item.itemCode && item.itemCode.trim() !== ''
+    );
+    
+    return {
+      voucherNo: billDetails.billNo,
+      voucherDate: billDetails.billDate,
+      salesmanName: billDetails.salesman,
+      customercode: billDetails.custCode || '',
+      customerName: billDetails.custName,
+      netAmount: netAmountRounded,
+      items: validItems.map(item => ({
+        itemName: item.itemName || 'N/A',
+        rate: parseFloat(item.sRate) || 0,
+        qty: parseFloat(item.qty) || 0,
+        amount: parseFloat(item.amount) || 0
+      }))
+    };
+  };
+
   const handlePrint = () => {
     setPrintConfirmationOpen(true);
   };
@@ -2893,8 +2922,13 @@ const itemsData = validItems.map(item => {
   const handleConfirmedPrint = () => {
     setPrintConfirmationOpen(false);
 
-    // 🔹 Replace with your actual print logic
-    window.print();
+    // Trigger print via PrintReceipt ref
+    if (printReceiptRef.current) {
+      printReceiptRef.current.print();
+    }
+    
+    // Reset form after print
+    resetForm();
   };
 
   // --- RESPONSIVE STYLES ---
@@ -4556,12 +4590,16 @@ const itemsData = validItems.map(item => {
       {/* Print Confirmation Popup */}
       <ConfirmationPopup
         isOpen={printConfirmationOpen}
-        onClose={() => setPrintConfirmationOpen(false)}
+        onClose={() => {
+          setPrintConfirmationOpen(false);
+          resetForm();
+        }}
         onConfirm={handleConfirmedPrint}
         title="Print Sales Invoice"
+        message="Invoice saved successfully. Do you want to print it?"
         confirmText="PRINT"
         cancelText="Cancel"
-        type="default"
+        type="success"
         showIcon={true}
         borderColor="#1B91DA"
       />
@@ -5104,6 +5142,14 @@ const itemsData = validItems.map(item => {
   </div>
 )}
 
+      {/* PrintReceipt Component */}
+      {printBillData && (
+        <PrintReceipt
+          ref={printReceiptRef}
+          billData={printBillData}
+          mode="sales_invoice"
+        />
+      )}
 
     </div>
   );
