@@ -33,6 +33,7 @@ const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
 );
 
 const ReceiptVoucher = () => {
+   const { userData } = useAuth() || {};
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -76,7 +77,7 @@ const ReceiptVoucher = () => {
   const [voucherDetails, setVoucherDetails] = useState({
     voucherNo: '',
     gstType: 'CGST/SGST',
-    date: new Date().toISOString().substring(0, 10),
+    date: new Date(userData.date).toISOString().substring(0, 10),
     costCenter: '',
     accountName: '',
     accountCode: '',
@@ -168,7 +169,7 @@ const ReceiptVoucher = () => {
   const [currentReceiptFieldIndex, setCurrentReceiptFieldIndex] = useState(0);
 
   // Auth context for company code
-  const { userData } = useAuth() || {};
+ 
 
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const voucherNoRef = useRef(null);

@@ -3,7 +3,7 @@ import { ActionButtons, AddButton, EditButton, DeleteButton, ActionButtons1 } fr
 import PopupListSelector from '../../components/Listpopup/PopupListSelector';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
+import { useAuth } from '../../context/AuthContext';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
@@ -71,6 +71,7 @@ const HistoryIcon = ({ size = 16, color = "#4d7cfe" }) => (
 
 
 const SaleInvoice = () => {
+  const { userData } = useAuth() || {};
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -181,7 +182,7 @@ const [taxList, setTaxList] = useState([]);
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
-    billDate: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
+    billDate: new Date(userData.date).toISOString().split('T')[0], // yyyy-MM-dd format
     mobileNo: '',
     type: 'Retail',
     salesman: '',
