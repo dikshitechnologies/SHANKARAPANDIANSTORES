@@ -12,6 +12,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import {PopupScreenModal} from '../../components/PopupScreens';
+import PrintVoucher from '../PrintVoucher/PrintVoucher';
 
 const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
   <svg
@@ -176,6 +177,7 @@ const ReceiptVoucher = () => {
   const balanceRef = useRef(null);
   const gstTypeRef = useRef(null);
   const saveButtonRef = useRef(null);
+  const printVoucherRef = useRef(null);
   
   // Receipt table refs
   const receiptCashBankRefs = useRef([]);
@@ -214,6 +216,12 @@ const ReceiptVoucher = () => {
 
   // Mobile view state
   const [isMobileView, setIsMobileView] = useState(false);
+
+  // State to hold voucher data for printing
+  const [printVoucherData, setPrintVoucherData] = useState(null);
+
+  // Print confirmation popup state
+  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
 
   const showMandatoryToast = (label) => {
     toast.warning(`Please fill ${label}`, {
@@ -1748,6 +1756,26 @@ const ReceiptVoucher = () => {
     return result;
   };
 
+  // Build voucher data for printing
+  const buildVoucherData = () => {
+    // Filter valid items (with cashBank and amount > 0)
+    const validItems = receiptItems.filter(item => item.cashBank && item.cashBank.trim() !== '' && item.amount && parseFloat(item.amount) > 0);
+    
+    const voucherData = {
+      voucherNo: voucherDetails.voucherNo,
+      voucherDate: voucherDetails.date,
+      accountName: voucherDetails.accountName,
+      netAmount: totalAmount,
+      items: validItems.map(item => ({
+        cashBank: item.cashBank,
+        narration: item.narration,
+        amount: parseFloat(item.amount) || 0
+      }))
+    };
+    
+    return voucherData;
+  };
+
   // ========== SAVE FUNCTION ==========
   const savePaymentVoucher = async (updatedParticulars = null) => {
     if (isSaving) {
@@ -1933,12 +1961,28 @@ const ReceiptVoucher = () => {
 
         setError(null);
         
+        // Build voucher data for printing
+        const voucherDataForPrint = buildVoucherData();
+        setPrintVoucherData(voucherDataForPrint);
+        
+        // Show print confirmation popup
+        setConfirmationPopup({
+          isOpen: true,
+          title: 'Print Voucher',
+          message: 'Do you want to print it?',
+          type: 'success',
+          confirmText: 'Yes',
+          cancelText: 'No',
+          action: 'printConfirmation',
+          isLoading: false
+        });
+        
         // Refresh saved vouchers list
         await fetchSavedVouchers(1, '');
         
-        // Reset form completely after save
-        resetForm();
-        await fetchNextVoucherNo();
+        // Don't reset form yet - wait for print confirmation
+        // resetForm();
+        // await fetchNextVoucherNo();
         
         return response.data;
       }
@@ -2071,6 +2115,15 @@ const ReceiptVoucher = () => {
           break;
         case 'print':
           console.log('Print functionality');
+          break;
+        case 'printConfirmation':
+          // Trigger actual print via ref
+          if (printVoucherRef.current) {
+            printVoucherRef.current.print();
+          }
+          // Reset form after print
+          resetForm();
+          await fetchNextVoucherNo();
           break;
         default:
           break;
@@ -3247,6 +3300,15 @@ const ReceiptVoucher = () => {
         cancelText={"No"}
         type={"success"}
       />
+
+      {/* PrintVoucher Component */}
+      {printVoucherData && (
+        <PrintVoucher
+          ref={printVoucherRef}
+          billData={printVoucherData}
+          mode="receipt-voucher"
+        />
+      )}
     </div>
   );
 };
