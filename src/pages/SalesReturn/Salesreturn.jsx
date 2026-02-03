@@ -4009,14 +4009,35 @@ const handleApplyBillDirect = async () => {
   // ==================== SAVE FUNCTION ====================
 const handleSave = async () => {
 
+  // Check if customer name is empty
+  if (!billDetails.custName || !billDetails.custName.trim()) {
+    toast.warning("Customer name is required. Please select a customer.", {
+      position: 'top-right',
+      autoClose: 3000,
+    });
+    custNameRef.current?.focus();
+    return;
+  }
 
+  // Check if we have items to create
+  const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+  if (validItems.length === 0) {
+    toast.warning("No valid items to create. Please add items with valid item names and quantities.", {
+      position: 'top-right',
+      autoClose: 3000,
+    });
+    return;
+  }
 
-   // Check if we have items to create
-    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-    if (validItems.length === 0) {
-      toast.warning("No valid items to create. Please add items");
-    }
-  
+  // Check if any item has empty item name
+  const hasEmptyItemName = items.some(item => parseFloat(item.qty) > 0 && (!item.itemName || !item.itemName.trim()));
+  if (hasEmptyItemName) {
+    toast.warning("All items must have a valid item name. Please check your entries.", {
+      position: 'top-right',
+      autoClose: 3000,
+    });
+    return;
+  }
 
    
   showConfirmation({
