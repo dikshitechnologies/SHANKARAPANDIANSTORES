@@ -40,7 +40,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         <title>Sales Invoice Receipt</title>
         <style>
           @page {
-            size: 80mm auto;
+            size:  110mm auto;
             margin: 0;
             padding: 0;
           }
@@ -56,7 +56,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
             margin: 0;
             padding: 0;
             font-size: 10pt;
-            width: 80mm;
+            width:  110mm;
             font-family: Arial, sans-serif;
             font-size: 13px;
             font-weight: 500;
@@ -67,7 +67,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
           .receipt {
             padding: 2mm 1mm;
             width: 100%;
-            max-width: 80mm;
+            max-width:  110mm;
           }
 
           .header {
@@ -242,11 +242,11 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         <div className="bill">
           <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
             <div style={{ fontSize: "9pt" }}>
-              <span>Invoice No:&nbsp;</span>
+              <span>No:&nbsp;&nbsp;&nbsp;&nbsp;</span>
               <span>{billData.voucherNo || 'N/A'}</span>
             </div>
             <div style={{ fontSize: "9pt" }}>
-              <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>Date:&nbsp;&nbsp;</span>
               <span>
                 {billData.voucherDate ? (() => {
                   try {
@@ -265,7 +265,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               </span>
             </div>
             <div style={{ fontSize: "9pt" }}>
-              <span>Time:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>Time:&nbsp;</span>
               <span>{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
             </div>
           </div>
@@ -280,17 +280,19 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
+        {/* Particulars Label */}
+        <div style={{ fontSize: "9pt", fontWeight: "bold", marginTop: "1mm", marginBottom: "1mm" }}>
+          Particulars
+        </div>
+
         {/* Main Table - FIXED STRUCTURE */}
         <table className="items" style={{ width: "100%", marginRight: 0 }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", width: "100%" }} colSpan="5">Particulars</th>
-            </tr>
-            <tr>
               <th style={{ textAlign: "left", width: "15%"}} colSpan="1">HSN</th>
               <th style={{ textAlign: "left", width: "15%" }} colSpan="1">Tax</th>
-              <th style={{ textAlign: "left", width: "20%" }} colSpan="1">Rate</th>
-              <th style={{ textAlign: "left", width: "20%" }} colSpan="1">Qty</th>
+              <th style={{ textAlign: "right", width: "20%" }} colSpan="1">Rate</th>
+              <th style={{ textAlign: "right", width: "20%" }} colSpan="1">Qty</th>
               <th style={{ textAlign: "right", width: "30%" }} colSpan="1">Amount</th>
             </tr>
           </thead>
@@ -393,11 +395,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
           </div>
         )}
 
-        {/* Terms and Conditions */}
-        <div className="terms">
-          <div>( Incl. of all Taxes )</div>
-          <div>-E & O E. No Exchange No Refund-</div>
-        </div>
+        
 
         {/* Thank You Message */}
         <div className="thank-you">*** Thank You Visit Again! ***</div>
