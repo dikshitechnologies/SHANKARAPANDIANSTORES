@@ -286,6 +286,8 @@ CATEGORY: {
   getTaxList: (page = 1, pageSize = 10) =>
   `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
 
+   getLastBillNoByCustomer: (customerCode) =>
+    `Salesinvoices/GetLastBillNo?customerCode=${customerCode}`,
 },
 
   Scrap_Procurement: {
