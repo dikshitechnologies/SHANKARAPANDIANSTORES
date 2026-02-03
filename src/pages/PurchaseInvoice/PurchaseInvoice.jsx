@@ -2687,6 +2687,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   const handlePrintConfirm = () => {
     setPrintConfirmationOpen(false);
     setShowPrintModal(true);
+    setTimeout(() => {
+      clearForm();
+    }, 1000);
     
     // Show success message after opening print
     // showAlertConfirmation(
@@ -4379,7 +4382,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
 <ConfirmationPopup
   isOpen={printConfirmationOpen}
   title="Print Confirmation"
-  message="Do you want to print the purchase invoice?"
+  message="Do you want to print?"
   confirmText="Yes"
   cancelText="No"
   onConfirm={handlePrintConfirm}
