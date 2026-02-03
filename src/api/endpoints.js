@@ -313,6 +313,9 @@ CATEGORY: {
   BILLCOLLECTOR:{
     GET_BILLCOLLECTOR_ITEMS:(fCompCode, search, page, pageSize) => `BillCollector/GetSalesBillslist?fCompCode=${fCompCode}&search=${search}&pageNumber=${page}&pageSize=${pageSize}`,
     GET_LIVE_DRAWER: (date) => `BillCollector/GetLiveDrawer?date=${date}`,
+     GET_ITEMS_DISCOUNT_FLAG: (voucherNo) =>
+    `BillCollector/GetItemsDiscountFlag?voucherNo=${voucherNo}`,
+
   },
 
   SALESRETURN: {

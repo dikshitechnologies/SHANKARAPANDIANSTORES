@@ -1424,6 +1424,8 @@ const handleServiceChargeFieldKeyDown = (e) => {
                       onChange={(e) => handleInputChange('billDiscountPercent', e.target.value)}
                       onKeyDown={(e) => handleBillDiscountKeyDown(e, roundOffRef)}
                       className={styles.inputField}
+                      disabled={billData?.isDiscountAllowed === false}
+                      title={billData?.isDiscountAllowed === false ? "Discount not allowed for items in this bill" : ""}
                     />
                   </div>
                 </div>

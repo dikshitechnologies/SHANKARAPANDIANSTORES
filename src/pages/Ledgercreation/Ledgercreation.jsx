@@ -1062,7 +1062,7 @@ export default function LedgerCreation({ onCreated }) {
         /* Main dashboard card (glass) */
         .dashboard {
           width: 100%;
-          max-width: 1200px;
+          max-width: 1400px;
           border-radius: 0px;
           padding: 24px;
           background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
@@ -2775,10 +2775,10 @@ export default function LedgerCreation({ onCreated }) {
         }}
         fetchItems={fetchPopupItems}
         title={actionType === 'delete' ? 'Select Ledger  to Delete' : 'Select Ledger  to Edit'}
-        displayFieldKeys={['fAcname', 'fParent']}
-        searchFields={['fAcname', 'fParent']}
-        headerNames={['Ledger Name', 'Group']}
-        columnWidths={{ fAcname: '70%', fParent: '30%' }}
+        displayFieldKeys={['fAcname']}
+        searchFields={['fAcname']}
+        headerNames={['Ledger Name']}
+        columnWidths={{ fAcname: '100%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
