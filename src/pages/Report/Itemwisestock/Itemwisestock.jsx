@@ -63,7 +63,8 @@ const AccountPayables = () => {
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const companyRef = useRef(null);
+  const companyNameRef = useRef(null);
+  const itemNameRef = useRef(null);
   const searchButtonRef = useRef(null);
 
   // --- DATA ---
@@ -406,9 +407,12 @@ const AccountPayables = () => {
           toDateRef.current?.focus();
           break;
         case 'toDate':
-          companyRef.current?.focus();
+          companyNameRef.current?.focus();
           break;
-        case 'company':
+        case 'companyName':
+          itemNameRef.current?.focus();
+          break;
+        case 'itemName':
           searchButtonRef.current?.focus();
           break;
         default:
@@ -1081,6 +1085,7 @@ const AccountPayables = () => {
             }}>
               <label style={styles.inlineLabel}>Company Name:</label>
               <div
+                ref={companyNameRef}
                 style={
                   focusedField === 'companyName'
                     ? styles.companyInputFocused
@@ -1091,10 +1096,12 @@ const AccountPayables = () => {
                   setFocusedField('companyName');
                 }}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'companyName');
                   if (e.key === 'Enter') {
-                    handleCompanyNameClick();
+                    e.preventDefault();
+                    itemNameRef.current?.focus();
+                    return;
                   }
+                  handleKeyDown(e, 'companyName');
                 }}
                 onFocus={() => setFocusedField('companyName')}
                 onBlur={() => setFocusedField('')}
@@ -1135,12 +1142,14 @@ const AccountPayables = () => {
                   handleItemNameClick();
                   setFocusedField('itemName');
                 }}
-                ref={companyRef}
+                ref={itemNameRef}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'itemName');
                   if (e.key === 'Enter') {
-                    handleItemNameClick();
+                    e.preventDefault();
+                    searchButtonRef.current?.focus();
+                    return;
                   }
+                  handleKeyDown(e, 'itemName');
                 }}
                 onFocus={() => setFocusedField('itemName')}
                 onBlur={() => setFocusedField('')}

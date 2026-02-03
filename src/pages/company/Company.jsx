@@ -44,6 +44,7 @@ const Company = () => {
     fusername: "",
     fdescription: "",
     fprintgap: "",
+    flength: "",
     fpassword: "",
     fconfirmpass: "",
     fprefix: "",
@@ -153,6 +154,7 @@ const Company = () => {
   const usernameRef = useRef(null);
   const descriptionRef = useRef(null);
   const printgapRef = useRef(null);
+  const lengthRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
   const prefixRef = useRef(null);
@@ -206,6 +208,7 @@ const Company = () => {
   // Create a refs array for easier navigation - in the exact order they appear in the form
   const inputRefs = useMemo(() => [
     companyNameRef, // Company Name
+    lengthRef,      // Length
     gstinRef,       // GSTIN
     stateRef,       // State
     statecodeRef,   // State Code
@@ -333,6 +336,7 @@ const Company = () => {
         fusername: company.userName || company.userName || "",
         fdescription: company.description || "",
         fprintgap: company.printGAP || company.printGap || "",
+        flength: company.length || company.flength || "",
         fpassword: company.password || "",
         fconfirmpass: company.password || "",
         fprefix: company.prefix || "",
@@ -430,6 +434,7 @@ const Company = () => {
       fusername: "",
       fdescription: "",
       fprintgap: "",
+      flength: "",
       fpassword: "",
       fconfirmpass: "",
       fprefix: "",
@@ -647,6 +652,10 @@ const Company = () => {
   };
 
   const handleInputChange = (field, value) => {
+    // Only allow numbers for flength field
+    if (field === 'flength') {
+      value = value.replace(/[^0-9]/g, '');
+    }
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -698,6 +707,10 @@ const Company = () => {
     // Perform fresh validation on the current formData
     if (!formData.fcompname.trim()) {
       return { isValid: false, message: "Please enter Company Name" };
+    }
+    
+    if (!formData.flength.trim()) {
+      return { isValid: false, message: "Please enter Length" };
     }
     
     if (!formData.fusername.trim()) {
@@ -916,6 +929,7 @@ const Company = () => {
         userName: formData.fusername || "",
         description: formData.fdescription || "",
         printGAP: formData.fprintgap || "",
+        length: formData.flength || "",
         password: formData.fpassword || "",
         prefix: formData.fprefix || "",
         defultMode: formData.fdefaultmode || "T",
@@ -1046,6 +1060,7 @@ const Company = () => {
         userName: formData.fusername || "",
         description: formData.fdescription || "",
         printGAP: formData.fprintgap || "",
+        length: formData.flength || "",
         password: formData.fpassword || "",
         prefix: formData.fprefix || "",
         defultMode: formData.fdefaultmode || "T",
@@ -1292,6 +1307,21 @@ const Company = () => {
                           onKeyDown={(e) => handleKeyDown(e, 'fcompname')}
                         />
                       </div>
+
+
+                      <div className="input-group">
+                        <label>Length <span className="asterisk">*</span></label>
+                        <input
+                          type="text"
+                          ref={lengthRef}
+                          value={formData.flength}
+                          onChange={(e) => handleInputChange('flength', e.target.value)}
+                          disabled={selectedAction === "delete"}
+                          onKeyDown={(e) => handleKeyDown(e, 'flength')}
+                        />
+                      </div>
+
+
                     </div>
                     <div className="row2">
                       <div className="input-group">
