@@ -117,18 +117,20 @@ const PrefixHistory = () => {
       flexDirection: 'column',
       minHeight: 0,
       overflow: 'auto',
+      paddingBottom: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
       WebkitOverflowScrolling: 'touch',
     },
     footerSection: {
-      flex: '0 0 auto',
       backgroundColor: 'white',
       borderTop: '1px solid #e0e0e0',
       padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '14px' : '16px',
       display: 'flex',
       justifyContent: 'flex-end',
       gap: '12px',
-      position: 'sticky',
+      position: 'fixed',
       bottom: 0,
+      left: 0,
+      right: 0,
       zIndex: 100,
       boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
     },
@@ -138,7 +140,7 @@ const PrefixHistory = () => {
       gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
       marginBottom: screenSize.isMobile ? '12px' : screenSize.isTablet ? '14px' : '18px',
       flexWrap: 'wrap',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
     },
     formField: {
       display: 'flex',
@@ -146,7 +148,8 @@ const PrefixHistory = () => {
       gap: screenSize.isMobile ? '6px' : screenSize.isTablet ? '8px' : '10px',
       flexDirection: screenSize.isMobile ? 'column' : 'row',
       width: screenSize.isMobile ? '100%' : 'auto',
-      flex: screenSize.isMobile ? '1 1 100%' : '0 1 auto',
+      flex: screenSize.isMobile ? '1 1 100%' : '0 0 auto',
+      minWidth: screenSize.isMobile ? '100%' : 'auto',
     },
     label: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -176,7 +179,7 @@ const PrefixHistory = () => {
       width: '100%',
       height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '100%' : '200px',
+      minWidth: screenSize.isMobile ? '100%' : '150px',
     },
     inputFocused: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -195,7 +198,7 @@ const PrefixHistory = () => {
       width: '100%',
       height: screenSize.isMobile ? '38px' : screenSize.isTablet ? '36px' : '40px',
       flex: 1,
-      minWidth: screenSize.isMobile ? '100%' : '200px',
+      minWidth: screenSize.isMobile ? '100%' : '150px',
     },
     button: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
@@ -248,11 +251,11 @@ const PrefixHistory = () => {
       WebkitOverflowScrolling: 'touch',
       width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
       boxSizing: 'border-box',
-      flex: 'none',
+      flex: '0 0 auto',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
-      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '300px',
+      maxHeight: screenSize.isMobile ? '280px' : screenSize.isTablet ? '330px' : '380px',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '280px',
     },
     summaryTableContainer: {
       backgroundColor: 'white',
@@ -267,7 +270,7 @@ const PrefixHistory = () => {
       WebkitOverflowScrolling: 'touch',
       width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
       boxSizing: 'border-box',
-      flex: 'none',
+      flex: '0 0 auto',
       display: 'flex',
       flexDirection: 'column',
       maxHeight: screenSize.isMobile ? '150px' : screenSize.isTablet ? '180px' : '200px',
@@ -490,6 +493,7 @@ const PrefixHistory = () => {
       {/* Header Section */}
       <div style={styles.headerSection}>
         <form onSubmit={handleSearch}>
+          {/* First Row - All 6 Fields: Prefix, Supplier, Salesman, Date, Ref No, Floor */}
           <div style={styles.filterRow}>
             {/* Prefix Input */}
             <div style={styles.formField}>
@@ -503,41 +507,71 @@ const PrefixHistory = () => {
                 onKeyDown={handlePrefixKeyDown}
                 onFocus={() => setFocusedField('prefix')}
                 onBlur={() => setFocusedField('')}
-                placeholder="Enter prefix (e.g., 00006)"
+                // placeholder="Enter prefix (e.g., 00006)"
+              />
+            </div>
+
+            {/* Supplier Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Supplier:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.supplierName || ''}
+                readOnly
+                // placeholder=""
+              />
+            </div>
+
+            {/* Salesman Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Salesman:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.salesManName || ''}
+                readOnly
+                // placeholder=""
+              />
+            </div>
+
+            {/* Date Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Date:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={formatDate(prefixData.invoiceDate)}
+                readOnly
+                // placeholder=""
+              />
+            </div>
+
+            {/* Ref No Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Ref No:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.invoiceNo || ''}
+                readOnly
+                // placeholder=""
+              />
+            </div>
+
+            {/* Floor Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Floor:</label>
+              <input
+                type="text"
+                style={{...styles.input, width: '460px'}}
+                value={prefixData.companyName || ''}
+                readOnly
+                // placeholder=""
               />
             </div>
           </div>
         </form>
-
-        {/* Info Box (Prefix Details) */}
-        {hasSearched && prefixData.supplierName !== undefined && (
-          <div style={styles.infoBox}>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Prefix</span>
-              <span style={styles.infoValue}>{prefix}</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Supplier</span>
-              <span style={styles.infoValue}>{prefixData.supplierName || 'N/A'}</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Salesman</span>
-              <span style={styles.infoValue}>{prefixData.salesManName || 'N/A'}</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Date</span>
-              <span style={styles.infoValue}>{formatDate(prefixData.invoiceDate)}</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Ref No</span>
-              <span style={styles.infoValue}>{prefixData.invoiceNo || 'N/A'}</span>
-            </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>Floor</span>
-              <span style={styles.infoValue}>{prefixData.companyName || 'N/A'}</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Table Section */}
@@ -559,7 +593,7 @@ const PrefixHistory = () => {
               {!hasSearched ? (
                 <tr>
                   <td colSpan="6" style={styles.emptyMsg}>
-                    Enter prefix and press Enter to view prefix history
+                   
                   </td>
                 </tr>
               ) : isLoading ? (
@@ -628,16 +662,16 @@ const PrefixHistory = () => {
             </table>
           </div>
         )}
-      </div>
 
-      {/* Footer Section */}
-      <div style={styles.footerSection}>
-        <button type="button" style={styles.buttonSecondary} onClick={handleRefresh}>
-          Refresh
-        </button>
-        <button type="button" style={styles.button} onClick={handlePrint}>
-          Print
-        </button>
+        {/* Footer Section - After Summary Table */}
+        <div style={styles.footerSection}>
+          <button type="button" style={styles.buttonSecondary} onClick={handleRefresh}>
+            Refresh
+          </button>
+          <button type="button" style={styles.button} onClick={handlePrint}>
+            Print
+          </button>
+        </div>
       </div>
     </div>
   );
