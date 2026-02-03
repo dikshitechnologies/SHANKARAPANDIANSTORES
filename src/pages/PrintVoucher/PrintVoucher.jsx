@@ -237,7 +237,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
         <div className="bill">
           <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
             <div style={{ fontSize: "9pt" }}>
-              <span>No:&nbsp;</span>
+              <span>Bill No:&nbsp;</span>
               <span>{billData.voucherNo || 'N/A'}</span>
             </div>
             <div style={{ fontSize: "9pt" }}>
@@ -264,7 +264,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
 
         {/* Customer Info */}
         <div className="customer-info">
-          Customer: {billData.customerName || billData.paidTo || 'N/A'}
+          By: {billData.accountName || billData.customerName || billData.paidTo || 'N/A'}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
@@ -278,7 +278,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
             </tr>
           </thead>
           <tbody>
-            {Array.isArray(billData.items) && billData.ite6? (
+            {Array.isArray(billData.items) && billData.items.length > 0 ? (
               billData.items.map((item, idx) => (
                 <tr key={idx}>
                   <td style={{ textAlign: "left" }}>{item.cashBank || '-'}</td>
@@ -286,48 +286,29 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
                   <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>{(item.amount || 0).toFixed(2)}</td>
                 </tr>
               ))
-            ) : (
-              <tr>
-                <td style={{ textAlign: "left" }}>-</td>
-                <td style={{ textAlign: "left" }}>-</td>
-                <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>{(billData.amount || 0).toFixed(2)}</td>
-              </tr>
-            )}
+            ) : null}
             <tr>
               <td colSpan="3"><hr className="dashed" style={{ margin: 0, width: "100%" }} /></td>
             </tr>
+            {/* Total Amount Row */}
+            <tr style={{ fontWeight: "bold", fontSize: "10pt" }}>
+              <td colSpan="2" style={{ textAlign: "right", paddingRight: "10pt" }}>Total Amount:</td>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>{(billData.netAmount || 0).toFixed(2)}</td>
+            </tr>
           </tbody>
         </table>
-
-        {/* Payment Details */}
-        <div style={{ marginTop: "3mm", fontSize: "9pt" }}>
-          <div>Payment Mode: {billData.paymentMode || 'N/A'}</div>
-          {billData.referenceNo && (
-            <div style={{ marginTop: "1mm" }}>Reference No: {billData.referenceNo}</div>
-          )}
-          {billData.remarks && (
-            <div style={{ marginTop: "1mm" }}>Remarks: {billData.remarks}</div>
-          )}
-        </div>
-
-        <hr className="dashed" style={{ marginTop: "3mm" }} />
-
-        {/* Signatures */}
-        <div style={{ marginTop: "5mm", fontSize: "9pt" }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+        
+            <div style={{ marginTop: "7mm", fontSize: "9pt" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Paid By</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Received By</div>
+              <div></div>
+              <div style={{ marginTop: "3mm" }}>Authorised Signatory</div>
             </div>
           </div>
         </div>
+       
 
-        {/* Thank You Message */}
-        <div className="thank-you">*** Thank You ***</div>
+       
       </div>
     );
   };
@@ -335,7 +316,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
   const renderReceiptVoucher = () => {
     if (!billData) return null;
 
-    return (
+   return (
       <div>
         <div className="voucher-title">
           <h3>RECEIPT VOUCHER</h3>
@@ -345,7 +326,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
         <div className="bill">
           <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
             <div style={{ fontSize: "9pt" }}>
-              <span>Voucher No:&nbsp;</span>
+              <span>Bill No:&nbsp;</span>
               <span>{billData.voucherNo || 'N/A'}</span>
             </div>
             <div style={{ fontSize: "9pt" }}>
@@ -372,54 +353,51 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
 
         {/* Customer Info */}
         <div className="customer-info">
-          Received From: {billData.customerName || billData.receivedFrom || 'N/A'}
+          By: {billData.accountName || billData.customerName || billData.paidTo || 'N/A'}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
         {/* Amount Section */}
-        <table className="items" style={{ fontSize: "9pt", marginTop: "5mm" }}>
-          <tbody>
+        <table className="items" style={{ fontSize: "9pt", marginTop: "2mm", width: "100%", borderCollapse: "collapse" }}>
+          <thead>
             <tr>
-              <td style={{ textAlign: "left", width: "60%" }}>Amount Received:</td>
-              <td style={{ textAlign: "right", width: "40%", fontWeight: "bold", fontSize: "14pt" }}>
-                {(billData.amount || 0).toFixed(2)}
-              </td>
+              <th style={{ textAlign: "left", borderBottom: "1px solid #000" }}>Cash/Bank</th>
+              <th style={{ textAlign: "left", borderBottom: "1px solid #000" }}>Narration</th>
+              <th style={{ textAlign: "right", borderBottom: "1px solid #000" }}>Amount</th>
             </tr>
+          </thead>
+          <tbody>
+            {Array.isArray(billData.items) && billData.items.length > 0 ? (
+              billData.items.map((item, idx) => (
+                <tr key={idx}>
+                  <td style={{ textAlign: "left" }}>{item.cashBank || '-'}</td>
+                  <td style={{ textAlign: "left" }}>{item.narration || '-'}</td>
+                  <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>{(item.amount || 0).toFixed(2)}</td>
+                </tr>
+              ))
+            ) : null}
             <tr>
-              <td colSpan="2"><hr className="dashed" style={{ margin: 0, width: "100%" }} /></td>
+              <td colSpan="3"><hr className="dashed" style={{ margin: 0, width: "100%" }} /></td>
+            </tr>
+            {/* Total Amount Row */}
+            <tr style={{ fontWeight: "bold", fontSize: "10pt" }}>
+              <td colSpan="2" style={{ textAlign: "right", paddingRight: "10pt" }}>Total Amount:</td>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>{(billData.netAmount || 0).toFixed(2)}</td>
             </tr>
           </tbody>
         </table>
-
-        {/* Payment Details */}
-        <div style={{ marginTop: "3mm", fontSize: "9pt" }}>
-          <div>Payment Mode: {billData.paymentMode || 'N/A'}</div>
-          {billData.referenceNo && (
-            <div style={{ marginTop: "1mm" }}>Reference No: {billData.referenceNo}</div>
-          )}
-          {billData.remarks && (
-            <div style={{ marginTop: "1mm" }}>Remarks: {billData.remarks}</div>
-          )}
-        </div>
-
-        <hr className="dashed" style={{ marginTop: "3mm" }} />
-
-        {/* Signatures */}
-        <div style={{ marginTop: "5mm", fontSize: "9pt" }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+        
+            <div style={{ marginTop: "7mm", fontSize: "9pt" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Paid By</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div>___________________</div>
-              <div style={{ marginTop: "2mm" }}>Received By</div>
+              <div></div>
+              <div style={{ marginTop: "3mm" }}>Authorised Signatory</div>
             </div>
           </div>
         </div>
+       
 
-        {/* Thank You Message */}
-        <div className="thank-you">*** Thank You ***</div>
+       
       </div>
     );
   };

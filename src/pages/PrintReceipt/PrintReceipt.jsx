@@ -234,7 +234,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
           <h3>SCRAP BILL</h3>
         </div>
         <div className="cust-name">
-          <h6>Salesman: {billData.salesmanName || 'N/A'}</h6>
+          <h6>Salesman: {billData.salesmanName || ' '}</h6>
         </div>
 
         {/* Bill number and date */}
@@ -242,7 +242,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
           <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
             <div style={{ fontSize: "9pt" }}>
               <span>Bill No:&nbsp;</span>
-              <span>{billData.voucherNo || 'N/A'}</span>
+              <span>{billData.voucherNo || ' '}</span>
             </div>
             <div style={{ fontSize: "9pt" }}>
               <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;</span>
@@ -253,7 +253,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
                   const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
                   const year = date.getFullYear();
                   return `${day}-${month}-${year}`;
-                })() : 'N/A'}
+                })() : ' '}
               </span>
             </div>
             <div style={{ fontSize: "9pt" }}>
@@ -268,7 +268,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
         {/* Customer Info */}
         <div className="customer-info">
-          Customer: {billData.customerName || 'N/A'}
+          Customer: {billData.customerName || ' '}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
@@ -292,7 +292,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
             {billData.items && billData.items.map((item, index) => (
               <React.Fragment key={index}>
                 <tr>
-                  <td colSpan="4" style={{ textAlign: "left", paddingTop: "0.8mm", paddingBottom: "0.2mm" }}>{item.itemName || 'N/A'}</td>
+                  <td colSpan="4" style={{ textAlign: "left", paddingTop: "0.8mm", paddingBottom: "0.2mm" }}>{item.itemName || ' '}</td>
                 </tr>
                 <tr>
                   <td style={{ textAlign: "left" }}></td>
@@ -338,7 +338,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
           <h3>SALES RETURN</h3>
         </div>
         <div className="cust-name">
-          <h6>Salesman: {billData.salesmanName || 'N/A'}</h6>
+          <h6>Salesman: {billData.salesmanName || ' '}</h6>
         </div>
 
         {/* Bill number and date */}
@@ -346,7 +346,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
           <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
             <div style={{ fontSize: "9pt" }}>
               <span>Bill No:&nbsp;</span>
-              <span>{billData.voucherNo || 'N/A'}</span>
+              <span>{billData.voucherNo || ' '}</span>
             </div>
             <div style={{ fontSize: "9pt" }}>
               <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;</span>
@@ -357,7 +357,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
                   const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
                   const year = date.getFullYear();
                   return `${day}-${month}-${year}`;
-                })() : 'N/A'}
+                })() : ' '}
               </span>
             </div>
             <div style={{ fontSize: "9pt" }}>
@@ -372,7 +372,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
         {/* Customer Info */}
         {/* <div className="customer-info">
-          Customer: {billData.customerCode || 'N/A'}
+          Customer: {billData.customerCode || ' '}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} /> */}
 
@@ -380,7 +380,84 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
         <table className="items" style={{ fontSize: "9pt" }}>
           <tbody>
             <tr>
-              <td style={{ textAlign: "left", width: "50%" }}>Customer: {billData.customerName || 'N/A'}</td>
+              <td style={{ textAlign: "left", width: "50%" }}>Customer: {billData.customerName || ' '}</td>
+            </tr>
+            <tr>
+              <td style={{ textAlign: "left", width: "50%" }}>Total Items: {billData.items?.length || 0}</td>
+              <td style={{ textAlign: "right", width: "50%" }}>Total Qty: {totalQty.toFixed(3)}</td>
+            </tr>
+            <tr>
+              <td colSpan="2"><hr className="dashed" style={{ margin: 0, width: "100%" }} /></td>
+            </tr>
+            <tr className="total-row">
+              <td style={{ textAlign: "left" }}>Bill Amount</td>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "14pt" }}>{totalAmount.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr className="dashed" />
+
+        {/* Thank You Message */}
+        <div className="thank-you">*** Thank You Visit Again! ***</div>
+      </div>
+    );
+  };
+  const renderSalesInvoice = () => {
+    if (!billData) return null;
+
+    const totalAmount = billData.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || billData.netAmount || 0;
+    const totalQty = billData.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0;
+
+    return (
+      <div>
+        <div className="scrap-title">
+          <h3>SALES INVOICE</h3>
+        </div>
+        <div className="cust-name">
+          <h6>Salesman: {billData.salesmanName || ' '}</h6>
+        </div>
+
+        {/* Bill number and date */}
+        <div className="bill">
+          <div className="bill-info" style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
+            <div style={{ fontSize: "9pt" }}>
+              <span>Bill No:&nbsp;</span>
+              <span>{billData.voucherNo || ' '}</span>
+            </div>
+            <div style={{ fontSize: "9pt" }}>
+              <span>Date:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>
+                {billData.voucherDate ? (() => {
+                  const date = new Date(billData.voucherDate);
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+                  const year = date.getFullYear();
+                  return `${day}-${month}-${year}`;
+                })() : ' '}
+              </span>
+            </div>
+            <div style={{ fontSize: "9pt" }}>
+              <span>Time:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span>{new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+            </div>
+          </div>
+          <div ref={qrcodeRef} style={{ display: "flex", justifyContent: "center", width: "50px", height: "50px" }}></div>
+        </div>
+
+        <hr className="dashed" style={{ margin: 0, width: "100%" }} />
+
+        {/* Customer Info */}
+        {/* <div className="customer-info">
+          Customer: {billData.customerCode || ' '}
+        </div>
+        <hr className="dashed" style={{ margin: 0, width: "100%" }} /> */}
+
+        {/* Summary Table */}
+        <table className="items" style={{ fontSize: "9pt" }}>
+          <tbody>
+            <tr>
+              <td style={{ textAlign: "left", width: "50%" }}>Customer: {billData.customerName || ' '}</td>
             </tr>
             <tr>
               <td style={{ textAlign: "left", width: "50%" }}>Total Items: {billData.items?.length || 0}</td>
@@ -440,6 +517,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
           {/* Dynamic Content */}
           {mode === "scrap_bill" && renderScrapBill()}
           {mode === "sales_return" && renderSalesReturn()}
+          {mode === "sales_invoice" && renderSalesInvoice()}
         </div>
       </div>
 
