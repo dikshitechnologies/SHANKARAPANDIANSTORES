@@ -893,10 +893,10 @@ const handleBlur = () => {
     
     if (validItems.length === 0) {
       console.log('❌ No valid items found!');
-      toast.warning('No items to print. Please add items to the invoice.', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
+      // toast.warning('No items to print. Please add items to the invoice.', {
+      //   position: 'top-right',
+      //   autoClose: 3000,
+      // });
       // Clear saved data
       setSavedItemsForPrint([]);
       setSavedBillDetailsForPrint({});
@@ -938,10 +938,10 @@ const handleBlur = () => {
     setSavedItemsForPrint([]);
     setSavedBillDetailsForPrint({});
     
-    toast.success(`Purchase return ${savedBillDetailsForPrint.invNo || 'saved'} successfully`, {
-      position: 'top-right',
-      autoClose: 2000,
-    });
+    // toast.success(`Purchase return ${savedBillDetailsForPrint.invNo || 'saved'} successfully`, {
+    //   position: 'top-right',
+    //   autoClose: 2000,
+    // });
   };
 
   // Handle bill selection from popup
@@ -2582,16 +2582,16 @@ const [savedBillDetailsForPrint, setSavedBillDetailsForPrint] = useState({});
       <ConfirmationPopup
         isOpen={printConfirmationOpen}
         title="Print Confirmation"
-        message="Do you want to print the purchase return invoice?"
+        message="Do you want to print?"
         confirmText="Yes"
         cancelText="No"
         onConfirm={handlePrintConfirm}
-        onCancel={() => {
+        onClose={() => {
           setPrintConfirmationOpen(false);
-          toast.success(`Purchase return ${isEditMode ? 'update' : 'save'} successfully`, {
-            position: 'top-right',
-            autoClose: 2000,
-          });
+          // toast.success(`Purchase return ${isEditMode ? 'update' : 'save'} successfully`, {
+          //   position: 'top-right',
+          //   autoClose: 2000,
+          // });
         }}
       />
 

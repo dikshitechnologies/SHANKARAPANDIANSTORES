@@ -351,7 +351,7 @@ export const generateSalesReturnPDF = async ({
       }, 500);
     } else {
       console.error('Failed to open print window - popup may be blocked');
-      alert('Could not open print window. Please allow popups for this site.');
+      
       URL.revokeObjectURL(pdfUrl);
     }
     
