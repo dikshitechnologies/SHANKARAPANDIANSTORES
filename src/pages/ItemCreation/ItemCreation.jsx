@@ -221,7 +221,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
     sellingPrice: '',
     costPrice: '',
     unit: '',
-    unitCode: ''
+    unitCode: '',
+    discount: 'N'
   });
 
   // Store codes separately (for backend) and names for display
@@ -276,6 +277,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
   const sellingPriceRef = useRef(null);
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
+  const discountRef = useRef(null);
   const isInitialFocusRef = useRef(true);
   const manualPrefixCheckboxRef = useRef(null);
 
@@ -3266,24 +3268,9 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      e.stopPropagation(); // 🔥 REQUIRED
-
-                      // Validation
-                      if (!formData.itemName) {
-                        setMessage({ type: "error", text: 'Please enter Item Name.' });
-                        itemNameRef.current?.focus();
-                        return;
-                      }
-
-                      if (!mainGroup) {
-                        setMessage({ type: "error", text: 'Please select Group Name.' });
-                        return;
-                      }
-
-                      // Open confirmation dialog
-                      if (actionType === 'create') showCreateConfirmation();
-                      else if (actionType === 'edit') showEditConfirmation();
-                      else if (actionType === 'delete') showDeleteConfirmation();
+                      e.stopPropagation();
+                      // Move to discount checkbox
+                      discountRef.current?.focus();
                     }
                   }}
                   disabled={isSubmitting || isDeleteMode}
@@ -3293,6 +3280,39 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                   type="text"
                   inputMode="decimal"
                 />
+              </div>
+
+              {/* Discount Checkbox */}
+              <div className="field">
+                <div
+                  className="checkbox-group"
+                  onClick={() => { 
+                    if (!isDeleteMode) {
+                      handleChange('discount', formData.discount === 'Y' ? 'N' : 'Y');
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (!isDeleteMode && e.key === ' ') {
+                      e.preventDefault();
+                      handleChange('discount', formData.discount === 'Y' ? 'N' : 'Y');
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // Move to save button
+                      submitButtonRef.current?.focus();
+                    }
+                  }}
+                  ref={discountRef}
+                  role="checkbox"
+                  tabIndex={isDeleteMode ? -1 : 0}
+                  aria-checked={formData.discount === 'Y'}
+                  aria-disabled={isDeleteMode}
+                >
+                  <div
+                    className={`checkbox ${formData.discount === 'Y' ? 'checked' : ''}`}
+                  />
+                  <span className="checkbox-label">Discount</span>
+                </div>
               </div>
                 </div>
               </div>
@@ -3327,8 +3347,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                   else if (actionType === 'delete') showDeleteConfirmation();
                 }}
                 onKeyDown={(e) => {
-                  // ✅ Handle Enter key on Delete button
-                  if (e.key === 'Enter' && actionType === 'delete') {
+                  // Handle Enter key on submit button
+                  if (e.key === 'Enter') {
                     e.preventDefault();
                     e.stopPropagation();
 
@@ -3342,7 +3362,10 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                       return;
                     }
 
-                    showDeleteConfirmation();
+                    // Show confirmation popup based on action type
+                    if (actionType === 'create') showCreateConfirmation();
+                    else if (actionType === 'edit') showEditConfirmation();
+                    else if (actionType === 'delete') showDeleteConfirmation();
                   }
                 }}
                 disabled={isLoading}
