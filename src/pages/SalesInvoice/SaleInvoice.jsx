@@ -2597,16 +2597,6 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
 
 
 
-       const hasValidtax = validItems.some(item =>         
-        item.tax && String(item.tax).trim() !== '' && String(item.tax) !== '0'
-      );
-
-
-      if (!hasValidtax) {
-        throw new Error("Please enter tax for at least one item before saving");    
-      }
-
-
       setIsSaving(true);
       setIsLoading(true);
       setError(null);
@@ -2800,18 +2790,6 @@ const itemsData = validItems.map(item => {
       });
       return;
     }
-
-       const hasValidtax = items.some(item =>         
-        item.tax && item.tax.trim() !== '' 
-      );
-
-
-      if (!hasValidtax) {
-        toast.warning("Please enter tax for all items before saving", {
-          autoClose: 2000,
-        });
-        return;    
-      }
 
     // ✅ ALL OK → Open save confirmation popup
     const finalAmount = totalAmount; // Removed addLessAmount
