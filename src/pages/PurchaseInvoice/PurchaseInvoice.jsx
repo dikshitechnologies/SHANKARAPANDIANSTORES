@@ -2584,9 +2584,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         const s = String(start || '');
         const m = s.match(/(\d+)$/);
         if (!m) {
-          // No trailing number: use numeric counter starting at 1 with width 6
+          // No trailing number: use numeric counter starting at 1 with width from userData.length
           let counter = 1;
-          const width = 6;
+          const width = userData?.length || 6;
           return () => String(counter++).padStart(width, '0');
         }
         const numStr = m[1];
