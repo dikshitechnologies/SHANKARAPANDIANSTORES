@@ -34,6 +34,27 @@ const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
 
 const ReceiptVoucher = () => {
    const { userData } = useAuth() || {};
+   console.log('User data in PurchaseInvoice:', userData.date);
+    // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return new Date().toISOString().substring(0, 10);
+    
+    try {
+      // Split the date string
+      const datePart = dateString.split(' ')[0]; // Get "dd-mm-yyyy"
+      const [day, month, year] = datePart.split('-');
+      
+      if (day && month && year) {
+        // Create a date string in yyyy-MM-dd format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+    }
+    
+    // Fallback to current date
+    return new Date().toISOString().substring(0, 10);
+  };
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -77,7 +98,7 @@ const ReceiptVoucher = () => {
   const [voucherDetails, setVoucherDetails] = useState({
     voucherNo: '',
     gstType: 'CGST/SGST',
-    date: new Date().toISOString().substring(0, 10),
+    date: formatDateForInput(userData?.date),
     costCenter: '',
     accountName: '',
     accountCode: '',
@@ -1190,7 +1211,7 @@ const ReceiptVoucher = () => {
     console.log('Resetting form...');
     setVoucherDetails({
       gstType: 'CGST/SGST',
-      date: new Date().toISOString().substring(0, 10),
+      date: formatDateForInput(userData?.date),
       costCenter: '',
       accountName: '',
       accountCode: '',

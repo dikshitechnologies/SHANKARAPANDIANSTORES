@@ -38,7 +38,7 @@ const TransportPopup = ({ isOpen, onClose, transportData, onTransportDataChange 
   const [localData, setLocalData] = useState({
     transportName: transportData?.transportName || '', // New field for transport name
     lrNo: transportData?.lrNo || '',
-    lrDate: transportData?.lrDate || new Date().toISOString().substring(0, 10),
+    lrDate: transportData?.lrDate || formatDateForInput(userData?.date),
     amount: transportData?.amount || '',
     gstPercent: transportData?.gstPercent || '',
     total: transportData?.total || ''
@@ -50,7 +50,7 @@ const TransportPopup = ({ isOpen, onClose, transportData, onTransportDataChange 
     setLocalData({
       transportName: transportData?.transportName || '',
       lrNo: transportData?.lrNo || '',
-      lrDate: transportData?.lrDate || new Date().toISOString().substring(0, 10),
+      lrDate: transportData?.lrDate || formatDateForInput(userData?.date),
       amount: transportData?.amount || '',
       gstPercent: transportData?.gstPercent || '',
       total: transportData?.total || ''
@@ -666,6 +666,27 @@ const calculateTotals = (items = []) => {
 
 const PurchaseInvoice = () => {
   const { userData } = useAuth() || {};
+  console.log('User data in PurchaseInvoice:', userData.date);
+    // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return new Date().toISOString().substring(0, 10);
+    
+    try {
+      // Split the date string
+      const datePart = dateString.split(' ')[0]; // Get "dd-mm-yyyy"
+      const [day, month, year] = datePart.split('-');
+      
+      if (day && month && year) {
+        // Create a date string in yyyy-MM-dd format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+    }
+    
+    // Fallback to current date
+    return new Date().toISOString().substring(0, 10);
+  };
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -704,7 +725,7 @@ const PurchaseInvoice = () => {
   const [transportData, setTransportData] = useState({
     transportName: '',
     lrNo: '',
-    lrDate: new Date().toISOString().substring(0, 10),
+    lrDate: formatDateForInput(userData?.date),
     amount: '',
     gstPercent: '',
     total: ''
@@ -715,7 +736,7 @@ const PurchaseInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: formatDateForInput(userData?.date),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -727,7 +748,7 @@ const PurchaseInvoice = () => {
     gstType: 'G',
     purNo: '',
     invoiceNo: '',
-    purDate: new Date().toISOString().substring(0, 10),
+    purDate: formatDateForInput(userData?.date),
     invoiceAmount: '',
     transType: 'PURCHASE',
     city: '',
@@ -1103,7 +1124,7 @@ const PurchaseInvoice = () => {
       setTransportData({
         transportName: '',
         lrNo: '',
-        lrDate: new Date().toISOString().substring(0, 10),
+        lrDate: formatDateForInput(userData?.date),
         amount: '',
         gstPercent: '',
         total: ''
@@ -1144,7 +1165,7 @@ const PurchaseInvoice = () => {
       }]);
       
       // Clear header fields
-      const currentDate = new Date().toISOString().substring(0, 10);
+      const currentDate = formatDateForInput(userData?.date);
       setBillDetails({
         invNo: '',
         billDate: currentDate,
@@ -1212,7 +1233,7 @@ const PurchaseInvoice = () => {
       setTransportData({
         transportName: '',
         lrNo: '',
-        lrDate: new Date().toISOString().substring(0, 10),
+        lrDate: formatDateForInput(userData?.date),
         amount: '',
         gstPercent: '',
         total: ''
@@ -1253,7 +1274,7 @@ const PurchaseInvoice = () => {
       }]);
       
       // Clear header fields
-      const currentDate = new Date().toISOString().substring(0, 10);
+      const currentDate = formatDateForInput(userData?.date);
       setBillDetails({
         invNo: '',
         billDate: currentDate,
