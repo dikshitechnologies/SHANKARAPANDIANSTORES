@@ -77,7 +77,7 @@ const ReceiptVoucher = () => {
   const [voucherDetails, setVoucherDetails] = useState({
     voucherNo: '',
     gstType: 'CGST/SGST',
-    date: new Date(userData.date).toISOString().substring(0, 10),
+    date: new Date().toISOString().substring(0, 10),
     costCenter: '',
     accountName: '',
     accountCode: '',

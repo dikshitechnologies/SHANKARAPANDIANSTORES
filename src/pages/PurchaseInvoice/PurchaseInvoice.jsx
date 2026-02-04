@@ -715,7 +715,7 @@ const PurchaseInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date(userData?.date).toISOString().substring(0, 10),
+    billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -830,11 +830,12 @@ const PurchaseInvoice = () => {
   // Also get fseudo from context in case userData.fseudo is missing
   const { fseudo } = useAuth() || {};
 
-  // Helper function to calculate charges amount
-  const calculateChargesAmount = (freight, percent) => {
-    const freightNum = parseFloat(freight) || 0;
+  // Helper function to calculate charges based on PRate (not freight)
+  // This calculates the charge per item based on percentage of PRate
+  const calculateChargePerItem = (prate, percent) => {
+    const prateNum = parseFloat(prate) || 0;
     const percentNum = parseFloat(percent) || 0;
-    return (freightNum * percentNum / 100).toFixed(2);
+    return (prateNum * percentNum / 100);
   };
 
   // Handle number input for addLess, freight, and chargesPercent
@@ -848,6 +849,9 @@ const PurchaseInvoice = () => {
       else if (type === 'chargesPercent') {
         setChargesPercent('');
         setChargesAmount('');
+      } else if (type === 'chargesAmount') {
+        setChargesAmount('');
+        setChargesPercent('');
       }
       return;
     }
@@ -874,14 +878,15 @@ const PurchaseInvoice = () => {
         setAddLessAmount(sanitizedValue);
       } else if (type === 'freight') {
         setFreightAmount(sanitizedValue);
-        // Calculate charges amount when freight changes
-        const chargesAmt = calculateChargesAmount(sanitizedValue, chargesPercent);
-        setChargesAmount(chargesAmt);
+        // Freight is now independent, no calculation
       } else if (type === 'chargesPercent') {
         setChargesPercent(sanitizedValue);
-        // Calculate charges amount when charges percent changes
-        const chargesAmt = calculateChargesAmount(freightAmount, sanitizedValue);
-        setChargesAmount(chargesAmt);
+        // Clear amount when percentage is entered
+        setChargesAmount('');
+      } else if (type === 'chargesAmount') {
+        setChargesAmount(sanitizedValue);
+        // Clear percentage when amount is entered
+        setChargesPercent('');
       }
     }
   };
@@ -899,6 +904,9 @@ const PurchaseInvoice = () => {
     } else if (type === 'chargesPercent') {
       value = chargesPercent;
       setter = setChargesPercent;
+    } else if (type === 'chargesAmount') {
+      value = chargesAmount;
+      setter = setChargesAmount;
     }
     
     if (value === '' || value === '-') {
@@ -917,21 +925,11 @@ const PurchaseInvoice = () => {
           setter(num.toFixed(2));
         }
         
-        // Recalculate charges amount if freight or charges percent changed
-        if (type === 'freight') {
-          const chargesAmt = calculateChargesAmount(num.toString(), chargesPercent);
-          setChargesAmount(chargesAmt);
-        } else if (type === 'chargesPercent') {
-          const chargesAmt = calculateChargesAmount(freightAmount, num.toString());
-          setChargesAmount(chargesAmt);
-        }
+        // No automatic calculation, charges are calculated per item based on PRate
       }
     } catch (error) {
       // Invalid number, clear it
       setter('');
-      if (type === 'freight' || type === 'chargesPercent') {
-        setChargesAmount('');
-      }
     }
     
     setFocusedField('');
@@ -2174,7 +2172,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     const intax     = Number(item.intax) || 0;
     const wsPercent = Number(item.wsPercent) || 0;
     
-    console.log(chargesAmount)
+    console.log(chargesAmount, chargesPercent)
     let acost = 0;  
     let ntCost = 0;
     let amt = 0;
@@ -2196,17 +2194,29 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         ) || 0
       : Number(item.profitPercent) || 0;
 
+    /* ---------- CALCULATE CHARGE PER ITEM ---------- */
+    let chargePerItem = 0;
+    
+    // If percentage is entered, calculate based on PRate
+    if (chargesPercent && Number(chargesPercent) > 0) {
+      chargePerItem = calculateChargePerItem(prate, chargesPercent);
+    } 
+    // If amount is entered, use it directly
+    else if (chargesAmount && Number(chargesAmount) > 0) {
+      chargePerItem = Number(chargesAmount);
+    }
+
     /* ---------- CORE ---------- */
     let avgwt = 0;
 
     if (ovrwt > 0) {
       avgwt = qty ? ovrwt / qty : 0;
-      acost = (avgwt * prate)+Number(chargesAmount || 0);
+      acost = (avgwt * prate) + chargePerItem;
       ntCost = acost;
       amt = ovrwt * prate;
     } else {
       // 🔑 PRate-only calculation
-      acost = prate+Number(chargesAmount|| 0);
+      acost = prate + chargePerItem;
       ntCost = prate;
       amt = qty * prate;
     }
@@ -2235,7 +2245,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     setItems(prevItems =>
       prevItems.map(item => calculateItem(item))
     );
-  }, [chargesAmount]);
+  }, [chargesAmount, chargesPercent]);
   const handleItemChange = (id, field, value) => {
     setItems(prev =>
       prev.map(item => {
@@ -3483,11 +3493,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                   ...(focusedField === 'chargesAmount' && styles.chargesInputFocused)
                 }}
                 value={chargesAmount}
-                onChange={(e) => setChargesAmount(e.target.value)}
+                onChange={(e) => handleNumberInput(e, 'chargesAmount')}
                 ref={chargesAmountRef}
-                // readOnly
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Focus next field after charges amount
+                  }
+                }}
                 onFocus={() => setFocusedField('chargesAmount')}
-                onBlur={() => setFocusedField('')}
+                onBlur={() => handleBlur('chargesAmount')}
                 // placeholder="Amt"
               />
             </div>
