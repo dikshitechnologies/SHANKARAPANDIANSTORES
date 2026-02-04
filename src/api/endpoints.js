@@ -447,7 +447,7 @@ PAYMENTVOUCHER: {
     &page=${params.page}
     &pageSize=${params.pageSize}`,
   GET_TAG_PRINT_ITEMS: (params) =>
-    `tagprint/TagPrintDetails?voucher=${encodeURIComponent(params.voucher)}&compCode=${encodeURIComponent(params.compCode)}&page=${params.page}&pageSize=${params.pageSize}`,
+    `tagprint/purchase-details?voucher=${encodeURIComponent(params.voucher)}&compCode=${encodeURIComponent(params.compCode)}`,
 },
 
   PREFIX_HISTORY: {

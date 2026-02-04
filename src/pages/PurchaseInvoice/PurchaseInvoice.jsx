@@ -2516,6 +2516,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   const handleSave = () => {
     try {
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+      console.log('Saving purchase invoice for company:', compCode);
       const username = (userData && userData.username) ? userData.username : '';
 
       const toNumber = (v) => {
