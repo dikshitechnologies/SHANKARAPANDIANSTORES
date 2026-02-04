@@ -1020,6 +1020,7 @@ const StockBarcodeWise = () => {
           <table style={styles.table}>
             <thead>
               <tr>
+                <th style={{ ...styles.th, minWidth: '60px' }}>S.No</th>
                 <th style={{ ...styles.th, minWidth: '100px' }}>Item Name</th>
                 <th style={{ ...styles.th, minWidth: '100px' }}>Prefix</th>
                 <th style={{ ...styles.th, minWidth: '80px' }}>Qty</th>
@@ -1038,6 +1039,7 @@ const StockBarcodeWise = () => {
                     <tr key={index} style={{ 
                       backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
                     }}>
+                      <td style={{ ...styles.td, textAlign: 'center' }}>{index + 1}</td>
                       <td style={{ ...styles.td, textAlign: 'left', minWidth: '150px' }}>{row.itemName}</td>
                       <td style={styles.td}>{row.prefix}</td>
                       <td style={{ ...styles.td, textAlign: 'right' }}>{row.qty?.toLocaleString()}</td>
@@ -1055,21 +1057,21 @@ const StockBarcodeWise = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    <td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                       No records found
                     </td>
                   </tr>
                 )
               ) : (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                     {/* Click "Search" to view stock barcode records */}
                   </td>
                 </tr>
               )}
               {isMoreLoading && (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '10px', backgroundColor: '#f0f8ff' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '10px', backgroundColor: '#f0f8ff' }}>
                     Loading more...
                   </td>
                 </tr>
