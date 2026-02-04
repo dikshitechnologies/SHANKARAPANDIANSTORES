@@ -73,6 +73,25 @@ const HistoryIcon = ({ size = 16, color = "#4d7cfe" }) => (
 
 const SaleInvoice = () => {
   const { userData } = useAuth() || {};
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return new Date().toISOString().substring(0, 10);
+    
+    try {
+      // Split the date string
+      const datePart = dateString.split(' ')[0]; // Get "dd-mm-yyyy"
+      const [day, month, year] = datePart.split('-');
+      
+      if (day && month && year) {
+        // Create a date string in yyyy-MM-dd format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+    }
+    
+    // Fallback to current date
+    return new Date().toISOString().substring(0, 10);
+  };
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -183,7 +202,7 @@ const [taxList, setTaxList] = useState([]);
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
-    billDate: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
+    billDate: formatDateForInput(userData?.date),
     mobileNo: '',
     type: 'Retail',
     salesman: '',
@@ -1058,7 +1077,7 @@ useEffect(() => {
   const resetForm = () => {
     setBillDetails({
       billNo: '',
-      billDate: new Date().toISOString().split('T')[0],
+      billDate: formatDateForInput(userData?.date),
       mobileNo: '',
       type: 'Retail',
       salesman: '',

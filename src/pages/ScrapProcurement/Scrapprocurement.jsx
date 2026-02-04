@@ -23,6 +23,26 @@ const Icon = {
 
 const Scrapprocurement = () => {
   const { userData } = useAuth() || {};
+    // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return new Date().toISOString().substring(0, 10);
+    
+    try {
+      // Split the date string
+      const datePart = dateString.split(' ')[0]; // Get "dd-mm-yyyy"
+      const [day, month, year] = datePart.split('-');
+      
+      if (day && month && year) {
+        // Create a date string in yyyy-MM-dd format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+    }
+    
+    // Fallback to current date
+    return new Date().toISOString().substring(0, 10);
+  };
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -49,7 +69,7 @@ const Scrapprocurement = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: formatDateForInput(userData?.date),
     mobileNo: '',
     empName: '',
     salesman: '',
@@ -162,6 +182,7 @@ const Scrapprocurement = () => {
 
   // State to hold bill data for printing
   const [printBillData, setPrintBillData] = useState(null);
+  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
 
   // Track current focus for arrow navigation
   const [currentFocus, setCurrentFocus] = useState({
@@ -1352,7 +1373,7 @@ const clearFormData = async () => {
   // First, clear the states
   setBillDetails(prev => ({
     billNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: formatDateForInput(userData?.date),
     mobileNo: '',
     empName: '',
     salesman: '',
@@ -1506,38 +1527,7 @@ const clearFormData = async () => {
         // Use setTimeout to ensure state updates have been processed
         setTimeout(() => {
           console.log('Showing print confirmation popup');
-          showConfirmation({
-            title: 'Print Confirmation',
-            message: 'Would you like to print the receipt?',
-            type: 'success',
-            confirmText: 'Yes',
-            cancelText: 'No',
-            showIcon: true,
-            onConfirm: () => {
-              console.log('Print confirmation - Yes clicked');
-              setShowConfirmPopup(false);
-              // Trigger print with the saved data
-              if (printReceiptRef.current && printReceiptRef.current.print) {
-                setTimeout(() => {
-                  printReceiptRef.current.print();
-                }, 100);
-              }
-              // Clear form AFTER user confirms print or no
-              setOriginalBillDetails(null);
-              setOriginalItems(null);
-              clearFormData();
-              setIsEditMode(false);
-            },
-            onCancel: () => {
-              console.log('Print confirmation - No clicked');
-              setShowConfirmPopup(false);
-              // Clear form when user says no
-              setOriginalBillDetails(null);
-              setOriginalItems(null);
-              clearFormData();
-              setIsEditMode(false);
-            }
-          });
+          setPrintConfirmationOpen(true);
         }, 100);
       } else {
         showConfirmation({
@@ -1669,15 +1659,16 @@ const clearFormData = async () => {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrintConfirm = () => {
+    setPrintConfirmationOpen(false);
+    // clearForm();
+    // Trigger print with the saved data
     if (printReceiptRef.current && printReceiptRef.current.print) {
-      printReceiptRef.current.print();
-    } else {
-      toast.error('No data to print', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
+      setTimeout(() => {
+        printReceiptRef.current.print();
+      }, 100);
     }
+    clearFormData();
   };
 
   // --- RESPONSIVE STYLES ---
@@ -2912,6 +2903,20 @@ const clearFormData = async () => {
       {/* PrintReceipt Component - Hidden, used for printing */}
       <PrintReceipt ref={printReceiptRef} billData={printBillData} mode="scrap_bill" />
 
+      <ConfirmationPopup
+        isOpen={printConfirmationOpen}
+        title="Print Confirmation"
+        message="Do you want to print?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={handlePrintConfirm}
+        onClose={() => {
+          console.log("Print cancelled");
+          setPrintConfirmationOpen(false);
+          clearFormData();
+        }}
+      />
+
       {/* --- FOOTER SECTION --- */}
       <div style={styles.footerSection}>
         <div style={styles.rightColumn}>
@@ -2949,7 +2954,7 @@ const clearFormData = async () => {
           <ActionButtons1
             onClear={handleClear}
             onSave={handleSave}
-            onPrint={handlePrint}
+            // onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />
