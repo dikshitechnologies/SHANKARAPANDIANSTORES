@@ -183,7 +183,7 @@ const [taxList, setTaxList] = useState([]);
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: '',
-    billDate: new Date(userData.date).toISOString().split('T')[0], // yyyy-MM-dd format
+    billDate: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
     mobileNo: '',
     type: 'Retail',
     salesman: '',

@@ -75,7 +75,7 @@ const PurchaseReturn = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date(userData.date).toISOString().substring(0, 10),
+    billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
