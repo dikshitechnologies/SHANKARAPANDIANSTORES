@@ -954,7 +954,7 @@ const StockBarcodeWise = () => {
               <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
                 <input
                   type="text"
-                  placeholder="Item Name or Prefix"
+                //   placeholder="Item Name or Prefix"
                   style={{
                     ...(focusedField === 'searchItemNamePrefixNo' ? styles.inlineInputFocused : styles.inlineInput),
                     paddingRight: '35px'
@@ -1063,7 +1063,7 @@ const StockBarcodeWise = () => {
               ) : (
                 <tr>
                   <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    Click "Search" to view stock barcode records
+                    {/* Click "Search" to view stock barcode records */}
                   </td>
                 </tr>
               )}
