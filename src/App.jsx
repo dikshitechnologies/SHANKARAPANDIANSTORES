@@ -57,7 +57,7 @@ import PurchaseRegister from './pages/Report/PurchaseRegister/PurchaseRegister';
 import ScrapPurchase from './pages/Report/ScrapPurchase/ScrapPurchase';
 import Groupwisestock from './pages/Report/Groupwisestock/Groupwisestock';
 import TenderReport from './pages/Report/TenderReport/TenderReport';
-
+import StockBarcodeWise from './pages/Report/StockBarcodeWise/StockBarcodeWise';
 import AccountReceivables from './pages/Report/AccountReceivables/AccountReceivables';
 import AccountPayables from './pages/Report/AccountPayables/AccountPayables';
 import DaySales from './pages/Report/DaySales/DaySales'
@@ -166,6 +166,7 @@ function App() {
           <Route path="/reports/account-receivable" element={<ProtectedRoute><LayoutWithNavbar><AccountReceivables /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/account-payable" element={<ProtectedRoute><LayoutWithNavbar><AccountPayables /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/day-sales" element={<ProtectedRoute><LayoutWithNavbar><DaySales /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/reports/StockBarcodeWise" element={<ProtectedRoute><LayoutWithNavbar><StockBarcodeWise /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Billcollectorreport" element={<ProtectedRoute><LayoutWithNavbar><TenderReport /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/reports/Itemwisestock" element={<ProtectedRoute><LayoutWithNavbar><Itemwisestock /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/embed/design" element={<Design />} />

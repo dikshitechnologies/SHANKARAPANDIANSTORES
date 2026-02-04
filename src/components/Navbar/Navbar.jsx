@@ -349,6 +349,12 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "ITEM_WISE_STOCK",
     }, 
+    {
+      name: "Stock Barcode Wise",
+      path: "/reports/StockBarcodeWise",
+      icon: <DatabaseOutlined />,
+      permission: "STOCK_BARCODE_WISE",
+    }, 
 
   ];
 
