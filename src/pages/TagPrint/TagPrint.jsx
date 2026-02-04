@@ -699,9 +699,13 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
         const rs = parseFloat(item.rs) || 0;
         const avgWt = parseFloat(item.avgWt) || 0;
         const hsn = item.hsn || item.hsnCode || '';
-        const itemName = item.itemName || item.name || item.item_name || 'N/A';
+        const itemName = item.item || '';
         const preRate = parseFloat(item.preRate) || 0;
-        
+        const li = item.itemName || "";
+        const sudoR=item.sudoR || "";
+        const sudoA=item.sudoA || "";
+        const categoryName=item.categoryName || "";
+       
         const transformedItem = {
           sNo: index + 1,
           barcode: item.tagNo || '',
@@ -724,7 +728,11 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
           sizeName: item.sizeName || '',
           supplierName: item.supplierName || '',
           sudo: item.sudo || '',
-          rate: item.rate || 0
+          rate: item.rate || 0,
+          item: li,
+          sudoR:sudoR || "",
+          sudoA:sudoA || "",
+          categoryName :categoryName || ""
         };
         
         console.log('Transformed item:', transformedItem);
@@ -875,8 +883,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     try {
       setIsLoading(true);
       
-      // No backend connection - just generate local print
-      toast.info('Generating print preview (Backend not connected)');
+     
       
       // Generate print preview
       generatePrintContent({
@@ -904,27 +911,27 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
       // Build printer command content
       let content = '';
       
-      // Header
-      content += `<xpml><page quantity='0' pitch='40.0 mm'></xpml>SIZE 97.5 mm, 40 mm\n`;
-      content += `GAP 3 mm, 0 mm\n`;
-      content += `SPEED 3\n`;
-      content += `DENSITY 14\n`;
-      content += `SET RIBBON ON\n`;
-      content += `DIRECTION 0,0\n`;
-      content += `REFERENCE 0,0\n`;
-      content += `OFFSET 0 mm\n`;
-      content += `SET PEEL OFF\n`;
-      content += `SET CUTTER OFF\n`;
-      content += `<xpml></page></xpml><xpml><page quantity='1' pitch='40.0 mm'></xpml>SET TEAR ON\n`;
-      content += `CLS\n`;
-      content += `CODEPAGE 1252\n`;
-      
       // Process each item individually
       const itemsToProcess = previewRows.length > 0 ? previewRows : printData.items;
       const numberOfPrints = printData.noOfPrints || 1;
       
-      // Repeat the entire content generation noOfPrints times
+      // Repeat the entire content generation noOfPrints times including header
       for (let printCopy = 0; printCopy < numberOfPrints; printCopy++) {
+        // Header - repeated for each print copy
+        content += `<xpml><page quantity='0' pitch='40.0 mm'></xpml>SIZE 97.5 mm, 40 mm\n`;
+        content += `GAP 3 mm, 0 mm\n`;
+        content += `SPEED 3\n`;
+        content += `DENSITY 14\n`;
+        content += `SET RIBBON ON\n`;
+        content += `DIRECTION 0,0\n`;
+        content += `REFERENCE 0,0\n`;
+        content += `OFFSET 0 mm\n`;
+        content += `SET PEEL OFF\n`;
+        content += `SET CUTTER OFF\n`;
+        content += `<xpml></page></xpml><xpml><page quantity='1' pitch='40.0 mm'></xpml>SET TEAR ON\n`;
+        content += `CLS\n`;
+        content += `CODEPAGE 1252\n`;
+        
         for (let i = 0; i < itemsToProcess.length; i++) {
           const item = itemsToProcess[i];
           
@@ -939,30 +946,34 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
           const productName = item.itemName || '';
           const modelSize = `${item.modelName || ''}${item.modelName && item.sizeName ? ' ' : ''}${item.sizeName || ''}`.trim() || '';
           const qrCode = item.barcode || item.tagNo || '';
-          const sudoCode = item.sudo || prefix || '';
+          const sudoR = item.sudoR || '';
+          const sudoA = item.sudoA || '';
           const supplyInfo = item.supplierName || `SUPPLY${new Date().toLocaleDateString('en-GB').replace(/\//g, '')}${purchaseNo}`;
           const serialNo = String(item.tagNo || item.barcode ).padStart(6, '0');
-          const category = item.unit || '';
+          const category = item.categoryName || '';
           const price = (item.mrp || item.preRate || 0).toFixed(2);
           const weight = (item.avgWt || 0).toFixed(3);
           const rate = (item.sRate || item.asRate || 0).toFixed(2);
           
+          // Check if weight is 0
+          const isWeightZero = parseFloat(weight) === 0;
+          const sudoDisplay = isWeightZero ? sudoR : `${sudoR}-${sudoA}`;
          
           content += `TEXT ${xPos},260,"0",180,8,8,"${brand} ${productName}"\n`;
           content += `TEXT ${xPos},232,"0",180,8,8,"${modelSize}"\n`;
           content += `QRCODE ${qrPos},237,L,5,A,180,M2,S7,"${qrCode}"\n`;
-          content += `TEXT ${xPos},199,"0",180,8,8,"${sudoCode}"\n`;
+          content += `TEXT ${xPos},199,"0",180,8,8,"${sudoDisplay}"\n`;
           content += `TEXT ${xPos},129,"0",180,8,8,"${supplyInfo}"\n`;
           content += `TEXT ${xPos},169,"0",180,12,12,"${serialNo}"\n`;
           content += `TEXT ${xPos},67,"0",180,8,8,"${category}"\n`;
-          content += `TEXT ${pricePos},42,"0",180,14,14,"Rs.${price}/-"\n`;
-          content += `TEXT ${xPos},97,"0",180,10,10,"Wt:${weight}"\n`;
-          content += `TEXT ${ratePos},97,"0",180,10,10,"Rate :${rate}"\n`;
-          content += `\n`;
-          
+          content += `TEXT ${pricePos},42,"0",180,14,14,"Rs.${price}/-"\n`;          
+          content += `TEXT ${xPos},97,"0",180,10,10,"Wt:${weight}"\n`;     
+          if (!isWeightZero) {
+          content += `TEXT ${ratePos},97,"0",180,10,10,"Rate :${rate}"\n`;          }
+             
           // Print after every 2 tags or at the end
           if (i % 2 === 1 || i === itemsToProcess.length - 1) {
-            content += `PRINT 1,1\n\n`;
+            content += `PRINT 1,1\n`;
           }
         }
       }
@@ -981,12 +992,12 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success(`Print file generated: ${itemsToProcess.length} tags`);
+     
       console.log('Generated print content:', content);
       
     } catch (error) {
       console.error('Error generating print file:', error);
-      toast.error('Failed to generate print file');
+      
     }
   };
 

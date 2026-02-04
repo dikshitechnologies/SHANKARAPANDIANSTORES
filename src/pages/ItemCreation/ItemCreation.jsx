@@ -807,21 +807,27 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
         const category = formData.category || '';
         const product = formData.product || '';
         const model = formData.model || '';
+        
+        // Calculate itemNameConcat at top level for fitemName
+        const itemNameConcat = [product, brand, category, model]
+          .filter(part => part.trim() !== '')
+          .join(' ');
+        
         // Build sizes array with itemName including size name
         const sizesArray = selectedSizes.map(sizeItem => {
           const sizeName = sizeItem.fname || sizeItem.fsize || sizeItem.name || '';
-          const itemNameConcat = [baseItemName, brand, category, product, model, sizeName]
+          const itemNameWithSize = [product, brand, category, model, sizeName]
             .filter(part => part.trim() !== '')
             .join(' ');
           return {
             size: sizeItem.fcode || sizeItem.fsize || '',
-            itemName: itemNameConcat
+            itemName: itemNameWithSize
           };
         });
 
         requestData = {
-          fitemName: baseItemName,
-          fSubItemName: baseItemName,
+          fitemName: itemNameConcat,
+          fSubItemName: product,
           groupName: mainGroup || '',
           gstNumber: formData.gstin || '',
           prefix: formData.prefix || '',
