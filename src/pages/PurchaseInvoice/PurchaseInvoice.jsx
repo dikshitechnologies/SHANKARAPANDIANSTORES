@@ -666,6 +666,7 @@ const calculateTotals = (items = []) => {
 
 const PurchaseInvoice = () => {
   const { userData } = useAuth() || {};
+
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -715,7 +716,7 @@ const PurchaseInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date(userData?.date).toISOString().substring(0, 10),
+    billDate: new Date().toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -764,6 +765,8 @@ const PurchaseInvoice = () => {
       ntCost: '',
       wsPercent: '',
       wsRate: '',
+      chargesPercent: '',
+      chargesAmount: '',
       amt: '',
       min: '',
       max: ''
@@ -830,11 +833,13 @@ const PurchaseInvoice = () => {
   // Also get fseudo from context in case userData.fseudo is missing
   const { fseudo } = useAuth() || {};
 
-  // Helper function to calculate charges amount
-  const calculateChargesAmount = (freight, percent) => {
-    const freightNum = parseFloat(freight) || 0;
+  
+
+  // Helper function to calculate charges amount based on prate
+  const calculateChargesAmount = (prate, percent) => {
+    const prateNum = parseFloat(prate) || 0;
     const percentNum = parseFloat(percent) || 0;
-    return (freightNum * percentNum / 100).toFixed(2);
+    return (prateNum * percentNum / 100).toFixed(2);
   };
 
   // Handle number input for addLess, freight, and chargesPercent
@@ -874,14 +879,9 @@ const PurchaseInvoice = () => {
         setAddLessAmount(sanitizedValue);
       } else if (type === 'freight') {
         setFreightAmount(sanitizedValue);
-        // Calculate charges amount when freight changes
-        const chargesAmt = calculateChargesAmount(sanitizedValue, chargesPercent);
-        setChargesAmount(chargesAmt);
       } else if (type === 'chargesPercent') {
         setChargesPercent(sanitizedValue);
-        // Calculate charges amount when charges percent changes
-        const chargesAmt = calculateChargesAmount(freightAmount, sanitizedValue);
-        setChargesAmount(chargesAmt);
+        // Note: Per-item charges will be recalculated in calculateItem based on each item's prate
       }
     }
   };
@@ -917,21 +917,11 @@ const PurchaseInvoice = () => {
           setter(num.toFixed(2));
         }
         
-        // Recalculate charges amount if freight or charges percent changed
-        if (type === 'freight') {
-          const chargesAmt = calculateChargesAmount(num.toString(), chargesPercent);
-          setChargesAmount(chargesAmt);
-        } else if (type === 'chargesPercent') {
-          const chargesAmt = calculateChargesAmount(freightAmount, num.toString());
-          setChargesAmount(chargesAmt);
-        }
+        // Note: Per-item charges will be recalculated in calculateItem based on each item's prate
       }
     } catch (error) {
       // Invalid number, clear it
       setter('');
-      if (type === 'freight' || type === 'chargesPercent') {
-        setChargesAmount('');
-      }
     }
     
     setFocusedField('');
@@ -1140,6 +1130,8 @@ const PurchaseInvoice = () => {
         ntCost: '',
         wsPercent: '',
         wsRate: '',
+        chargesPercent: '',
+        chargesAmount: '',
         amt: '',
         min: '',
         max: ''
@@ -1249,6 +1241,8 @@ const PurchaseInvoice = () => {
         ntCost: '',
         wsPercent: '',
         wsRate: '',
+        chargesPercent: '',
+        chargesAmount: '',
         amt: '',
         min: '',
         max: ''
@@ -1482,6 +1476,8 @@ const PurchaseInvoice = () => {
             ntCost: item.ntCost || '',
             wsPercent: item.wsPer || '',
             wsRate: item.wRate || '',
+            chargesPercent: item.chargesPercent || '',
+            chargesAmount: item.chargesAmount || '',
             amt: item.amount || '',
             min: '',
             max: ''
@@ -1518,6 +1514,8 @@ const PurchaseInvoice = () => {
             ntCost: '',
             wsPercent: '',
             wsRate: '',
+            chargesPercent: '',
+            chargesAmount: '',
             amt: '',
             min: '',
             max: ''
@@ -1560,6 +1558,8 @@ const PurchaseInvoice = () => {
           ntCost: '',
           wsPercent: '',
           wsRate: '',
+          chargesPercent: '',
+          chargesAmount: '',
           amt: '',
           min: '',
           max: ''
@@ -1647,7 +1647,7 @@ const PurchaseInvoice = () => {
       );
       
       const stockData = stockResponse?.data || {};
-      
+      stockData.chargesAmount = stockData.chargesAmount || '';
       console.log('Stock API response:', stockData);
       
       setItems(prevItems => {
@@ -1831,6 +1831,8 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
         ntCost: '',
         wsPercent: '',
         wsRate: '',
+        chargesPercent: '',
+        chargesAmount: '',
         amt: '',
         min: '',
         max: ''
@@ -2149,6 +2151,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         ntCost: '',
         wsPercent: '',
         wsRate: '',
+        chargesPercent: '',
+        chargesAmount: '',
         amt: '',
         min: '',
         max: ''
@@ -2174,7 +2178,11 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     const intax     = Number(item.intax) || 0;
     const wsPercent = Number(item.wsPercent) || 0;
     
-    console.log(chargesAmount)
+    // Calculate charges amount for this item based on prate * chargesPercent
+    const chargesPercentNum = parseFloat(chargesPercent) || 0;
+    const itemChargesAmount = (prate * chargesPercentNum / 100) || 0;
+    
+    console.log(itemChargesAmount)
     let acost = 0;  
     let ntCost = 0;
     let amt = 0;
@@ -2201,12 +2209,12 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
 
     if (ovrwt > 0) {
       avgwt = qty ? ovrwt / qty : 0;
-      acost = (avgwt * prate)+Number(chargesAmount || 0);
+      acost = (avgwt * prate) + itemChargesAmount;
       ntCost = acost;
       amt = ovrwt * prate;
     } else {
-      // 🔑 PRate-only calculation
-      acost = prate+Number(chargesAmount|| 0);
+      // 🔑 PRate-only calculation with per-item charges
+      acost = prate + itemChargesAmount;
       ntCost = prate;
       amt = qty * prate;
     }
@@ -2235,7 +2243,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     setItems(prevItems =>
       prevItems.map(item => calculateItem(item))
     );
-  }, [chargesAmount]);
+  }, [chargesPercent]);
   const handleItemChange = (id, field, value) => {
     setItems(prev =>
       prev.map(item => {

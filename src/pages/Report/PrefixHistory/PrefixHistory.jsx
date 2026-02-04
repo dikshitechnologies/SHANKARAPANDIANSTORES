@@ -21,6 +21,14 @@ const PrefixHistory = () => {
     invoiceDate: '',
     invoiceNo: '',
     companyName: '',
+    cp: '',
+    sp: '',
+    brand: '',
+    category: '',
+    product: '',
+    model: '',
+    size: '',
+    unit: '',
     itemPurchases: [],
     itemTransactions: [],
     transactionTotal: 0,
@@ -409,6 +417,14 @@ const PrefixHistory = () => {
           invoiceDate: '',
           invoiceNo: '',
           companyName: '',
+          cp: '',
+          sp: '',
+          brand: '',
+          category: '',
+          product: '',
+          model: '',
+          size: '',
+          unit: '',
           itemPurchases: [],
           itemTransactions: [],
           transactionTotal: 0,
@@ -425,6 +441,14 @@ const PrefixHistory = () => {
         invoiceDate: '',
         invoiceNo: '',
         companyName: '',
+        cp: '',
+        sp: '',
+        brand: '',
+        category: '',
+        product: '',
+        model: '',
+        size: '',
+        unit: '',
         itemPurchases: [],
         itemTransactions: [],
         transactionTotal: 0,
@@ -445,6 +469,14 @@ const PrefixHistory = () => {
       invoiceDate: '',
       invoiceNo: '',
       companyName: '',
+      cp: '',
+      sp: '',
+      brand: '',
+      category: '',
+      product: '',
+      model: '',
+      size: '',
+      unit: '',
       itemPurchases: [],
       itemTransactions: [],
       transactionTotal: 0,
@@ -493,7 +525,7 @@ const PrefixHistory = () => {
       {/* Header Section */}
       <div style={styles.headerSection}>
         <form onSubmit={handleSearch}>
-          {/* First Row - All 6 Fields: Prefix, Supplier, Salesman, Date, Ref No, Floor */}
+          {/* First Row - 5 Fields: Prefix, Supplier, Salesman, Date, Ref No */}
           <div style={styles.filterRow}>
             {/* Prefix Input */}
             <div style={styles.formField}>
@@ -558,7 +590,10 @@ const PrefixHistory = () => {
                 // placeholder=""
               />
             </div>
+          </div>
 
+          {/* Second Row - Floor, CP, SP, Brand */}
+          <div style={styles.filterRow}>
             {/* Floor Input (Read-only) */}
             <div style={styles.formField}>
               <label style={styles.label}>Floor:</label>
@@ -568,6 +603,97 @@ const PrefixHistory = () => {
                 value={prefixData.companyName || ''}
                 readOnly
                 // placeholder=""
+              />
+            </div>
+
+            {/* CP Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>CP:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.cp || ''}
+                readOnly
+              />
+            </div>
+
+            {/* SP Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>SP:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.sp || ''}
+                readOnly
+              />
+            </div>
+
+            {/* Brand Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Brand:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.brand || ''}
+                readOnly
+              />
+            </div>
+          </div>
+
+          {/* Third Row - 5 Fields: Category, Product, Model, Size, Unit */}
+          <div style={styles.filterRow}>
+            {/* Category Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Category:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.category || ''}
+                readOnly
+              />
+            </div>
+
+            {/* Product Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Product:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.product || ''}
+                readOnly
+              />
+            </div>
+
+            {/* Model Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Model:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.model || ''}
+                readOnly
+              />
+            </div>
+
+            {/* Size Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Size:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.size || ''}
+                readOnly
+              />
+            </div>
+
+            {/* Unit Input (Read-only) */}
+            <div style={styles.formField}>
+              <label style={styles.label}>Unit:</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={prefixData.unit || ''}
+                readOnly
               />
             </div>
           </div>
@@ -646,8 +772,8 @@ const PrefixHistory = () => {
               <thead>
                 <tr>
                   <th style={styles.th}>Summary</th>
-                  <th style={styles.th}>Purchase</th>
-                  <th style={styles.th}>Sales & Return</th>
+                  <th style={styles.th}>Purchase&DC</th>
+                  <th style={styles.th}>Sales,DC, Purchase Return</th>
                   <th style={styles.th}>Closing Stock</th>
                 </tr>
               </thead>

@@ -1273,6 +1273,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
       printInvoiceRef.current.print();
     }
     setPrintConfirmationOpen(false);
+    onClose();
   };
 
   const handleDelete = () => {
@@ -2055,7 +2056,10 @@ const handleServiceChargeFieldKeyDown = (e) => {
         confirmText="Yes"
         cancelText="No"
         onConfirm={handlePrintConfirm}
-        onClose={() => setPrintConfirmationOpen(false)}
+        onClose={() => {
+          setPrintConfirmationOpen(false);
+          onClose();  
+        }}
       />
 
     </div>
