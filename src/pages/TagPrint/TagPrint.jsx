@@ -846,169 +846,95 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     }
   };
 
-  // Generate print content - Generate individual barcode tags for each preview row
-  const generatePrintContent = (printData) => {
-    // Create hidden iframe for printing
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-    
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    
-    iframeDoc.open();
-    iframeDoc.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Tag Print - ${printData.purchaseNo}</title>
-        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: Arial, sans-serif; 
-            padding: 0;
-            margin: 0;
-            background: #fff;
-          }
-          .barcode-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0;
-            padding: 0;
-            margin: 0;
-          }
-          .barcode-tag {
-            width: auto;
-            border: none;
-            padding: 0;
-            margin: 10px;
-            page-break-inside: avoid;
-            background: transparent;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-          }
-          .barcode-display {
-            text-align: center;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-          }
-          .barcode-svg {
-            max-width: 100%;
-            height: auto;
-          }
-          .barcode-text {
-            font-size: 12px;
-            font-weight: bold;
-            margin-top: 5px;
-            text-align: center;
-            color: #000;
-          }
-          @media print {
-            body { 
-              margin: 0; 
-              padding: 0; 
-            }
-            .barcode-tag { 
-              page-break-inside: avoid;
-              margin: 10px;
-            }
-            .barcode-container {
-              gap: 0;
-              padding: 0;
-              margin: 0;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="barcode-container">
-    `);
-    
-    // Generate one barcode tag for each preview row
-    previewRows.forEach((row, index) => {
-      const tagNumber = index + 1;
-      const itemName = (row.itemName || 'N/A').replace(/[|]/g, '-');
-      const prefixValue = (prefix || 'N/A').replace(/[|]/g, '-');
-      const hsnValue = (row.hsn || 'N/A').replace(/[|]/g, '-');
-      const mrpValue = row.mrp?.toFixed(2) || '0.00';
-      const sRateValue = row.sRate?.toFixed(2) || '0.00';
-      const cpValue = row.sRate?.toFixed(2) || '0.00';
-      const dateValue = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-      const qtyValue = row.qty || '0';
+  // Generate print content - Generate SPSTOREPRN1.txt file
+  const generatePrintContent = async(printData) => {
+    try {
+      // Build printer command content
+      let content = '';
       
-      // Encode all data into barcode with pipe delimiter
-      const encodedData = `${hsnValue}|${qtyValue}|${sRateValue}`;
-      const barcodeId = `barcode-${index}`;
+      // Header
+      content += `<xpml><page quantity='0' pitch='40.0 mm'></xpml>SIZE 97.5 mm, 40 mm\n`;
+      content += `GAP 3 mm, 0 mm\n`;
+      content += `SPEED 3\n`;
+      content += `DENSITY 14\n`;
+      content += `SET RIBBON ON\n`;
+      content += `DIRECTION 0,0\n`;
+      content += `REFERENCE 0,0\n`;
+      content += `OFFSET 0 mm\n`;
+      content += `SET PEEL OFF\n`;
+      content += `SET CUTTER OFF\n`;
+      content += `<xpml></page></xpml><xpml><page quantity='1' pitch='40.0 mm'></xpml>SET TEAR ON\n`;
+      content += `CLS\n`;
+      content += `CODEPAGE 1252\n`;
       
-      iframeDoc.write(`
-        <div class="barcode-tag">
-          <div class="barcode-display">
-            <svg id="${barcodeId}" class="barcode-svg"></svg>
-            <div class="barcode-text">${hsnValue} - 1 - ₹${sRateValue}</div>
-          </div>
-        </div>
-      `);
-    });
-    
-    iframeDoc.write(`
-        </div>
-        <script>
-          // Generate barcodes after DOM is loaded
-          window.addEventListener('load', function() {
-            ${previewRows.map((row, index) => {
-              const tagNumber = index + 1;
-              const itemName = (row.itemName || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
-              const prefixValue = (prefix || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
-              const hsnValue = (row.hsn || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
-              const mrpValue = row.mrp?.toFixed(2) || '0.00';
-              const sRateValue = row.sRate?.toFixed(2) || '0.00';
-              const cpValue = row.sRate?.toFixed(2) || '0.00';
-              const dateValue = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-              const qtyValue = row.qty || '0';
-              
-              const encodedData = `${hsnValue}|${qtyValue}|${sRateValue}`;
-              const barcodeId = `barcode-${index}`;
-              
-              return `
-                try {
-                  JsBarcode("#${barcodeId}", "${encodedData}", {
-                    format: "CODE128",
-                    width: 6,
-                    height: 250,
-                    displayValue: false,
-                    margin: 0,
-                    background: "transparent"
-                  });
-                } catch (e) {
-                  console.error('Barcode generation error:', e);
-                }
-              `;
-            }).join('\n')}
-            
-            // Trigger print after barcodes are generated
-            setTimeout(function() {
-              window.print();
-              // Remove iframe after printing
-              setTimeout(function() {
-                window.parent.document.body.removeChild(window.frameElement);
-              }, 100);
-            }, 500);
-          });
-        </script>
-      </body>
-      </html>
-    `);
-    
-    iframeDoc.close();
+      // Process each item individually
+      const itemsToProcess = previewRows.length > 0 ? previewRows : printData.items;
+      const numberOfPrints = printData.noOfPrints || 1;
+      
+      // Repeat the entire content generation noOfPrints times
+      for (let printCopy = 0; printCopy < numberOfPrints; printCopy++) {
+        for (let i = 0; i < itemsToProcess.length; i++) {
+          const item = itemsToProcess[i];
+          
+          // Alternate between position 777 (right) and 377 (left) for each item
+          const isRightPosition = i % 2 === 0;
+          const xPos = isRightPosition ? 777 : 377;
+          const qrPos = isRightPosition ? 522 : 122;
+          const pricePos = isRightPosition ? 655 : 255;
+          const ratePos = isRightPosition ? 628 : 228;
+          
+          const brand = 'BRAND'; // Mock data
+          const productName = item.itemName || 'PRODUCTNAME';
+          const modelSize = 'MODEL SIZE'; // Mock data
+          const qrCode = item.barcode || '987456';
+          const sudoCode = `${prefix || 'SUDO'}-${item.hsn || 'ASDFGR'}`;
+          const supplyInfo = `SUPPLY${new Date().toLocaleDateString('en-GB').replace(/\//g, '')}${purchaseNo}-${item.sNo || '0'}`;
+          const serialNo = String(item.sNo || '000001').padStart(6, '0');
+          const category = 'CATEGORY'; // Mock data
+          const price = (item.mrp || 0).toFixed(2);
+          const weight = (item.qty || 0).toFixed(3);
+          const rate = (item.sRate || 0).toFixed(2);
+          
+          content += `TEXT ${xPos},260,"0",180,8,8,"${brand} ${productName}"\n`;
+          content += `TEXT ${xPos},232,"0",180,8,8,"${modelSize}"\n`;
+          content += `QRCODE ${qrPos},237,L,5,A,180,M2,S7,"${qrCode}"\n`;
+          content += `TEXT ${xPos},199,"0",180,8,8,"${sudoCode}"\n`;
+          content += `TEXT ${xPos},129,"0",180,8,8,"${supplyInfo}"\n`;
+          content += `TEXT ${xPos},169,"0",180,12,12,"${serialNo}"\n`;
+          content += `TEXT ${xPos},67,"0",180,8,8,"${category}"\n`;
+          content += `TEXT ${pricePos},42,"0",180,14,14,"Rs.${price}/-"\n`;
+          content += `TEXT ${xPos},97,"0",180,10,10,"Wt:${weight}"\n`;
+          content += `TEXT ${ratePos},97,"0",180,10,10,"Rate :${rate}"\n`;
+          content += `\n`;
+          
+          // Print after every 2 tags or at the end
+          if (i % 2 === 1 || i === itemsToProcess.length - 1) {
+            content += `PRINT 1,1\n\n`;
+          }
+        }
+      }
+      
+      // Footer
+      content += `<xpml></page></xpml><xpml><end/></xpml>\n`;
+      
+      // Create and download the file
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `SPSTOREPRN.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Print file generated: ${itemsToProcess.length} tags`);
+      console.log('Generated print content:', content);
+      
+    } catch (error) {
+      console.error('Error generating print file:', error);
+      toast.error('Failed to generate print file');
+    }
   };
 
   const buildPreviewRows = (list) => {
@@ -1253,19 +1179,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
 
       {/* Footer Section */}
       <div style={styles.footer}>
-        <div style={styles.footerLeft}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <input
-              type="checkbox"
-              style={styles.checkbox}
-              checked={selectAll}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-              disabled={items.length === 0}
-            />
-            <span style={{ fontSize: TYPOGRAPHY.fontSize.sm, fontWeight: TYPOGRAPHY.fontWeight.medium }}>
-              Select All
-            </span>
-          </div>
+        <div style={styles.footerLeft}>          
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: TYPOGRAPHY.fontSize.sm, fontWeight: TYPOGRAPHY.fontWeight.medium }}>
               No of Prints:

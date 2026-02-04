@@ -8,7 +8,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
   // Initialize QR code when component mounts
   useEffect(() => {
-    if ((mode === "scrap_bill" || mode === "sales_return") && qrcodeRef.current && billData?.voucherNo) {
+    if ((mode === "scrap_bill" || mode === "sales_return" || mode==="sales_invoice") && qrcodeRef.current && billData?.voucherNo) {
       qrcodeRef.current.innerHTML = "";
       QRCode.toString(
         billData.voucherNo,
