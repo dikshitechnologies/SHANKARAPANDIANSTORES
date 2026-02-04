@@ -772,8 +772,8 @@ const PrefixHistory = () => {
               <thead>
                 <tr>
                   <th style={styles.th}>Summary</th>
-                  <th style={styles.th}>Purchase</th>
-                  <th style={styles.th}>Sales & Return</th>
+                  <th style={styles.th}>Purchase&DC</th>
+                  <th style={styles.th}>Sales,DC, Purchase Return</th>
                   <th style={styles.th}>Closing Stock</th>
                 </tr>
               </thead>
