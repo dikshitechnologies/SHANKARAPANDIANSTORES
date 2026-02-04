@@ -1273,6 +1273,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
       printInvoiceRef.current.print();
     }
     setPrintConfirmationOpen(false);
+    // onClose();
   };
 
   const handleDelete = () => {
