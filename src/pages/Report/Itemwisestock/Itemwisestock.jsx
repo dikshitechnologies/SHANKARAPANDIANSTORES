@@ -52,11 +52,19 @@ const AccountPayables = () => {
   const [itemsList, setItemsList] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [showItemPopup, setShowItemPopup] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [companyNameSearchTerm, setCompanyNameSearchTerm] = useState('');
+  const [companyList, setCompanyList] = useState([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [showCompanyNamePopup, setShowCompanyNamePopup] = useState(false);
+  const [selectedCompanyNames, setSelectedCompanyNames] = useState([]);
+  const [selectAllCompanies, setSelectAllCompanies] = useState(false);
 
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const companyRef = useRef(null);
+  const companyNameRef = useRef(null);
+  const itemNameRef = useRef(null);
   const searchButtonRef = useRef(null);
 
   // --- DATA ---
@@ -120,6 +128,32 @@ const AccountPayables = () => {
       setItemsList([]);
     } finally {
       setLoadingItems(false);
+    }
+  };
+
+  const handleCompanyNameClick = async () => {
+    setShowCompanyNamePopup(true);
+    setLoadingCompanies(true);
+    setCompanyNameSearchTerm('');
+    setSelectedCompanyNames([]);
+    setSelectAllCompanies(false);
+    
+    try {
+      // Fetch companies from API
+      const apiUrl = `${API_BASE}${API_ENDPOINTS.COMPANY_ENDPOINTS.GET_COMPANY_LIST}`;
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseData = await response.json();
+      setCompanyList(responseData || []);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      toast.error('Failed to load companies. Please try again.');
+      setCompanyList([]);
+    } finally {
+      setLoadingCompanies(false);
     }
   };
 
@@ -219,6 +253,54 @@ const AccountPayables = () => {
     setItemSearchTerm('');
   };
 
+  const handleCompanyNameSelect = (company) => {
+    setCompanyName(company.fcompname || company.name || '');
+    setShowCompanyNamePopup(false);
+    setCompanyNameSearchTerm('');
+  };
+
+  const handleCompanyNameSelectMultiple = (company) => {
+    if (selectedCompanyNames.includes(company.fcompcode)) {
+      setSelectedCompanyNames(selectedCompanyNames.filter(code => code !== company.fcompcode));
+      setSelectAllCompanies(false);
+    } else {
+      const updated = [...selectedCompanyNames, company.fcompcode];
+      setSelectedCompanyNames(updated);
+      
+      // Check if all companies are selected
+      if (updated.length === companyList.length) {
+        setSelectAllCompanies(true);
+      }
+    }
+  };
+
+  const handleSelectAllCompanies = () => {
+    if (selectAllCompanies) {
+      setSelectedCompanyNames([]);
+      setSelectAllCompanies(false);
+    } else {
+      setSelectedCompanyNames(companyList.map(c => c.fcompcode));
+      setSelectAllCompanies(true);
+    }
+  };
+
+  const handleCompanyNamePopupOk = () => {
+    if (selectedCompanyNames.length > 0) {
+      const selectedNames = companyList
+        .filter(c => selectedCompanyNames.includes(c.fcompcode))
+        .map(c => c.fcompname)
+        .join(', ');
+      setCompanyName(selectedNames);
+    }
+    setShowCompanyNamePopup(false);
+    setCompanyNameSearchTerm('');
+  };
+
+  const handleCompanyNamePopupClose = () => {
+    setShowCompanyNamePopup(false);
+    setCompanyNameSearchTerm('');
+  };
+
   const handleSearch = async () => {
     if (!fromDate || !toDate) {
       toast.warning('Please fill all fields: From Date and To Date', {
@@ -226,22 +308,69 @@ const AccountPayables = () => {
       });
       return;
     }
-    
-    console.log('Searching Itemwise Stock with:', {
-      fromDate,
-      toDate,
-      selectedItem,
-    });
+
+    if (!selectedItem) {
+      toast.warning('Please select an item', {
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    if (!selectedCompanyNames || selectedCompanyNames.length === 0) {
+      toast.warning('Please select at least one company', {
+        autoClose: 2000,
+      });
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      // TODO: Add your table API endpoint here
-      toast.info('Ready for table API integration', {
-        autoClose: 2000,
-      });
-      setPayablesData([]);
+      // Fetch data for each selected company and item
+      const allResults = [];
+
+      for (const compCode of selectedCompanyNames) {
+        const apiUrl = `${API_BASE}${API_ENDPOINTS.ITEMWISE_STOCK.GET_ITEM_STOCK_BY_DATE(
+          selectedItem.fItemcode,
+          compCode,
+          fromDate,
+          toDate
+        )}`;
+
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        
+        // Map API response fields to table fields
+        if (Array.isArray(responseData)) {
+          const mappedData = responseData.map((item, index) => ({
+            no: index + 1,
+            fItemName: item.itemName || '',
+            date: item.fDate ? new Date(item.fDate).toISOString().substring(0, 10) : '',
+            opgQty: item.opgqty || 0,
+            purchaseQty: item.purchaseQty || 0,
+            salesQty: item.salesQty || 0,
+            balanceQty: item.balanceQty || 0,
+          }));
+          allResults.push(...mappedData);
+        }
+      }
+
+      setPayablesData(allResults);
       setTableLoaded(true);
+
+      if (allResults.length === 0) {
+        toast.info('No records found for the selected criteria', {
+          autoClose: 2000,
+        });
+      } else {
+        toast.success(`Found ${allResults.length} records`, {
+          autoClose: 2000,
+        });
+      }
       
     } catch (error) {
       console.error('Error searching:', error);
@@ -259,6 +388,8 @@ const AccountPayables = () => {
     const today = formatDate(new Date());
     setFromDate(today);
     setToDate(today);
+    setCompanyName('');
+    setSelectedItem(null);
     setSelectedCompanies(['ALL']);
     setCompanyDisplay('ALL');
     setTempSelectedCompanies([]);
@@ -276,9 +407,12 @@ const AccountPayables = () => {
           toDateRef.current?.focus();
           break;
         case 'toDate':
-          companyRef.current?.focus();
+          companyNameRef.current?.focus();
           break;
-        case 'company':
+        case 'companyName':
+          itemNameRef.current?.focus();
+          break;
+        case 'itemName':
           searchButtonRef.current?.focus();
           break;
         default:
@@ -943,6 +1077,54 @@ const AccountPayables = () => {
               />
             </div>
 
+            {/* Company Name */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? '100%' : '200px',
+              flex: 1,
+            }}>
+              <label style={styles.inlineLabel}>Company Name:</label>
+              <div
+                ref={companyNameRef}
+                style={
+                  focusedField === 'companyName'
+                    ? styles.companyInputFocused
+                    : styles.companyInput
+                }
+                onClick={() => {
+                  handleCompanyNameClick();
+                  setFocusedField('companyName');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    itemNameRef.current?.focus();
+                    return;
+                  }
+                  handleKeyDown(e, 'companyName');
+                }}
+                onFocus={() => setFocusedField('companyName')}
+                onBlur={() => setFocusedField('')}
+                tabIndex={0}
+              >
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.sm,
+                  color: '#333',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}>
+                  {companyName ? companyName : 'Select Company'}
+                </span>
+                <span style={{ 
+                  color: '#1B91DA', 
+                  fontSize: '10px', 
+                  marginLeft: '8px' 
+                }}>▼</span>
+              </div>
+            </div>
+
             {/* Company */}
             <div style={{
               ...styles.formField,
@@ -960,12 +1142,14 @@ const AccountPayables = () => {
                   handleItemNameClick();
                   setFocusedField('itemName');
                 }}
-                ref={companyRef}
+                ref={itemNameRef}
                 onKeyDown={(e) => {
-                  handleKeyDown(e, 'itemName');
                   if (e.key === 'Enter') {
-                    handleItemNameClick();
+                    e.preventDefault();
+                    searchButtonRef.current?.focus();
+                    return;
                   }
+                  handleKeyDown(e, 'itemName');
                 }}
                 onFocus={() => setFocusedField('itemName')}
                 onBlur={() => setFocusedField('')}
@@ -1037,9 +1221,13 @@ const AccountPayables = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th }}>No</th>
-                <th style={{ ...styles.th }}>Item Code</th>
-                <th style={{ ...styles.th }}>Item Name</th>
+                <th style={{ ...styles.th, minWidth: '10px', width: '10px', maxWidth: '10px' }}>S.No</th>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Item Name</th>
+                <th style={{ ...styles.th }}>Date</th>
+                <th style={{ ...styles.th }}>Opg Qty</th>
+                <th style={{ ...styles.th }}>Purchase Qty</th>
+                <th style={{ ...styles.th }}>Sales Qty</th>
+                <th style={{ ...styles.th }}>Balance Qty</th>
               </tr>
             </thead>
           <tbody>
@@ -1053,21 +1241,23 @@ const AccountPayables = () => {
             borderTop: '2px solid #1B91DA'
           } : {})
         }}>
-          <td style={styles.td}>{row.no || ''}</td>
-          <td style={styles.td}>{row.fItemcode || ''}</td>
+          <td style={{ ...styles.td, minWidth: '40px', width: '40px', maxWidth: '40px' }}>{index + 1}</td>
           <td style={styles.td}>{row.fItemName || ''}</td>
+          <td style={styles.td}>{row.date || ''}</td>
+          <td style={styles.td}>{row.opgQty || ''}</td>
+          <td style={styles.td}>{row.purchaseQty || ''}</td>
+          <td style={styles.td}>{row.salesQty || ''}</td>
+          <td style={styles.td}>{row.balanceQty || ''}</td>
         </tr>
       ))
     ) : (
       <tr>
-        <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-          No records found
-        </td>
+        
       </tr>
     )
   ) : (
     <tr>
-      {/* <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+      {/* <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
         Use the Search button to load data
       </td> */}
     </tr>
@@ -1234,7 +1424,6 @@ const AccountPayables = () => {
                         </div>
                         <div style={{ flex: 1 }}>
                           <span style={styles.companyText}>{item.fItemName}</span>
-                          <span style={{ fontSize: '12px', color: '#999', marginLeft: '8px' }}>({item.fItemcode})</span>
                         </div>
                       </div>
                     );
@@ -1251,6 +1440,100 @@ const AccountPayables = () => {
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handleItemPopupClose}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Company Name Selection Popup */}
+      {showCompanyNamePopup && (
+        <div style={styles.popupOverlay} onClick={handleCompanyNamePopupClose}>
+          <div 
+            style={styles.popupContent} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.popupHeader}>
+              Select Company
+              <button 
+                style={styles.closeButton}
+                onClick={handleCompanyNamePopupClose}
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* Search Bar */}
+            <div style={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search companies..."
+                value={companyNameSearchTerm}
+                onChange={(e) => setCompanyNameSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
+            
+            <div style={styles.companyList}>
+              {loadingCompanies ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  Loading companies...
+                </div>
+              ) : companyList.length > 0 ? (
+                <>
+                  {/* All Checkbox */}
+                  <div 
+                    style={selectAllCompanies ? styles.selectedCompanyItem : styles.companyItem}
+                    onClick={handleSelectAllCompanies}
+                  >
+                    <div style={selectAllCompanies ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                      {selectAllCompanies && <div style={styles.checkmark}>✓</div>}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span style={{...styles.companyText, fontWeight: 'bold'}}>All Companies</span>
+                    </div>
+                  </div>
+                  
+                  {/* Individual Companies */}
+                  {companyList
+                    .filter(company => 
+                      (company.fcompname || '').toLowerCase().includes(companyNameSearchTerm.toLowerCase()) ||
+                      (company.fcompcode || '').toLowerCase().includes(companyNameSearchTerm.toLowerCase())
+                    )
+                    .map((company) => {
+                      const isSelected = selectedCompanyNames.includes(company.fcompcode);
+                      return (
+                        <div 
+                          key={company.fcompcode} 
+                          style={isSelected ? styles.selectedCompanyItem : styles.companyItem}
+                          onClick={() => handleCompanyNameSelectMultiple(company)}
+                        >
+                          <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                            {isSelected && <div style={styles.checkmark}>✓</div>}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <span style={styles.companyText}>{company.fcompname}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  }
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  No companies found
+                </div>
+              )}
+            </div>
+            
+            <div style={styles.popupActions}>
+              <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.okButton}}
+                  onClick={handleCompanyNamePopupOk}
                 >
                   OK
                 </button>

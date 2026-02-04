@@ -10,6 +10,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import { PopupScreenModal } from '../../components/PopupScreens.jsx';
+// import TransportPopup from './TransportPopup.jsx'; // Assuming you'll move this too
+import PrintPDF, { generatePurchaseInvoicePDF } from '../PrintPurchaseInvoice/PrintPurchaseInvoice.jsx'; // Import the new component
 
 const Icon = {
   Search: ({ size = 16 }) => (
@@ -32,7 +34,6 @@ const Icon = {
     </svg>
   ),
 }
-// Updated TransportPopup component
 const TransportPopup = ({ isOpen, onClose, transportData, onTransportDataChange }) => {
   const [localData, setLocalData] = useState({
     transportName: transportData?.transportName || '', // New field for transport name
@@ -664,6 +665,7 @@ const calculateTotals = (items = []) => {
 };
 
 const PurchaseInvoice = () => {
+  const { userData } = useAuth() || {};
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -677,6 +679,8 @@ const PurchaseInvoice = () => {
   const [activeTopAction, setActiveTopAction] = useState('add');
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingBillNo, setEditingBillNo] = useState('');
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
   const [allTax, setAllTax] = useState([]);
   
   // Confirmation popup states
@@ -711,7 +715,7 @@ const PurchaseInvoice = () => {
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     invNo: '',
-    billDate: new Date().toISOString().substring(0, 10),
+    billDate: new Date(userData?.date).toISOString().substring(0, 10),
     mobileNo: '',
     customerName: '',
     type: 'Retail',
@@ -769,6 +773,7 @@ const PurchaseInvoice = () => {
   // 3. Totals State
   const [netTotal, setNetTotal] = useState(0);
   const [gstTotal, setGstTotal] = useState(0);
+  
   // --- REFS FOR ENTER KEY NAVIGATION ---
   const billNoRef = useRef(null);
   const dateRef = useRef(null);
@@ -801,7 +806,6 @@ const PurchaseInvoice = () => {
   // Track which top-section field is focused to style active input
   const [focusedField, setFocusedField] = useState('');
   const [showSupplierPopup, setShowSupplierPopup] = useState(false);
-  // const [showTransPopup, setShowTransPopup] = useState(false);
   const [showGroupNamePopup, setShowGroupNamePopup] = useState(false);
   const [showBillListPopup, setShowBillListPopup] = useState(false);
   const [showItemCodePopup, setShowItemCodePopup] = useState(false);
@@ -822,7 +826,7 @@ const PurchaseInvoice = () => {
   });
 
   // Auth context for company code
-  const { userData } = useAuth() || {};
+  
   // Also get fseudo from context in case userData.fseudo is missing
   const { fseudo } = useAuth() || {};
 
@@ -2187,7 +2191,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           item.sudo
             .toLowerCase()
             .split("")
-            .map(c => letterToNum[c] ?? "")
+            .map(c => c === '.' ? '.' : (letterToNum[c] ?? ""))
             .join("")
         ) || 0
       : Number(item.profitPercent) || 0;
@@ -2322,7 +2326,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     // Handle / key for item code search popup
     if (e.key === '/') {
       e.preventDefault();
-      handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+      // handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
       return;
     }
 
@@ -2644,17 +2648,13 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
               API_ENDPOINTS.PURCHASE_INVOICE.CREATE_PURCHASE_INVOICE(purchaseType), 
               payload
             );
-            createNewForm();
             console.log('Save response:', res);
             
             // Close the confirmation popup first
             setShowConfirmPopup(false);
             
-            // Show success message and reset form
-            showAlertConfirmation(
-              `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
-              'warning'
-            );
+            // Show print confirmation popup on success
+            setPrintConfirmationOpen(true);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -2683,9 +2683,46 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     }
   };
 
-  const handlePrint = () => {
-    showAlertConfirmation('Print functionality to be implemented', null, 'info');
+  // Handle print confirmation
+  const handlePrintConfirm = () => {
+    setPrintConfirmationOpen(false);
+    setShowPrintModal(true);
+    setTimeout(() => {
+      clearForm();
+    }, 1000);
+    
+    // Show success message after opening print
+    // showAlertConfirmation(
+    //   `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
+    //   null,
+    //   'success'
+    // );
   };
+
+  // Updated handlePrint function
+ const handlePrint = () => {
+  if (!billDetails.invNo || billDetails.invNo.trim() === '') {
+    showAlertConfirmation('Please save the invoice before printing', null, 'warning');
+    return;
+  }
+  
+  const validItems = items.filter(item => item.name && item.name.trim() !== '');
+  if (validItems.length === 0) {
+    showAlertConfirmation('No items to print. Please add items first.', null, 'warning');
+    return;
+  }
+  
+  if (!billDetails.customerName || billDetails.customerName.trim() === '') {
+    showAlertConfirmation('Please select a supplier before printing', null, 'warning');
+    return;
+  }
+  
+  // Calculate totals
+  const totals = calculateTotals(items);
+  
+  // Show print modal
+  setShowPrintModal(true);
+};
 
   // Handle delete row
   const handleDeleteRow = (id) => {
@@ -3264,46 +3301,6 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       boxShadow: '0 0 0 2px rgba(27, 145, 218, 0.2)',
       minHeight: screenSize.isMobile ? '26px' : screenSize.isTablet ? '30px' : '32px',
     },
-    // uomHint: {
-    //   position: 'absolute',
-    //   top: '-25px',
-    //   left: '50%',
-    //   transform: 'translateX(-50%)',
-    //   backgroundColor: '#1B91DA',
-    //   color: 'white',
-    //   padding: '3px 8px',
-    //   borderRadius: '3px',
-    //   fontSize: '10px',
-    //   fontWeight: 'bold',
-    //   whiteSpace: 'nowrap',
-    //   zIndex: 100,
-    //   pointerEvents: 'none',
-    //   opacity: 0,
-    //   transition: 'opacity 0.2s ease',
-    // },
-    // uomHintVisible: {
-    //   position: 'absolute',
-    //   top: '-25px',
-    //   left: '50%',
-    //   transform: 'translateX(-50%)',
-    //   backgroundColor: '#1B91DA',
-    //   color: 'white',
-    //   padding: '3px 8px',
-    //   borderRadius: '3px',
-    //   fontSize: '10px',
-    //   fontWeight: 'bold',
-    //   whiteSpace: 'nowrap',
-    //   zIndex: 100,
-    //   pointerEvents: 'none',
-    //   opacity: 1,
-    //   transition: 'opacity 0.2s ease',
-    // },
-    // chargesContainer: {
-    //   display: 'flex',
-    //   alignItems: 'center',
-    //   gap: '5px',
-    //   marginRight: '10px'
-    // },
     chargesInput: {
       width: '70px',
       border: '1px solid #1B91DA',
@@ -3975,7 +3972,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 value={item.avgwt || ''}
                 data-row={index}
                 data-field="avgwt"                      
-                readonly
+                readOnly
                 onKeyDown={(e) => handleTableKeyDown(e, index, 'avgwt')}
                 onFocus={() => setFocusedField(`avgwt-${item.id}`)}
                 onBlur={() => setFocusedField('')}
@@ -4106,7 +4103,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 data-field="sudo"
                 onChange={(e) => {
                   const value = e.target.value.toUpperCase();
-                  if (/^[A-Z]*$/.test(value)) {
+                  if (/^[A-Z,.]*$/.test(value)) {
                     handleItemChange(item.id, 'sudo', value);
                   }
                 }}
@@ -4368,6 +4365,39 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
      
 </div>
 
+<PrintPDF
+  isOpen={showPrintModal}
+  onClose={() => setShowPrintModal(false)}
+  invoiceData={billDetails}
+  items={items.filter(item => item.name && item.name.trim() !== '')}
+  totals={calculateTotals(items)}
+  transportData={transportData}
+  chargesAmount={chargesAmount}
+  addLessAmount={addLessAmount}
+  freightAmount={freightAmount}
+  userData={userData}
+/>
+
+{/* Print Confirmation Popup */}
+<ConfirmationPopup
+  isOpen={printConfirmationOpen}
+  title="Print Confirmation"
+  message="Do you want to print?"
+  confirmText="Yes"
+  cancelText="No"
+  onConfirm={handlePrintConfirm}
+  onClose={() => {
+    console.log("Print cancelled");
+    setPrintConfirmationOpen(false);
+    clearForm();
+    // showAlertConfirmation(
+    //   `Purchase ${isEditMode ? 'update' : 'save'} successfully`,
+    //   null,
+    //   'success'
+    // );
+  }}
+/>
+
       {/* Purchase Bill List Popup for Edit/Delete */}
       <PopupListSelector
         open={showBillListPopup}
@@ -4602,7 +4632,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           <ActionButtons1
             onClear={handleClear}
             onSave={handleSave}
-            onPrint={handlePrint}
+            // onPrint={handlePrint}
             activeButton={activeFooterAction}
             onButtonClick={(type) => setActiveFooterAction(type)}
           />

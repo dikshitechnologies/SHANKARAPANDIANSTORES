@@ -2549,7 +2549,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                 
                 {/* Item Name field */}
                 <div className="field">
-                  <label className="field-label">Item Name <span className="asterisk">*</span></label>
+                  <label className="field-label">Product Name <span className="asterisk">*</span></label>
                   <div className='input-with-search'>
                     <div style={{
                       display: "flex",
@@ -2877,7 +2877,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                 </div>
               </div>
 
-              {/* Product */}
+              {/* Product
               <div className="field">
                 <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>Product</span>
@@ -2917,7 +2917,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                     <Icon.Search size={16} />
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Model */}
               <div className="field">
@@ -3703,10 +3703,10 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item to ${actionType === 'edit' ? 'Edit' : 'Delete'}`}
-        displayFieldKeys={['fItemName', 'fParent']}
-        searchFields={['fItemName', 'fParent']}
-        headerNames={['Item Name', 'Group']}
-        columnWidths={{ fItemName: '70%', fParent: '30%' }}
+        displayFieldKeys={['fItemName']}
+        searchFields={['fItemName']}
+        headerNames={['Item Name']}
+        columnWidths={{ fItemName: '100%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />

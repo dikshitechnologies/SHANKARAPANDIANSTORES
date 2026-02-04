@@ -2775,10 +2775,10 @@ export default function LedgerCreation({ onCreated }) {
         }}
         fetchItems={fetchPopupItems}
         title={actionType === 'delete' ? 'Select Ledger  to Delete' : 'Select Ledger  to Edit'}
-        displayFieldKeys={['fAcname', 'fParent']}
-        searchFields={['fAcname', 'fParent']}
-        headerNames={['Ledger Name', 'Group']}
-        columnWidths={{ fAcname: '70%', fParent: '30%' }}
+        displayFieldKeys={['fAcname']}
+        searchFields={['fAcname']}
+        headerNames={['Ledger Name']}
+        columnWidths={{ fAcname: '100%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />

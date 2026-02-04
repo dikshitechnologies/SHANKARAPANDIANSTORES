@@ -2193,6 +2193,12 @@ const PaymentVoucher = () => {
       order: 0,
       width: isMobileView ? '100%' : 'auto',
       justifyContent: isMobileView ? 'center' : 'flex-end',
+      border: '2px solid #1976d2',
+      display: 'flex',
+      backgroundColor: '#ffffff',
+      padding: '0.4rem',
+      borderRadius: '50px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
     },
     footerButtons: {
       display: 'flex',
@@ -2857,7 +2863,7 @@ const PaymentVoucher = () => {
               isActive={activeFooterAction === 'all' || activeFooterAction === 'save'}
               buttonType="save"
             />
-            <PrintButton 
+            {/* <PrintButton 
               onClick={() => {
                 setActiveFooterAction('print');
                 handlePrint();
@@ -2865,7 +2871,7 @@ const PaymentVoucher = () => {
               disabled={false}
               isActive={activeFooterAction === 'all' || activeFooterAction === 'print'}
               buttonType="print"
-            />
+            /> */}
           </div>
         </div>
       </div>

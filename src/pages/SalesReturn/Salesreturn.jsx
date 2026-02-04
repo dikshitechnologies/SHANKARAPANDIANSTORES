@@ -1710,6 +1710,10 @@ const requestData = {
         discountPercent,
         discountAmount
       };
+      resetForm();
+      setDiscountPercent(0);
+      setDiscountAmount(0);
+      setDiscount("");
       
       // Save discount data to localStorage with voucher number as key
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
@@ -1876,6 +1880,10 @@ const requestData = {
         discountPercent,
         discountAmount
       };
+      resetForm();
+      setDiscountPercent(0);
+            setDiscountAmount(0);
+            setDiscount("");
       
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       
@@ -4001,14 +4009,35 @@ const handleApplyBillDirect = async () => {
   // ==================== SAVE FUNCTION ====================
 const handleSave = async () => {
 
+  // Check if customer name is empty
+  if (!billDetails.custName || !billDetails.custName.trim()) {
+    toast.warning("Customer name is required. Please select a customer.", {
+      position: 'top-right',
+      autoClose: 3000,
+    });
+    custNameRef.current?.focus();
+    return;
+  }
 
+  // Check if we have items to create
+  const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
+  if (validItems.length === 0) {
+    toast.warning("No valid items to create. Please add items with valid item names and quantities.", {
+      position: 'top-right',
+      autoClose: 3000,
+    });
+    return;
+  }
 
-   // Check if we have items to create
-    const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
-    if (validItems.length === 0) {
-      toast.warning("No valid items to create. Please add items");
-    }
-  
+  // Check if any item has empty item name
+  const hasEmptyItemName = items.some(item => parseFloat(item.qty) > 0 && (!item.itemName || !item.itemName.trim()));
+  if (hasEmptyItemName) {
+    toast.warning("All items must have a valid item name. Please check your entries.", {
+      position: 'top-right',
+      autoClose: 3000,
+    });
+    return;
+  }
 
    
   showConfirmation({
@@ -4118,11 +4147,10 @@ const handlePrint = () => {
       fontWeight: TYPOGRAPHY.fontWeight.semibold,
       lineHeight: TYPOGRAPHY.lineHeight.tight,
       color: '#333',
-      minWidth: screenSize.isMobile ? '75px' : screenSize.isTablet ? '85px' : '95px',
-      whiteSpace: 'nowrap',
-      
-      flexShrink: 0,
-      paddingTop: '2px',
+     textAlign: 'center',
+      marginRight: screenSize.isMobile ? '6px' : '8px',
+    
+ 
     },
     inlineInput: {
       fontFamily: TYPOGRAPHY.fontFamily,

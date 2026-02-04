@@ -1982,8 +1982,8 @@ const ReceiptVoucher = () => {
         await fetchSavedVouchers(1, '');
         
         // Don't reset form yet - wait for print confirmation
-        // resetForm();
-        // await fetchNextVoucherNo();
+        resetForm();
+        await fetchNextVoucherNo();
         
         return response.data;
       }

@@ -6,6 +6,7 @@ import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup.jsx';
+import PrintReturn from '../../pages/PrintReturn/PrintReturn';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { usePermissions } from '../../hooks/usePermissions';
@@ -163,6 +164,8 @@ const PurchaseReturn = () => {
   const [popupMode, setPopupMode] = useState(''); // 'edit' or 'delete'
   const [selectedRowId, setSelectedRowId] = useState(null); // Track which row is being edited
   const [itemSearchTerm, setItemSearchTerm] = useState(''); // Track search term for item popup
+  const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   
   // Footer action active state
   const [activeFooterAction, setActiveFooterAction] = useState('null');
@@ -857,6 +860,90 @@ const handleBlur = () => {
     setShowBillListPopup(true);
   };
 
+  // Handle Print Confirmation
+  const handlePrintConfirm = () => {
+    setPrintConfirmationOpen(false);
+    
+    console.log('=== PRINT DEBUG START ===');
+    console.log('Saved items for print:', savedItemsForPrint);
+    console.log('Saved bill details for print:', savedBillDetailsForPrint);
+    console.log('Current items:', items);
+    
+    // Use saved data instead of current state
+    const itemsToUse = savedItemsForPrint.length > 0 ? savedItemsForPrint : items;
+    const billDetailsToUse = Object.keys(savedBillDetailsForPrint).length > 0 ? savedBillDetailsForPrint : billDetails;
+    
+    console.log('Items to use:', itemsToUse);
+    console.log('Items length:', itemsToUse.length);
+    console.log('Bill details to use:', billDetailsToUse);
+    
+    // Prepare print payload
+    const calculatedTotals = calculateTotals(itemsToUse);
+    
+    // Filter valid items - must have either name or itemcode
+    const validItems = itemsToUse.filter(item => {
+      const hasName = item.name && item.name.trim() !== '';
+      const hasItemCode = item.itemcode && item.itemcode.trim() !== '';
+      console.log(`Item ${item.id}: name="${item.name}", itemcode="${item.itemcode}", hasName=${hasName}, hasItemCode=${hasItemCode}`);
+      return hasName || hasItemCode;
+    });
+    
+    console.log('Valid items count:', validItems.length);
+    console.log('Valid items:', validItems);
+    
+    if (validItems.length === 0) {
+      console.log('❌ No valid items found!');
+      // toast.warning('No items to print. Please add items to the invoice.', {
+      //   position: 'top-right',
+      //   autoClose: 3000,
+      // });
+      // Clear saved data
+      setSavedItemsForPrint([]);
+      setSavedBillDetailsForPrint({});
+      return;
+    }
+    
+    const payload = {
+      billDetails: {
+        billNo: billDetailsToUse.invNo || billDetailsToUse.billNo,
+        billDate: billDetailsToUse.billDate,
+        customerCode: billDetailsToUse.partyCode,
+        custName: billDetailsToUse.customerName,
+        mobileNo: billDetailsToUse.mobileNo,
+        gstno: billDetailsToUse.gstno,
+        city: billDetailsToUse.city,
+      },
+      items: validItems.map(item => ({
+        name: item.name || item.itemcode || 'Unknown Item', // Fallback to itemcode if name is missing
+        hsn: item.hsn || '',
+        qty: item.qty || 0,
+        prate: item.prate || 0,
+        amt: item.amt || 0,
+      })),
+      totals: {
+        subTotal: calculatedTotals.subTotal,
+        net: calculatedTotals.net,
+        gstTotals: calculatedTotals.net - calculatedTotals.subTotal,
+      },
+      userData: userData,
+    };
+    
+    console.log('✅ Print Payload created:', payload);
+    console.log('=== PRINT DEBUG END ===');
+    
+    setPrintPayload(payload);
+    setShowPrintModal(true);
+    
+    // Clear saved data after print
+    setSavedItemsForPrint([]);
+    setSavedBillDetailsForPrint({});
+    
+    // toast.success(`Purchase return ${savedBillDetailsForPrint.invNo || 'saved'} successfully`, {
+    //   position: 'top-right',
+    //   autoClose: 2000,
+    // });
+  };
+
   // Handle bill selection from popup
   const handleBillSelect = (selectedBill) => {
     if (!selectedBill || !selectedBill.voucherNo) return;
@@ -1399,7 +1486,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
   // Handle / key for item code search popup
   if (e.key === '/') {
     e.preventDefault();
-    handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
+    // handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
     return;
   }
 
@@ -1762,18 +1849,22 @@ if (e.key === 'Enter') {
               API_ENDPOINTS.PURCHASE_RETURN.CREATE_PURCHASE_RETURN(purchaseType), 
               payload
             );
-            createNewForm();
+            
             console.log('Save response:', res);
+            
+            // 🔑 SAVE items and billDetails BEFORE clearing the form
+            setSavedItemsForPrint([...items]);
+            setSavedBillDetailsForPrint({...billDetails});
+            
+            // Now clear the form
+            createNewForm();
             fetchAutoBarcode();
+            
             // Close the confirmation popup first
             setShowConfirmPopup(false);
             
-            // Show success message and reset form
-            showAlertConfirmation(
-              `Purchase ${isEditMode ? 'updated' : 'saved'} successfully`,
-              'success'
-            );
-            // toast.success(`Purchase return ${isEditMode ? 'updated' : 'saved'} successfully.`);
+            // Show print confirmation for GST Invoice
+            setPrintConfirmationOpen(true);
             
           } catch (err) {
             const status = err?.response?.status;
@@ -1803,10 +1894,44 @@ if (e.key === 'Enter') {
       // toast.error('Failed to save Purchase return.');
     }
   };
+const [printPayload, setPrintPayload] = useState(null);
+const [savedItemsForPrint, setSavedItemsForPrint] = useState([]);
+const [savedBillDetailsForPrint, setSavedBillDetailsForPrint] = useState({});
 
-  const handlePrint = () => {
-    showAlertConfirmation('Print functionality to be implemented', null, 'info');
+
+ const handlePrint = () => {
+  const payload = {
+    billDetails: {
+      billNo: billDetails?.billNo,
+      billDate: billDetails?.billDate,
+      customerName: billDetails?.customerName,
+      mobile: billDetails?.mobile,
+    },
+
+    items: items.map(it => ({
+      itemCode: it.itemCode,
+      itemName: it.itemName,
+      qty: it.qty,
+      rate: it.rate,
+      amount: it.amount,
+    })),
+
+    totals: {
+      subTotal: netTotal,
+      gst: netTotal * 0.18,
+      net: netTotal + netTotal * 0.18,
+    },
+
+    userData: {
+      userName: userData?.userName,
+      branch: userData?.branch,
+    }
   };
+
+  setPrintPayload(payload);   // 👈 important
+  setShowPrintModal(true);
+};
+
 
   // Handle delete row
   //   const handleDeleteRow = (id) => {
@@ -2440,6 +2565,36 @@ if (e.key === 'Enter') {
 
   return (
     <div style={styles.container}>
+      {/* PrintReturn Component - GST Invoice */}
+    {printPayload && (
+      <PrintReturn
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        billDetails={printPayload.billDetails}
+        items={printPayload.items}
+        totals={printPayload.totals}
+        userData={printPayload.userData}
+      />
+    )}
+
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={printConfirmationOpen}
+        title="Print Confirmation"
+        message="Do you want to print?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={handlePrintConfirm}
+        onClose={() => {
+          setPrintConfirmationOpen(false);
+          // toast.success(`Purchase return ${isEditMode ? 'update' : 'save'} successfully`, {
+          //   position: 'top-right',
+          //   autoClose: 2000,
+          // });
+        }}
+      />
+
       {/* --- HEADER SECTION --- */}
       <div style={styles.headerSection}>
         {/* ROW 1 */}
