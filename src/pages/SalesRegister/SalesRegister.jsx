@@ -7,6 +7,8 @@ import { API_BASE } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
 import { PrintButton, ExportButton } from '../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../hooks/usePrintPermission';
+
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -35,6 +37,11 @@ const formatDate = (date) => {
 };
 
 const SalesRegister = () => {
+
+const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('SALES_REGISTER');
+
+
 
   
     const { userData } = useAuth() || {};
@@ -258,31 +265,56 @@ const SalesRegister = () => {
     setSalesData([]);
   };
 
-  const handlePrintClick = () => {
-    if (salesData.length === 0) {
-      toast.warning('No data available to print');
-      return;
-    }
-    setShowPrintConfirm(true);
-  };
+const handlePrintClick = () => {
+  if (!checkPrintPermission()) return;
+
+  if (salesData.length === 0) {
+    toast.warning('No data available to print');
+    return;
+  }
+
+  setShowPrintConfirm(true);
+};
+
 
   const handleExportClick = () => {
-    if (salesData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = () => {
+  if (salesData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+ const handlePrintConfirm = () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    generatePDF();
-  };
+    return;
+  }
+
+  setShowPrintConfirm(false);
+  generatePDF();
+};
+
 
   const handleExportConfirm = () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  exportToExcel();
+};
+
 
   const generatePDF = () => {
     try {
@@ -1091,16 +1123,18 @@ const SalesRegister = () => {
           {/* Removed: Total Records */}
         </div>
         <div style={styles.buttonGroup}>
-          <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={salesData.length === 0}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={salesData.length === 0}
-          />
+         <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || salesData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || salesData.length === 0}
+/>
+
         </div>
       </div>
 

@@ -64,7 +64,9 @@ const parseNumber = (str) => {
 
 const ScrapPurchase  = () => {
   // --- PERMISSIONS ---
-  const { checkPrintPermission } = usePrintPermission('SCRAP_PURCHASE');
+ const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('SCRAP_PURCHASE');
+
 
   const { userData } = useAuth() || {};
   // State for data
@@ -307,23 +309,43 @@ const ScrapPurchase  = () => {
     setShowPrintConfirm(true);
   };
 
-  const handleExportClick = () => {
-    if (data.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+const handleExportClick = () => {
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = () => {
+  if (data.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+const handlePrintConfirm = () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    generatePDF();
-  };
+    return;
+  }
 
-  const handleExportConfirm = () => {
+  setShowPrintConfirm(false);
+  generatePDF();
+};
+
+
+ const handleExportConfirm = () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  exportToExcel();
+};
 
   const generatePDF = () => {
     try {
@@ -1086,16 +1108,18 @@ const ScrapPurchase  = () => {
             </div>
         </div>
         <div style={styles.buttonGroup}>
-          <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={data.length === 0}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={data.length === 0}
-          />
+       <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || data.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || data.length === 0}
+/>
+
         </div>
       </div>
 

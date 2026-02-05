@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 
 // Helper function to convert YYYY-MM-DD to DD/MM/YYYY
 const formatDateToDDMMYYYY = (dateString) => {
@@ -12,6 +13,11 @@ const formatDateToDDMMYYYY = (dateString) => {
 };
 
 const DailyReport = () => {
+// --- PERMISSIONS ---
+const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('DAILY_REPORT');
+
+
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);

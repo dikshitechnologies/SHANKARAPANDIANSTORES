@@ -37,7 +37,9 @@ const formatDate = (date) => {
 
 const AccountPayables = () => {
   // --- PERMISSIONS ---
-  const { checkPrintPermission } = usePrintPermission('ITEM_WISE_STOCK');
+const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('ITEM_WISE_STOCK');
+
 
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
@@ -419,23 +421,45 @@ const AccountPayables = () => {
     setShowPrintConfirm(true);
   };
 
-  const handleExportClick = () => {
-    if (payablesData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+ const handleExportClick = () => {
+  // 🔒 SAME PERMISSION AS PRINT
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = () => {
+  if (payablesData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+ const handlePrintConfirm = () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    generatePDF();
-  };
+    return;
+  }
 
-  const handleExportConfirm = () => {
+  setShowPrintConfirm(false);
+  generatePDF();
+};
+
+
+ const handleExportConfirm = () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  exportToExcel();
+};
+
 
   const generatePDF = () => {
     try {
@@ -1428,15 +1452,17 @@ const AccountPayables = () => {
         </div>
         <div style={styles.buttonGroup}>
           <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={payablesData.length === 0}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={payablesData.length === 0}
-          />
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || payablesData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || payablesData.length === 0}
+/>
+
         </div>
       </div>
 
