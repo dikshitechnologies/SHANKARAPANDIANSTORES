@@ -817,7 +817,6 @@ const Company = () => {
       onConfirm: () => {
         setShowConfirmPopup(false);
         saveData();
-        clearForm();
       },
       onCancel: () => setShowConfirmPopup(false)
     });
@@ -1044,15 +1043,24 @@ const Company = () => {
       // });
     } catch (err) {
       console.error("Failed to save company:", err);
+      const status = err?.response?.status;
       const errorMessage = err.response?.data?.message
         || err.response?.data
         || err.message
         || 'Failed to save company';
       
+      // For 400 status (bad request), show error but don't clear the form
+      if (status === 400) {
+        setMessage({
+          type: "error",
+          text: `Invalid request: ${errorMessage}. Please check your data and try again.`
+        });
+      } else {
         setMessage({
           type: "error",
           text: ` ${errorMessage}`
         });
+      }
       // showConfirmation({
       //   title: "Error",
       //   message: errorMessage,
@@ -1174,10 +1182,20 @@ const Company = () => {
       // });
     } catch (err) {
       console.error("Failed to update company:", err);
+      const status = err?.response?.status;
       const errorMessage = err.response?.data?.message
         || err.response?.data
         || err.message
         || 'Failed to update company';
+      
+      // For 400 status (bad request), show error but don't clear the form
+      if (status === 400) {
+        setMessage({
+          type: "error",
+          text: `Invalid request: ${errorMessage}. Please check your data and try again.`
+        });
+        return;
+      }
       
       showConfirmation({
         title: "Error",
