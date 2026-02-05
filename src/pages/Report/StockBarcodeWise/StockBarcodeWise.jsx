@@ -4,6 +4,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -69,6 +71,10 @@ const StockBarcodeWise = () => {
   // --- DATA ---
   const [stockBarcodeData, setStockBarcodeData] = useState([]);
   const [pageNo, setPageNo] = useState(1);
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [pageSize] = useState(20);
   const [hasMore, setHasMore] = useState(true);
   const [apiTotals, setApiTotals] = useState({
@@ -295,6 +301,154 @@ const StockBarcodeWise = () => {
       totalStockValue: 0,
       totalAStockValue: 0,
     });
+  };
+
+  const handlePrintClick = () => {
+    if (stockBarcodeData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (stockBarcodeData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const formatNumber = (num) => {
+    return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const generatePDF = () => {
+    try {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Stock Barcode Wise Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; font-size: 11px; }
+            td { padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 10px; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .total-row { background-color: #e3f2fd; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Stock Barcode Wise Report</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Branches: ${branchDisplay}</p>
+            <p>Total Records: ${stockBarcodeData.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Item Name</th>
+                <th>Prefix No</th>
+                <th>Color</th>
+                <th>Size</th>
+                <th>Barcode</th>
+                <th>Branch</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Stock Value</th>
+                <th>APrice</th>
+                <th>AStock Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${stockBarcodeData.map((row, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${row.itemName || ''}</td>
+                  <td>${row.prefixNo || ''}</td>
+                  <td>${row.color || ''}</td>
+                  <td>${row.size || ''}</td>
+                  <td>${row.barcode || ''}</td>
+                  <td>${row.branch || ''}</td>
+                  <td>${row.qty || 0}</td>
+                  <td>₹${row.price || '0.00'}</td>
+                  <td>₹${row.stockValue || '0.00'}</td>
+                  <td>₹${row.aPrice || '0.00'}</td>
+                  <td>₹${row.aStockValue || '0.00'}</td>
+                </tr>
+              `).join('')}
+              <tr class="total-row">
+                <td colspan="7" style="text-align: right;"><strong>Total:</strong></td>
+                <td><strong>${apiTotals.totalQty.toLocaleString()}</strong></td>
+                <td></td>
+                <td><strong>₹${formatNumber(apiTotals.totalStockValue)}</strong></td>
+                <td></td>
+                <td><strong>₹${formatNumber(apiTotals.totalAStockValue)}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      let csvContent = 'Stock Barcode Wise Report\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Branches: ${branchDisplay}\n`;
+      csvContent += `Total Records: ${stockBarcodeData.length}\n\n`;
+      
+      csvContent += 'No,Item Name,Prefix No,Color,Size,Barcode,Branch,Qty,Price,Stock Value,APrice,AStock Value\n';
+      
+      stockBarcodeData.forEach((row, index) => {
+        csvContent += `${index + 1},"${row.itemName || ''}",${row.prefixNo || ''},"${row.color || ''}","${row.size || ''}",${row.barcode || ''},${row.branch || ''},${row.qty || 0},${row.price || '0'},${row.stockValue || '0'},${row.aPrice || '0'},${row.aStockValue || '0'}\n`;
+      });
+      
+      csvContent += `,,,,,,Total,${apiTotals.totalQty.toLocaleString()},,${apiTotals.totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2 })},,${apiTotals.totalAStockValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n`;
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Stock_Barcode_Wise_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
 
   // Handle key navigation
@@ -867,6 +1021,12 @@ const StockBarcodeWise = () => {
         background: '#ffebee',
       }
     },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      marginLeft: 'auto',
+      alignItems: 'center',
+    },
   };
 
   return (
@@ -1082,26 +1242,64 @@ const StockBarcodeWise = () => {
       </div>
 
       {/* Footer Section with Totals */}
-      {/* <div style={styles.footerSection}>
-        <div style={styles.balanceContainer}>
-          <div style={styles.balanceItem}>
-            <div style={styles.balanceLabel}>Total Qty</div>
-            <div style={styles.balanceValue}>{apiTotals.totalQty.toLocaleString()}</div>
-          </div>
-          <div style={styles.balanceItem}>
-            <div style={styles.balanceLabel}>Stock Value</div>
-            <div style={styles.balanceValue}>
-              {apiTotals.totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      {tableLoaded && stockBarcodeData.length > 0 && (
+        <div style={styles.footerSection}>
+          <div style={styles.balanceContainer}>
+            <div style={styles.balanceItem}>
+              <div style={styles.balanceLabel}>Total Qty</div>
+              <div style={styles.balanceValue}>{apiTotals.totalQty.toLocaleString()}</div>
+            </div>
+            <div style={styles.balanceItem}>
+              <div style={styles.balanceLabel}>Stock Value</div>
+              <div style={styles.balanceValue}>
+                {apiTotals.totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div style={styles.balanceItem}>
+              <div style={styles.balanceLabel}>AStock Value</div>
+              <div style={styles.balanceValue}>
+                {apiTotals.totalAStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
             </div>
           </div>
-          <div style={styles.balanceItem}>
-            <div style={styles.balanceLabel}>AStock Value</div>
-            <div style={styles.balanceValue}>
-              {apiTotals.totalAStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+          <div style={styles.buttonGroup}>
+            <PrintButton 
+              onClick={handlePrintClick}
+              isActive={true}
+              disabled={stockBarcodeData.length === 0}
+            />
+            <ExportButton 
+              onClick={handleExportClick}
+              isActive={true}
+              disabled={stockBarcodeData.length === 0}
+            />
           </div>
         </div>
-      </div> */}
+      )}
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Stock Barcode Wise report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Stock Barcode Wise report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
 
       {/* Branch Selection Popup */}
       {showBranchPopup && (

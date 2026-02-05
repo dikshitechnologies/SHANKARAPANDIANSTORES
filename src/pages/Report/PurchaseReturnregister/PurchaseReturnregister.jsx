@@ -5,6 +5,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import axiosInstance from '../../../api/axiosInstance';
 import { useAuth } from '../../../context/AuthContext';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 // Helper functions (keep these outside the component)
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
@@ -83,6 +85,10 @@ const PurchaseReturnRegister = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   // Screen size state
   const [screenSize, setScreenSize] = useState({
@@ -279,6 +285,132 @@ const PurchaseReturnRegister = () => {
     setHasMore(true);
     setFocusedField('fromDate');
     toast.info('Filters cleared! Select dates and click Search to view data');
+  };
+
+  const handlePrintClick = () => {
+    if (data.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (data.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const generatePDF = () => {
+    try {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Purchase Return Register</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .summary { margin-top: 20px; font-weight: bold; text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h1>Purchase Return Register</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Total Records: ${summary.totalRecords}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Name</th>
+                <th>Invoice</th>
+                <th>Voucher Date</th>
+                <th>Bill</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((row, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${row.name || ''}</td>
+                  <td>${row.invoice || ''}</td>
+                  <td>${row.voucherDate || ''}</td>
+                  <td>${row.bill || ''}</td>
+                  <td>₹${formatNumber(row.amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="summary">
+            <p>Net Total: ₹${formatNumber(summary.totals.amount)}</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      let csvContent = 'Purchase Return Register\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Total Records: ${summary.totalRecords}\n\n`;
+      
+      csvContent += 'No,Name,Invoice,Voucher Date,Bill,Amount\n';
+      
+      data.forEach((row, index) => {
+        const amount = parseNumber(row.amount);
+        csvContent += `${index + 1},"${row.name || ''}",${row.invoice || ''},${row.voucherDate || ''},${row.bill || ''},${amount}\n`;
+      });
+      
+      csvContent += `\nNet Total:,,,,,${parseNumber(summary.totals.amount)}\n`;
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Purchase_Return_Register_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
 
   // Keyboard navigation
@@ -577,6 +709,7 @@ const PurchaseReturnRegister = () => {
       left: 0,
       right: 0,
       flex: '0 0 auto',
+      display: 'flex',
       flexDirection: screenSize.isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -624,6 +757,12 @@ const PurchaseReturnRegister = () => {
       fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       color: '#1976d2',
       fontWeight: 'bold',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center',
+      marginLeft: screenSize.isMobile ? '0' : 'auto',
     },
     searchButton: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
@@ -913,7 +1052,43 @@ const PurchaseReturnRegister = () => {
             </span>
           </div>
         </div>
+        <div style={styles.buttonGroup}>
+          <PrintButton 
+            onClick={handlePrintClick}
+            isActive={true}
+            disabled={data.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={true}
+            disabled={data.length === 0}
+          />
+        </div>
       </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Purchase Return Register report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Purchase Return Register report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 };
