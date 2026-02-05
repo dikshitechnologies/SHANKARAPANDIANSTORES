@@ -627,11 +627,15 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
   const getMaxPrefixFromAPI = async () => {
     try {
       const response = await apiService.get(API_ENDPOINTS.ITEM_CREATION_ENDPOINTS.getMaxPrefix);
-
-      if (response.data && response.data.maxPrefix) {
+      console.log(response);
+      if (response.data && response.data.prefix) {
+        handleChange('prefix', response.data.prefix.toString());
+      } else if (response.data && response.data.maxPrefix) {
         handleChange('prefix', response.data.maxPrefix.toString());
       } else if (response.data && response.data.nextPrefix) {
         handleChange('prefix', response.data.nextPrefix.toString());
+      } else if (response.prefix) {
+        handleChange('prefix', response.prefix.toString());
       } else {
         const defaultPrefix = "1001";
         handleChange('prefix', defaultPrefix);
