@@ -3,6 +3,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 // Helper function to convert YYYY-MM-DD to DD/MM/YYYY for API
 const formatDateForAPI = (dateString) => {
@@ -54,6 +56,10 @@ const GroupwiseStock = () => {
   const [itemDetailsData, setItemDetailsData] = useState([]);
   const [itemTotalInQty, setItemTotalInQty] = useState(0);
   const [itemTotalOutQty, setItemTotalOutQty] = useState(0);
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   // Fetch companies on mount
   useEffect(() => {
@@ -613,6 +619,319 @@ const GroupwiseStock = () => {
     setViewLevel('groups');
     setSelectedGroupName('');
     setSelectedItemName('');
+  };
+
+  const handlePrintClick = () => {
+    if (viewLevel === 'groups' && stockData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    if (viewLevel === 'items' && groupDetailsData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    if (viewLevel === 'bills' && itemDetailsData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (viewLevel === 'groups' && stockData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    if (viewLevel === 'items' && groupDetailsData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    if (viewLevel === 'bills' && itemDetailsData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const generatePDF = () => {
+    try {
+      let printContent = '';
+      
+      if (viewLevel === 'groups') {
+        printContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Group Wise Stock Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              h1 { text-align: center; color: #1B91DA; }
+              .info { text-align: center; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; }
+              td { padding: 8px; border: 1px solid #ddd; text-align: center; }
+              tr:nth-child(even) { background-color: #f9f9f9; }
+              .total-row { background-color: #e3f2fd; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>Group Wise Stock Report</h1>
+            <div class="info">
+              <p>Period: ${fromDate} to ${toDate}</p>
+              <p>Company: ${companyDisplay}</p>
+              <p>Total Records: ${stockData.length}</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Item Name</th>
+                  <th>Opening Qty</th>
+                  <th>Purchase Qty</th>
+                  <th>Sale Qty</th>
+                  <th>Balance Qty</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${stockData.map((item, idx) => `
+                  <tr>
+                    <td>${item.slNo}</td>
+                    <td>${item.itemName || ''}</td>
+                    <td>${item.openingQty || ''}</td>
+                    <td>${item.purchaseQty || ''}</td>
+                    <td>${item.saleQty || ''}</td>
+                    <td>${item.balanceQty || ''}</td>
+                    <td>₹${item.amount ? item.amount.toFixed(2) : '0.00'}</td>
+                  </tr>
+                `).join('')}
+                ${totalData ? `
+                  <tr class="total-row">
+                    <td colspan="2">Total</td>
+                    <td>${totalData.openingQty || ''}</td>
+                    <td>${totalData.purchaseQty || ''}</td>
+                    <td>${totalData.saleQty || ''}</td>
+                    <td>${totalData.balanceQty || ''}</td>
+                    <td>₹${totalData.amount ? totalData.amount.toFixed(2) : '0.00'}</td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </body>
+          </html>
+        `;
+      } else if (viewLevel === 'items') {
+        printContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Group Details - ${selectedGroupName}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              h1 { text-align: center; color: #1B91DA; }
+              .info { text-align: center; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; }
+              td { padding: 8px; border: 1px solid #ddd; text-align: center; }
+              tr:nth-child(even) { background-color: #f9f9f9; }
+              .total-row { background-color: #e3f2fd; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>Group Details - ${selectedGroupName}</h1>
+            <div class="info">
+              <p>Period: ${fromDate} to ${toDate}</p>
+              <p>Company: ${companyDisplay}</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Item Name</th>
+                  <th>Opening Qty</th>
+                  <th>Purchase Qty</th>
+                  <th>Sale Qty</th>
+                  <th>Balance Qty</th>
+                  <th>Sale Amount</th>
+                  <th>Cost Amount</th>
+                  <th>Profit</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${groupDetailsData.map((item, idx) => `
+                  <tr>
+                    <td>${item.slNo}</td>
+                    <td>${item.itemName || ''}</td>
+                    <td>${item.openingQty || ''}</td>
+                    <td>${item.purchaseQty || ''}</td>
+                    <td>${item.saleQty || ''}</td>
+                    <td>${item.balanceQty || ''}</td>
+                    <td>₹${item.saleAmount ? item.saleAmount.toFixed(2) : '0.00'}</td>
+                    <td>₹${item.costAmount ? item.costAmount.toFixed(2) : '0.00'}</td>
+                    <td>₹${item.profit ? item.profit.toFixed(2) : '0.00'}</td>
+                  </tr>
+                `).join('')}
+                ${groupDetailsTotal ? `
+                  <tr class="total-row">
+                    <td colspan="2">Total</td>
+                    <td>${groupDetailsTotal.openingQty || ''}</td>
+                    <td>${groupDetailsTotal.purchaseQty || ''}</td>
+                    <td>${groupDetailsTotal.saleQty || ''}</td>
+                    <td>${groupDetailsTotal.balanceQty || ''}</td>
+                    <td>₹${groupDetailsTotal.saleAmount ? groupDetailsTotal.saleAmount.toFixed(2) : '0.00'}</td>
+                    <td>₹${groupDetailsTotal.costAmount ? groupDetailsTotal.costAmount.toFixed(2) : '0.00'}</td>
+                    <td>₹${groupDetailsTotal.profit ? groupDetailsTotal.profit.toFixed(2) : '0.00'}</td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </body>
+          </html>
+        `;
+      } else if (viewLevel === 'bills') {
+        printContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Item Details - ${selectedItemName}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              h1 { text-align: center; color: #1B91DA; }
+              .info { text-align: center; margin-bottom: 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; }
+              td { padding: 8px; border: 1px solid #ddd; text-align: center; }
+              tr:nth-child(even) { background-color: #f9f9f9; }
+              .total-row { background-color: #e3f2fd; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>Item Details - ${selectedItemName}</h1>
+            <div class="info">
+              <p>Period: ${fromDate} to ${toDate}</p>
+              <p>Company: ${companyDisplay}</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Date</th>
+                  <th>Particulars</th>
+                  <th>Voucher No</th>
+                  <th>In Qty</th>
+                  <th>Out Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemDetailsData.map((item, idx) => `
+                  <tr>
+                    <td>${item.slNo}</td>
+                    <td>${item.date || ''}</td>
+                    <td>${item.particulars || ''}</td>
+                    <td>${item.voucherNo || ''}</td>
+                    <td>${item.inQty || ''}</td>
+                    <td>${item.outQty || ''}</td>
+                  </tr>
+                `).join('')}
+                <tr class="total-row">
+                  <td colspan="4">Total</td>
+                  <td>${itemTotalInQty || ''}</td>
+                  <td>${itemTotalOutQty || ''}</td>
+                </tr>
+              </tbody>
+            </table>
+          </body>
+          </html>
+        `;
+      }
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      let csvContent = '';
+      
+      if (viewLevel === 'groups') {
+        csvContent = 'Group Wise Stock Report\n';
+        csvContent += `Period: ${fromDate} to ${toDate}\n`;
+        csvContent += `Company: ${companyDisplay}\n`;
+        csvContent += `Total Records: ${stockData.length}\n\n`;
+        csvContent += 'No.,Item Name,Opening Qty,Purchase Qty,Sale Qty,Balance Qty,Amount\n';
+        
+        stockData.forEach((item) => {
+          csvContent += `${item.slNo},"${item.itemName || ''}",${item.openingQty || ''},${item.purchaseQty || ''},${item.saleQty || ''},${item.balanceQty || ''},${item.amount ? item.amount.toFixed(2) : '0.00'}\n`;
+        });
+        
+        if (totalData) {
+          csvContent += `Total,,${totalData.openingQty || ''},${totalData.purchaseQty || ''},${totalData.saleQty || ''},${totalData.balanceQty || ''},${totalData.amount ? totalData.amount.toFixed(2) : '0.00'}\n`;
+        }
+      } else if (viewLevel === 'items') {
+        csvContent = `Group Details - ${selectedGroupName}\n`;
+        csvContent += `Period: ${fromDate} to ${toDate}\n`;
+        csvContent += `Company: ${companyDisplay}\n\n`;
+        csvContent += 'No.,Item Name,Opening Qty,Purchase Qty,Sale Qty,Balance Qty,Sale Amount,Cost Amount,Profit\n';
+        
+        groupDetailsData.forEach((item) => {
+          csvContent += `${item.slNo},"${item.itemName || ''}",${item.openingQty || ''},${item.purchaseQty || ''},${item.saleQty || ''},${item.balanceQty || ''},${item.saleAmount ? item.saleAmount.toFixed(2) : '0.00'},${item.costAmount ? item.costAmount.toFixed(2) : '0.00'},${item.profit ? item.profit.toFixed(2) : '0.00'}\n`;
+        });
+        
+        if (groupDetailsTotal) {
+          csvContent += `Total,,${groupDetailsTotal.openingQty || ''},${groupDetailsTotal.purchaseQty || ''},${groupDetailsTotal.saleQty || ''},${groupDetailsTotal.balanceQty || ''},${groupDetailsTotal.saleAmount ? groupDetailsTotal.saleAmount.toFixed(2) : '0.00'},${groupDetailsTotal.costAmount ? groupDetailsTotal.costAmount.toFixed(2) : '0.00'},${groupDetailsTotal.profit ? groupDetailsTotal.profit.toFixed(2) : '0.00'}\n`;
+        }
+      } else if (viewLevel === 'bills') {
+        csvContent = `Item Details - ${selectedItemName}\n`;
+        csvContent += `Period: ${fromDate} to ${toDate}\n`;
+        csvContent += `Company: ${companyDisplay}\n\n`;
+        csvContent += 'No.,Date,Particulars,Voucher No,In Qty,Out Qty\n';
+        
+        itemDetailsData.forEach((item) => {
+          csvContent += `${item.slNo},${item.date || ''},"${item.particulars || ''}",${item.voucherNo || ''},${item.inQty || ''},${item.outQty || ''}\n`;
+        });
+        
+        csvContent += `Total,,,,${itemTotalInQty || ''},${itemTotalOutQty || ''}\n`;
+      }
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      
+      let filename = `Groupwise_Stock_${fromDate}_to_${toDate}.csv`;
+      if (viewLevel === 'items') filename = `Group_Details_${selectedGroupName}_${fromDate}_to_${toDate}.csv`;
+      if (viewLevel === 'bills') filename = `Item_Details_${selectedItemName}_${fromDate}_to_${toDate}.csv`;
+      
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
   
   const handleGroupRowClick = async (groupName) => {
@@ -1246,6 +1565,70 @@ const GroupwiseStock = () => {
           </div>
         </div>
       )}
+
+      {/* Footer with Print and Export Buttons */}
+      {hasSearched && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          padding: screenSize.isMobile ? '6px 4px' : screenSize.isTablet ? '8px 6px' : '8px 10px',
+          backgroundColor: 'white',
+          borderTop: '2px solid #e0e0e0',
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+          gap: '10px',
+          zIndex: 100,
+        }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <PrintButton 
+              onClick={handlePrintClick}
+              isActive={true}
+              disabled={
+                (viewLevel === 'groups' && stockData.length === 0) ||
+                (viewLevel === 'items' && groupDetailsData.length === 0) ||
+                (viewLevel === 'bills' && itemDetailsData.length === 0)
+              }
+            />
+            <ExportButton 
+              onClick={handleExportClick}
+              isActive={true}
+              disabled={
+                (viewLevel === 'groups' && stockData.length === 0) ||
+                (viewLevel === 'items' && groupDetailsData.length === 0) ||
+                (viewLevel === 'bills' && itemDetailsData.length === 0)
+              }
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 };
