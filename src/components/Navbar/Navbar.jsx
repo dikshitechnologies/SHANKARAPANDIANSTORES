@@ -323,7 +323,7 @@ const Navbar = () => {
       name: "Ledger",
       path: "/reports/ledger",
       icon: <DatabaseOutlined />,
-      permission: "LEDGER_REPORT",
+      permission: "LEDGER",
     },
   
      {

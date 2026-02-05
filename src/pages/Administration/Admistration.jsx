@@ -72,19 +72,22 @@ const TRANSACTION_ITEMS = [
 ];
 
 const REPORT_ITEMS = [
-  { label: "Sales Report", dbName: "SALES_REPORT" },
-  { label: "Stock Report", dbName: "STOCK_REPORT" },
-  { label: "Purchase Report", dbName: "PURCHASE_REPORT" },
-  { label: "Ledger Report", dbName: "LEDGER_REPORT" },
-  { label: "Trial Balance", dbName: "TRIAL_BALANCE" },
-  { label: "Profit & Loss", dbName: "PROFIT_LOSS" },
-  { label: "Balance Sheet", dbName: "BALANCE_SHEET" },
-  { label: "Cash Flow", dbName: "CASH_FLOW" },
-  { label: "Stock Summary", dbName: "STOCK_SUMMARY" },
-  { label: "Customer Statement", dbName: "CUSTOMER_STATEMENT" },
-  { label: "Supplier Statement", dbName: "SUPPLIER_STATEMENT" },
-  { label: "Tax Report", dbName: "TAX_REPORT" },
-  { label: "Audit Report", dbName: "AUDIT_REPORT" }
+  { label: "Account Payable", dbName: "ACCOUNT_PAYABLE" },
+  { label: "Account Receivable", dbName: "ACCOUNT_RECEIVABLE" },
+  { label: "Bill Collector Report", dbName: "BILL_COLLECTOR_REPORT" },
+  { label: "Day Book", dbName: "DAY_BOOK" },
+  { label: "Daily Report", dbName: "DAILY_REPORT" },
+  { label: "Group-wise Stock", dbName: "GROUP_WISE_STOCK" },
+  { label: "Item Wise Stock", dbName: "ITEM_WISE_STOCK" },
+  { label: "Ledger", dbName: "LEDGER" },
+  { label: "Prefix History", dbName: "PREFIX_HISTORY" },
+
+  { label: "Purchase Register", dbName: "PURCHASE_REGISTER" },
+  { label: "Purchase Return Register", dbName: "PURCHASE_RETURN_REGISTER" },
+  { label: "Stock Barcode Wise", dbName: "STOCK_BARCODE_WISE" },
+  { label: "Sales Register", dbName: "SALES_REGISTER" },
+  { label: "Sales Return Register", dbName: "SALES_RETURN_REGISTER" },
+  { label: "Scrap Purchase", dbName: "SCRAP_PURCHASE" }
 ];
 
 function makeEmptyPerms(list, modelShort = "M") {
