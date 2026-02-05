@@ -6,18 +6,19 @@ import styles from './Navbar.module.css';
 const DropdownMenu = ({ items, onItemClick, position = 'center', isMobile = false }) => {
   const [openSubmenus, setOpenSubmenus] = useState({});
 
-  // Initialize all groups as open on mount
+  // Initialize all groups as closed on mount
   useEffect(() => {
     const initialState = {};
     items.forEach((item) => {
       if (item.isGroup && item.children) {
-        initialState[item.name] = true;
+        initialState[item.name] = false;
       }
     });
     setOpenSubmenus(initialState);
   }, [items]);
 
-  const toggleSubmenu = (groupName) => {
+  const toggleSubmenu = (groupName, e) => {
+    e.stopPropagation();
     setOpenSubmenus(prev => ({
       ...prev,
       [groupName]: !prev[groupName]
@@ -33,7 +34,7 @@ const DropdownMenu = ({ items, onItemClick, position = 'center', isMobile = fals
             <div key={index} className={styles['dropdown-group']}>
               <div 
                 className={styles['dropdown-group-header']}
-                onClick={() => toggleSubmenu(item.name)}
+                onClick={(e) => toggleSubmenu(item.name, e)}
               >
                 {item.icon && <span className={styles['dropdown-icon']}>{item.icon}</span>}
                 <span className={styles['group-name']}>{item.name}</span>
