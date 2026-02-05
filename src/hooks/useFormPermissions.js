@@ -1,14 +1,12 @@
 import { useAuth } from '../context/AuthContext';
 
-/**
- * Hook to check permissions for a specific form code
- * @param {string} formCode - The form code to check permissions for (e.g., "FRMLGRP")
- * @returns {object} Permission object with shape: { canCreate: boolean, canEdit: boolean, canDelete: boolean, print: boolean }
- */
+const isAllowed = (val) =>
+  val === true || val === 'Y' || val === '1' || val === 1;
+
 export const useFormPermissions = (formCode) => {
   const { userData, permissions } = useAuth();
 
-  // Admin users have all permissions by default
+  // ✅ Admin gets everything
   if (userData?.role === 'Admin') {
     return {
       permission: true,
@@ -20,32 +18,42 @@ export const useFormPermissions = (formCode) => {
     };
   }
 
-  // Find permission for this form code in the permissions array
-  const formPermission = permissions && Array.isArray(permissions) 
-    ? permissions.find(perm => perm.formPermission === formCode || perm.fForm === formCode)
+  const formPermission = Array.isArray(permissions)
+    ? permissions.find(
+        perm => perm.formPermission === formCode || perm.fForm === formCode
+      )
     : null;
 
-  // Return permission object with all action permissions
-  // Note: permissions are stored with boolean values (add, edit, delete, print) or string values (fAdd, fMod, fDel, fPrint)
-  const hasAdd = formPermission?.add === true || formPermission?.fAdd === 'Y' || formPermission?.addPermission === 'Y' || false;
-  const hasEdit = formPermission?.edit === true || formPermission?.fMod === 'Y' || formPermission?.editPermission === 'Y' || false;
-  const hasDelete = formPermission?.delete === true || formPermission?.fDel === 'Y' || formPermission?.deletePermission === 'Y' || false;
-  const hasPrint = formPermission?.print === true || formPermission?.fPrint === 'Y' || formPermission?.printPermission === 'Y' || false;
-  
+  if (!formPermission) {
+    return {
+      permission: false,
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+      print: false,
+      hasAnyPermission: () => false,
+    };
+  }
+
+  const hasAdd    = isAllowed(formPermission.add || formPermission.fAdd);
+  const hasEdit   = isAllowed(formPermission.edit || formPermission.fMod);
+  const hasDelete = isAllowed(formPermission.delete || formPermission.fDel);
+  const hasPrint  = isAllowed(formPermission.print || formPermission.fPrint);
+  const hasForm   = isAllowed(formPermission.fPermission);
+
   return {
-    permission: formPermission?.fPermission === 'Y' || false,
+    permission: hasForm,
     canCreate: hasAdd,
     canEdit: hasEdit,
     canDelete: hasDelete,
     print: hasPrint,
-    // Legacy property names for backward compatibility
+
+    // legacy aliases
     add: hasAdd,
     edit: hasEdit,
     delete: hasDelete,
-    // Helper function to check if any action is allowed
-    hasAnyPermission: () => {
-      if (!formPermission) return false;
-      return formPermission.fPermission === 'Y' || hasAdd || hasEdit || hasDelete || hasPrint;
-    }
+
+    hasAnyPermission: () =>
+      hasForm || hasAdd || hasEdit || hasDelete || hasPrint,
   };
 };

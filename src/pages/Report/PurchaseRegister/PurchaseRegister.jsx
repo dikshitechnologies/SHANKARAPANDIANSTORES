@@ -7,6 +7,7 @@ import axiosInstance from '../../../api/axiosInstance';
 import { useAuth } from '../../../context/AuthContext';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 // Helper functions (keep these outside the component)
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
@@ -78,8 +79,10 @@ const safeDisplayNumber = (value, defaultValue = '0') => {
 };
 
 const PurchaseRegister = () => {
-  // State for data
+  // --- PERMISSIONS ---
+  const { checkPrintPermission } = usePrintPermission('PURCHASE_REGISTER');
 
+  // State for data
     const { userData } = useAuth() || {};
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({
@@ -321,6 +324,10 @@ const PurchaseRegister = () => {
   };
 
   const handlePrintClick = () => {
+    // ✅ Check print permission first
+    if (!checkPrintPermission()) {
+      return;
+    }
     if (data.length === 0) {
       toast.warning('No data available to print');
       return;

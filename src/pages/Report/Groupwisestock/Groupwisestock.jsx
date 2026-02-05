@@ -5,6 +5,7 @@ import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 
 // Helper function to convert YYYY-MM-DD to DD/MM/YYYY for API
 const formatDateForAPI = (dateString) => {
@@ -13,6 +14,8 @@ const formatDateForAPI = (dateString) => {
 };
 
 const GroupwiseStock = () => {
+  // --- PERMISSIONS ---
+  const { checkPrintPermission } = usePrintPermission('GROUP_WISE_STOCK');
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
@@ -622,6 +625,10 @@ const GroupwiseStock = () => {
   };
 
   const handlePrintClick = () => {
+    // ✅ Check print permission first
+    if (!checkPrintPermission()) {
+      return;
+    }
     if (viewLevel === 'groups' && stockData.length === 0) {
       toast.warning('No data available to print');
       return;

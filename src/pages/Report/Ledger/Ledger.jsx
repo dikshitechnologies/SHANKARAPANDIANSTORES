@@ -6,6 +6,7 @@ import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -26,6 +27,9 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 );
 
 const Ledger = () => {
+  // --- PERMISSIONS ---
+  const { checkPrintPermission } = usePrintPermission('LEDGER');
+
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -397,6 +401,10 @@ const Ledger = () => {
   };
 
   const handlePrintClick = () => {
+    // ✅ Check print permission first
+    if (!checkPrintPermission()) {
+      return;
+    }
     if (ledgerData.length === 0) {
       toast.warning('No data available to print');
       return;

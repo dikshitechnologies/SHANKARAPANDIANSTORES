@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -44,6 +45,9 @@ const formatDateForAPI = (date) => {
 };
 
 const DayBook = () => {
+  // --- PERMISSIONS ---
+  const { checkPrintPermission } = usePrintPermission('DAY_BOOK');
+
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
@@ -358,6 +362,10 @@ const DayBook = () => {
   };
 
   const handlePrintClick = () => {
+    // ✅ Check print permission first
+    if (!checkPrintPermission()) {
+      return;
+    }
     if (dayBookData.length === 0) {
       toast.warning('No data available to print');
       return;

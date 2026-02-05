@@ -267,113 +267,111 @@ const Navbar = () => {
   ];
 
   const reportItems = [ 
-   
-   
-    
-   
-   
-
-    
     {
       name: "Account Payable",
       path: "/reports/account-payable",
       icon: <DatabaseOutlined />,
       permission: "ACCOUNT_PAYABLE",
+      printPermission: "ACCOUNT_PAYABLE",
     },
-     {
+    {
       name: "Account Receivable",
       path: "/reports/account-receivable",
       icon: <DatabaseOutlined />,
       permission: "ACCOUNT_RECEIVABLE",
+      printPermission: "ACCOUNT_RECEIVABLE",
     },
-
-     {
+    {
       name: "Bill Collector Report",
       path: "/reports/Billcollectorreport",
       icon: <DatabaseOutlined />,
       permission: "BILL_COLLECTOR_REPORT",
+      printPermission: "BILL_COLLECTOR_REPORT",
     }, 
-     {
+    {
       name: "Day Book",
       path: "/reports/day-book",
       icon: <DatabaseOutlined />,
       permission: "DAY_BOOK",
+      printPermission: "DAY_BOOK",
     },
-    
-      {
+    {
       name: "Daily Report",
       path: "/reports/DailyReport",
       icon: <DatabaseOutlined />,
       permission: "DAILY_REPORT",
+      printPermission: "DAILY_REPORT",
     },
-     {
+    {
       name: "Group-wise Stock",
       path: "/reports/Groupwisestock",
       icon: <DatabaseOutlined />,
       permission: "GROUP_WISE_STOCK",
+      printPermission: "GROUP_WISE_STOCK",
     }, 
     {
       name: "Item Wise Stock",
       path: "/reports/Itemwisestock",
       icon: <DatabaseOutlined />,
       permission: "ITEM_WISE_STOCK",
+      printPermission: "ITEM_WISE_STOCK",
     }, 
-    
-     {
+    {
       name: "Ledger",
       path: "/reports/ledger",
       icon: <DatabaseOutlined />,
       permission: "LEDGER",
+      printPermission: "LEDGER",
     },
-  
-     {
+    {
       name: "Prefix History",
       path: "/reports/PrefixHistory",
       icon: <DatabaseOutlined />,
       permission: "PREFIX_HISTORY",
+      printPermission: "PREFIX_HISTORY",
     },
-     {
+    {
       name: "Purchase Register",
       path: "/reports/purchase-register",
       icon: <FileTextOutlined />,
       permission: "PURCHASE_REGISTER",
+      printPermission: "PURCHASE_REGISTER",
     }, 
-     {
+    {
       name: "Purchase Return Register",
       path: "/reports/PurchaseReturnregister",
       icon: <FileTextOutlined />,
       permission: "PURCHASE_RETURN_REGISTER",
+      printPermission: "PURCHASE_RETURN_REGISTER",
     },
-
-    
     {
       name: "Stock Barcode Wise",
       path: "/reports/StockBarcodeWise",
       icon: <DatabaseOutlined />,
       permission: "STOCK_BARCODE_WISE",
+      printPermission: "STOCK_BARCODE_WISE",
     }, 
-     {
+    {
       name: "Sales Register",
       path: "/reports/sales-register",
       icon: <FileTextOutlined />,
       permission: "SALES_REGISTER",
+      printPermission: "SALES_REGISTER",
     }, 
-     {
+    {
       name: "Sales Return Register",
       path: "/reports/SalesReturnregister",
       icon: <FileTextOutlined />,
       permission: "SALES_RETURN_REGISTER",
+      printPermission: "SALES_RETURN_REGISTER",
     }, 
-      {
+    {
       name: "Scrap Purchase",
       path: "/reports/scrap-purchase",
       icon: <DatabaseOutlined />,
       permission: "SCRAP_PURCHASE",
+      printPermission: "SCRAP_PURCHASE",
     },
-    
-       
-   
-
   ];
 
   // Filter items based on permissions

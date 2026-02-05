@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -35,6 +36,9 @@ const formatDate = (date) => {
 };
 
 const AccountPayables = () => {
+  // --- PERMISSIONS ---
+  const { checkPrintPermission } = usePrintPermission('ITEM_WISE_STOCK');
+
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
@@ -404,6 +408,10 @@ const AccountPayables = () => {
   };
 
   const handlePrintClick = () => {
+    // ✅ Check print permission first
+    if (!checkPrintPermission()) {
+      return;
+    }
     if (payablesData.length === 0) {
       toast.warning('No data available to print');
       return;
