@@ -3623,7 +3623,7 @@ const itemsData = validItems.map(item => {
       ...styles.formField,
       gridColumn: screenSize.isMobile ? 'span 1' : ''
     }}>
-      <label style={styles.inlineLabel}>Ref No:</label>
+      <label style={styles.inlineLabel}>BILL No:</label>
       <input
         type="text"
         value={billDetails.billNo}
