@@ -450,8 +450,8 @@ const AccountPayables = () => {
           <h1>Item Wise Stock Report</h1>
           <div class="info">
             <p>Period: ${fromDate} to ${toDate}</p>
-            <p>Company: ${companyDisplay}</p>
-            <p>Item: ${selectedItem?.itemname || 'All Items'}</p>
+            <p>Company: ${selectedCompanyNames.join(', ') || 'ALL'}</p>
+            <p>Item: ${selectedItem?.itemname || selectedItem?.fItemName || 'All Items'}</p>
             <p>Total Records: ${payablesData.length}</p>
           </div>
           <table>
@@ -459,23 +459,23 @@ const AccountPayables = () => {
               <tr>
                 <th>No</th>
                 <th>Item Name</th>
-                <th>Company</th>
+                <th>Date</th>
                 <th>Opening Qty</th>
                 <th>Purchase Qty</th>
                 <th>Sales Qty</th>
-                <th>Closing Qty</th>
+                <th>Balance Qty</th>
               </tr>
             </thead>
             <tbody>
               ${payablesData.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td>${row.itemName || ''}</td>
-                  <td>${row.company || ''}</td>
-                  <td>${row.openingQty || ''}</td>
-                  <td>${row.purchaseQty || ''}</td>
-                  <td>${row.salesQty || ''}</td>
-                  <td>${row.closingQty || ''}</td>
+                  <td>${row.fItemName || ''}</td>
+                  <td>${row.date || ''}</td>
+                  <td>${row.opgQty || 0}</td>
+                  <td>${row.purchaseQty || 0}</td>
+                  <td>${row.salesQty || 0}</td>
+                  <td>${row.balanceQty || 0}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -501,14 +501,14 @@ const AccountPayables = () => {
     try {
       let csvContent = 'Item Wise Stock Report\n';
       csvContent += `Period: ${fromDate} to ${toDate}\n`;
-      csvContent += `Company: ${companyDisplay}\n`;
-      csvContent += `Item: ${selectedItem?.itemname || 'All Items'}\n`;
+      csvContent += `Company: ${selectedCompanyNames.join(', ') || 'ALL'}\n`;
+      csvContent += `Item: ${selectedItem?.itemname || selectedItem?.fItemName || 'All Items'}\n`;
       csvContent += `Total Records: ${payablesData.length}\n\n`;
       
-      csvContent += 'No,Item Name,Company,Opening Qty,Purchase Qty,Sales Qty,Closing Qty\n';
+      csvContent += 'No,Item Name,Date,Opening Qty,Purchase Qty,Sales Qty,Balance Qty\n';
       
       payablesData.forEach((row, index) => {
-        csvContent += `${index + 1},"${row.itemName || ''}","${row.company || ''}",${row.openingQty || ''},${row.purchaseQty || ''},${row.salesQty || ''},${row.closingQty || ''}\n`;
+        csvContent += `${index + 1},"${row.fItemName || ''}","${row.date || ''}",${row.opgQty || 0},${row.purchaseQty || 0},${row.salesQty || 0},${row.balanceQty || 0}\n`;
       });
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
