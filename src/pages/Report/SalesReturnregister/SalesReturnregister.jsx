@@ -7,6 +7,7 @@ import { API_BASE } from '../../../api/apiService';
 import { useAuth } from '../../../context/AuthContext';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -35,8 +36,10 @@ const formatDate = (date) => {
 };
 
 const SalesReturnRegister = () => {
-  
-    const { userData } = useAuth() || {};
+  // --- PERMISSIONS ---
+  const { checkPrintPermission } = usePrintPermission('SALES_RETURN_REGISTER');
+
+  const { userData } = useAuth() || {};
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
@@ -201,6 +204,10 @@ const SalesReturnRegister = () => {
   };
 
   const handlePrintClick = () => {
+    // ✅ Check print permission first
+    if (!checkPrintPermission()) {
+      return;
+    }
     if (salesReturnData.length === 0) {
       toast.warning('No data available to print');
       return;
