@@ -470,11 +470,13 @@ const handleExportConfirm = () => {
             h1 { text-align: center; color: #1B91DA; }
             .info { text-align: center; margin-bottom: 20px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #1B91DA; color: white; padding: 10px; text-align: left; }
-            td { padding: 8px; border: 1px solid #ddd; }
+            th { background-color: #1B91DA; color: white; padding: 8px; text-align: center; font-size: 10px; }
+            td { padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 10px; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
             tr:nth-child(even) { background-color: #f9f9f9; }
-            .summary { margin-top: 20px; font-weight: bold; }
-            .summary-item { display: inline-block; margin-right: 30px; }
+            .summary { margin-top: 20px; font-weight: bold; text-align: center; }
+            .summary-item { display: inline-block; margin: 0 30px; }
           </style>
         </head>
         <body>
@@ -488,31 +490,37 @@ const handleExportConfirm = () => {
           <table>
             <thead>
               <tr>
-                <th>No</th>
+                <th>S.No</th>
                 <th>Date</th>
+                <th>Name</th>
                 <th>Voucher No</th>
-                <th>Particulars</th>
-                <th>Debit</th>
-                <th>Credit</th>
-                <th>Balance</th>
+                <th>Type</th>
+                <th>Cr/Dr</th>
+                <th>Bill No</th>
+                <th>Bill Date</th>
+                <th>Amount</th>
               </tr>
             </thead>
             <tbody>
               ${ledgerData.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td>${row.date || row.voucherDate || ''}</td>
+                  <td>${row.date || ''}</td>
+                  <td class="text-left">${row.name || ''}</td>
                   <td>${row.voucherNo || ''}</td>
-                  <td>${row.particulars || row.narration || ''}</td>
-                  <td>₹${formatNumber(row.debit || 0)}</td>
-                  <td>₹${formatNumber(row.credit || 0)}</td>
-                  <td>₹${formatNumber(row.balance || 0)}</td>
+                  <td>${row.type || ''}</td>
+                  <td>${row.crDr || ''}</td>
+                  <td>${row.billNo || ''}</td>
+                  <td>${row.billet || ''}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.amount) || 0)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
           <div class="summary">
             <div class="summary-item">Opening Balance: ₹${formatNumber(openingBalance)}</div>
+            <div class="summary-item">Total Debit: ₹${formatNumber(totals.debit || 0)}</div>
+            <div class="summary-item">Total Credit: ₹${formatNumber(totals.credit || 0)}</div>
             <div class="summary-item">Closing Balance: ₹${formatNumber((closingBalance.credit || 0) - (closingBalance.debit || 0))}</div>
           </div>
         </body>
@@ -540,19 +548,19 @@ const handleExportConfirm = () => {
       csvContent += `Company: ${companyDisplay}\n`;
       csvContent += `Total Records: ${ledgerData.length}\n\n`;
       
-      csvContent += 'No,Date,Voucher No,Particulars,Debit,Credit,Balance\n';
+      csvContent += 'S.No,Date,Name,Voucher No,Type,Cr/Dr,Bill No,Bill Date,Amount\n';
       
       ledgerData.forEach((row, index) => {
-        const debit = row.debit || 0;
-        const credit = row.credit || 0;
-        const balance = row.balance || 0;
-        csvContent += `${index + 1},${row.date || row.voucherDate || ''},${row.voucherNo || ''},"${row.particulars || row.narration || ''}",${debit},${credit},${balance}\n`;
+        const amount = parseFloat(row.amount) || 0;
+        csvContent += `${index + 1},${row.date || ''},"${row.name || ''}",${row.voucherNo || ''},${row.type || ''},${row.crDr || ''},${row.billNo || ''},${row.billet || ''},${amount.toFixed(2)}\n`;
       });
       
       csvContent += `\n\n`;
       csvContent += `Summary\n`;
-      csvContent += `Opening Balance,${openingBalance}\n`;
-      csvContent += `Closing Balance,${(closingBalance.credit || 0) - (closingBalance.debit || 0)}\n`;
+      csvContent += `Opening Balance,${openingBalance.toFixed(2)}\n`;
+      csvContent += `Total Debit,${(totals.debit || 0).toFixed(2)}\n`;
+      csvContent += `Total Credit,${(totals.credit || 0).toFixed(2)}\n`;
+      csvContent += `Closing Balance,${((closingBalance.credit || 0) - (closingBalance.debit || 0)).toFixed(2)}\n`;
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
