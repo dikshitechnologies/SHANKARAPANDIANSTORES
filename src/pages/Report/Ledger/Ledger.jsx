@@ -28,7 +28,9 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
 
 const Ledger = () => {
   // --- PERMISSIONS ---
-  const { checkPrintPermission } = usePrintPermission('LEDGER');
+const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('LEDGER');
+
 
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('');
@@ -412,23 +414,45 @@ const Ledger = () => {
     setShowPrintConfirm(true);
   };
 
-  const handleExportClick = () => {
-    if (ledgerData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+const handleExportClick = () => {
+  // 🔒 SAME RULE AS PRINT
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = () => {
+  if (ledgerData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+const handlePrintConfirm = () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    generatePDF();
-  };
+    return;
+  }
 
-  const handleExportConfirm = () => {
+  setShowPrintConfirm(false);
+  generatePDF();
+};
+
+
+const handleExportConfirm = () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  exportToExcel();
+};
+
 
   const formatNumber = (num) => {
     return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1608,16 +1632,18 @@ const Ledger = () => {
           </div>
         </div>
         <div style={styles.buttonGroup}>
-          <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={ledgerData.length === 0}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={ledgerData.length === 0}
-          />
+         <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || ledgerData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || ledgerData.length === 0}
+/>
+
         </div>
       </div>
 

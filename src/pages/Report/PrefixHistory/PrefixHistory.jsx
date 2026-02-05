@@ -3,8 +3,14 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 
 const PrefixHistory = () => {
+// --- PERMISSIONS ---
+const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('PREFIX_HISTORY');
+
+
   // --- REFS ---
   const prefixRef = useRef(null);
 
@@ -488,9 +494,20 @@ const PrefixHistory = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+const handlePrint = () => {
+  // 🔒 Permission check
+  if (!checkPrintPermission()) {
+    return;
+  }
+
+  if (!hasSearched) {
+    toast.warning('No data available to print');
+    return;
+  }
+
+  window.print();
+};
+
 
   // Keyboard navigation
   const handlePrefixKeyDown = (e) => {

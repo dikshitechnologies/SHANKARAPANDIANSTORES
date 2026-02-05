@@ -6,6 +6,8 @@ import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
+
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -44,6 +46,12 @@ const formatDateForAPI = (date) => {
 };
 
 const TenderReport = () => {
+
+// --- PERMISSIONS ---
+const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('BILL_COLLECTOR_REPORT');
+
+
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
@@ -292,13 +300,20 @@ const TenderReport = () => {
     });
   };
 
-  const handlePrintClick = () => {
-    if (tenderData.length === 0) {
-      toast.warning('No data available to print');
-      return;
-    }
-    setShowPrintConfirm(true);
-  };
+ const handlePrintClick = () => {
+  // 🔒 Permission check FIRST
+  if (!checkPrintPermission()) {
+    return;
+  }
+
+  if (tenderData.length === 0) {
+    toast.warning('No data available to print');
+    return;
+  }
+
+  setShowPrintConfirm(true);
+};
+
 
   const handleExportClick = () => {
     if (tenderData.length === 0) {
@@ -313,10 +328,16 @@ const TenderReport = () => {
     await generatePDF();
   };
 
-  const handleExportConfirm = async () => {
+ const handleExportConfirm = async () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    await exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  await exportToExcel();
+};
+
 
   const formatNumber = (num) => {
     return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1495,16 +1516,18 @@ const TenderReport = () => {
             </div>
           </div>
           <div style={styles.buttonGroup}>
-            <PrintButton 
-              onClick={handlePrintClick}
-              isActive={true}
-              disabled={tenderData.length === 0}
-            />
-            <ExportButton 
-              onClick={handleExportClick}
-              isActive={true}
-              disabled={tenderData.length === 0}
-            />
+           <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || tenderData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || tenderData.length === 0}
+/>
+
           </div>
         </div>
       )}

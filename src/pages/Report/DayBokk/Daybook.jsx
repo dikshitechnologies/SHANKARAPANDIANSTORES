@@ -46,7 +46,9 @@ const formatDateForAPI = (date) => {
 
 const DayBook = () => {
   // --- PERMISSIONS ---
-  const { checkPrintPermission } = usePrintPermission('DAY_BOOK');
+ const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('DAY_BOOK');
+
 
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
@@ -373,23 +375,45 @@ const DayBook = () => {
     setShowPrintConfirm(true);
   };
 
-  const handleExportClick = () => {
-    if (dayBookData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+const handleExportClick = () => {
+  // 🔒 SAME permission as PRINT
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = () => {
+  if (dayBookData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+const handlePrintConfirm = () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    generatePDF();
-  };
+    return;
+  }
 
-  const handleExportConfirm = () => {
+  setShowPrintConfirm(false);
+  generatePDF();
+};
+
+
+ const handleExportConfirm = () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  exportToExcel();
+};
+
 
   const formatNumber = (num) => {
     return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1374,16 +1398,18 @@ const DayBook = () => {
           </div>
         </div>
         <div style={styles.buttonGroup}>
-          <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={dayBookData.length === 0}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={dayBookData.length === 0}
-          />
+        <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || dayBookData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || dayBookData.length === 0}
+/>
+
         </div>
       </div>
 
