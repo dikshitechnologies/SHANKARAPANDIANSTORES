@@ -1,25 +1,21 @@
-import { usePermissions } from './usePermissions';
 import { toast } from 'react-toastify';
+import { useFormPermissions } from './useFormPermissions';
 
 /**
- * Custom hook for checking print permissions on reports
- * @param {string} reportPermissionCode - The permission code for the report (e.g., "STOCK_BARCODE_WISE", "ACCOUNT_PAYABLE")
- * @returns {object} - { hasPrintPermission: boolean, checkPrintPermission: function }
+ * Custom hook for checking PRINT permissions on reports
+ * @param {string} reportPermissionCode - e.g. "ACCOUNT_PAYABLE"
  */
 export const usePrintPermission = (reportPermissionCode) => {
-  const { hasPermission } = usePermissions();
+  const permissions = useFormPermissions(reportPermissionCode);
 
-  const hasPrintPermission = reportPermissionCode ? hasPermission(reportPermissionCode) : false;
+  // ✅ ONLY fPrint decides print permission
+  const hasPrintPermission = permissions?.print === true;
 
   const checkPrintPermission = () => {
     if (!hasPrintPermission) {
       toast.error('You do not have permission to print this report', {
         position: 'top-right',
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
       });
       return false;
     }

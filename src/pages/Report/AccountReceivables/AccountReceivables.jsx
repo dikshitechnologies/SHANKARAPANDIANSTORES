@@ -36,7 +36,9 @@ const formatDate = (date) => {
 
 const AccountReceivables = () => {
   // --- PERMISSIONS ---
-  const { checkPrintPermission } = usePrintPermission('ACCOUNT_RECEIVABLE');
+ const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('ACCOUNT_RECEIVABLE');
+
 
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('');
@@ -1328,10 +1330,11 @@ closeButton: {
         </div>
         <div style={styles.buttonGroup}>
           <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={receivablesData.length === 0}
-          />
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || receivablesData.length === 0}
+/>
+
           <ExportButton 
             onClick={handleExportClick}
             isActive={true}
