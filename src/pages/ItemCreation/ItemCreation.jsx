@@ -646,11 +646,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
 
   // Validation function - UPDATED with mandatory field checks
   const validateForm = () => {
-    if (!formData.itemName) {
-      setMessage({ type: "error", text: 'Item Name is required.' });
-      itemNameRef.current?.focus();
-      return false;
-    }
+   
     if (!mainGroup) {
       setMessage({ type: "error", text: 'Group Name is required.' });
       return false;
@@ -811,21 +807,27 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
         const category = formData.category || '';
         const product = formData.product || '';
         const model = formData.model || '';
+        
+        // Calculate itemNameConcat at top level for fitemName
+        const itemNameConcat = [product, brand, category, model]
+          .filter(part => part.trim() !== '')
+          .join(' ');
+        
         // Build sizes array with itemName including size name
         const sizesArray = selectedSizes.map(sizeItem => {
           const sizeName = sizeItem.fname || sizeItem.fsize || sizeItem.name || '';
-          const itemNameConcat = [baseItemName, brand, category, product, model, sizeName]
+          const itemNameWithSize = [product, brand, category, model, sizeName]
             .filter(part => part.trim() !== '')
             .join(' ');
           return {
             size: sizeItem.fcode || sizeItem.fsize || '',
-            itemName: itemNameConcat
+            itemName: itemNameWithSize
           };
         });
 
         requestData = {
-          fitemName: baseItemName,
-          fSubItemName: baseItemName,
+          fitemName: itemNameConcat,
+          fSubItemName: product,
           groupName: mainGroup || '',
           gstNumber: formData.gstin || '',
           prefix: formData.prefix || '',
@@ -2547,9 +2549,71 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
               {/* LEFT COLUMN */}
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 
-                {/* Item Name field */}
-                <div className="field">
-                  <label className="field-label">Product Name <span className="asterisk">*</span></label>
+                
+
+
+
+                 <div className="field">
+                <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label>Product Name  <span className="asterisk">*</span></label>
+                <PopupScreensiIcon screen="product"  open={open} onClose={() => setOpen(false)}  />
+              </label>
+                
+                <div className="input-with-search">
+                  <input
+                    ref={productRef}
+                    className="input"
+                    value={formData.product}
+                    onChange={(e) => handleChange('product', e.target.value)}
+                    onClick={() => setIsProductPopupOpen(true)}
+                    onKeyDown={(e) => handlePopupFieldKeyPress('product', e)}
+                    onFocus={() => setActiveField('product')}
+                    onBlur={() => setActiveField(null)}
+                    disabled={isSubmitting || isDeleteMode}
+                    readOnly
+                    aria-label="Product"
+                  />
+                  {formData.product && activeField === 'product' && (
+                    <button
+                      type="button"
+                      className="input-clear-btn"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, product: '' }));
+                        setFieldCodes(prev => ({ ...prev, productCode: '' }));
+                      }}
+                      title="Clear product selection"
+                      disabled={isSubmitting}
+                      aria-label="Clear product"
+                    >
+
+                    </button>
+                  )}
+                  <div className="input-search-icon">
+                    <Icon.Search size={16} />
+                  </div>
+                </div>
+                
+                {/* Display selected values */}
+                {(formData.product || formData.brand || formData.category || formData.model || formData.size) && (
+                  <span style={{ 
+                    display: 'block', 
+                    marginTop: '8px', 
+                    fontSize: '13px', 
+                    color: '#64748b',
+                    fontWeight: '500',
+                    lineHeight: '1.6'
+                  }}>
+                    {formData.product && ` ${formData.product}`}
+                    {formData.brand && ` ${formData.brand}`}
+                    {formData.category && `  ${formData.category}`}
+                    {formData.model && `   ${formData.model}`}
+                    {formData.size && `   ${formData.size}`}
+                  </span>
+                )}
+              </div>
+
+                {/* <div className="field">
+                  <label className="field-label"> </label>
                   <div className='input-with-search'>
                     <div style={{
                       display: "flex",
@@ -2578,8 +2642,16 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                         }}
                       />
                     </div>
+
+                    
                   </div>
-                </div>
+
+
+                  
+
+
+                  
+                </div> */}
 
                 {/* Group Name field */}
                 <div className="field">
@@ -2877,8 +2949,8 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                 </div>
               </div>
 
-              {/* Product
-              <div className="field">
+              
+              {/* <div className="field">
                 <label className="field-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>Product</span>
                 <PopupScreensiIcon screen="product"  open={open} onClose={() => setOpen(false)}  />
@@ -3342,11 +3414,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                 ref={submitButtonRef} // ✅ Correct ref name
                 className="submit-primary"
                 onClick={() => {
-                  if (!formData.itemName) {
-                    setMessage({ type: "error", text: 'Please enter Item Name.' });
-                    itemNameRef.current?.focus();
-                    return;
-                  }
+                 
                   if (!mainGroup) {
                     setMessage({ type: "error", text: 'Please select Group Name.' });
                     return;

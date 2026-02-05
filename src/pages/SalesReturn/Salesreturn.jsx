@@ -61,7 +61,27 @@ const SalesReturn = () => {
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   const { userData } = useAuth();
-
+console.log('User data in PurchaseInvoice:', userData.date);
+    // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return new Date().toISOString().substring(0, 10);
+    
+    try {
+      // Split the date string
+      const datePart = dateString.split(' ')[0]; // Get "dd-mm-yyyy"
+      const [day, month, year] = datePart.split('-');
+      
+      if (day && month && year) {
+        // Create a date string in yyyy-MM-dd format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+    }
+    
+    // Fallback to current date
+    return new Date().toISOString().substring(0, 10);
+  };
 
 
 
@@ -95,7 +115,7 @@ const serialRef = useRef(null);
   // 1. Header Details State
   const [billDetails, setBillDetails] = useState({
     billNo: 'SR0000001',
-    billDate: new Date(userData.date).toISOString().substring(0, 10),
+    billDate: formatDateForInput(userData?.date),
     mobileNo: '',
     salesman: '',
     salesmanCode: '002',
@@ -693,7 +713,7 @@ const resetForm = async () => {
     // Reset bill details to default
     setBillDetails({
       billNo: 'SR0000001',
-      billDate: new Date().toISOString().substring(0, 10),
+      billDate: formatDateForInput(userData?.date),
       mobileNo: '',
       salesman: '',
       salesmanCode: '002',

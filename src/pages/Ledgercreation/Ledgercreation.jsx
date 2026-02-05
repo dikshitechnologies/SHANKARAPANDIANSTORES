@@ -2378,15 +2378,20 @@ export default function LedgerCreation({ onCreated }) {
     handleChange('phone', numericValue);
   }}
   onKeyDown={(e) => {
-    // Allow control keys
+    // Allow control keys and navigation keys
     if (
-      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)
+      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Enter'].includes(e.key)
     ) {
       if (e.key === 'Enter') {
         e.preventDefault();
         if (cellNoRef.current) {
           cellNoRef.current.focus();
         }
+        return;
+      }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        handleKeyboardNavigation(e, 8);
+        return;
       }
       return;
     }
@@ -2418,15 +2423,20 @@ export default function LedgerCreation({ onCreated }) {
     handleChange('cellNo', numericValue);
   }}
   onKeyDown={(e) => {
-    // Allow control keys
+    // Allow control keys and navigation keys
     if (
-      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)
+      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Enter'].includes(e.key)
     ) {
       if (e.key === 'Enter') {
         e.preventDefault();
         if (emailRef.current) {
           emailRef.current.focus();
         }
+        return;
+      }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        handleKeyboardNavigation(e, 9);
+        return;
       }
       return;
     }
@@ -2868,9 +2878,9 @@ export default function LedgerCreation({ onCreated }) {
             setFormData(prev => ({ ...prev, state: item.fname || item.state || '' }));
             setIsStatePopupOpen(false);
             setStateSearch('');
-            // Focus next field after state selection
-            if (emailRef.current) {
-              emailRef.current.focus();
+            // Focus Active Status after state selection
+            if (activeSwitchRef.current) {
+              activeSwitchRef.current.focus();
             }
           }}
           fetchItems={(page, search) => fetchStatesWithSearch(page, search)}
@@ -2898,8 +2908,8 @@ export default function LedgerCreation({ onCreated }) {
             setFormData(prev => ({ ...prev, route: item.routeName || item.Route || item.fRoute || '' }));
             setIsRoutePopupOpen(false);
             setRouteSearch('');
-            // focus next field (GSTIN)
-            if (gstinRef.current) gstinRef.current.focus();
+            // focus next field (Street)
+            if (fStreetRef.current) fStreetRef.current.focus();
           }}
           fetchItems={(page, search) => fetchRoutes(page, 20, search)}
           title="Select Route"

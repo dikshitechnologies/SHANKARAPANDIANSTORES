@@ -660,28 +660,86 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
       const compCode = userInfo.fcompcode || '001';
       const endpoint = API_ENDPOINTS.TAG_PRINT.GET_TAG_PRINT_ITEMS({
         voucher: tagNo,
-        compCode,
-        page: 1,
-        pageSize: 10,
+        compCode
       });
+      console.log(endpoint);
       const response = await apiService.get(endpoint);
       
+      console.log('Raw API Response:', response);
+      console.log('Is response an array?', Array.isArray(response));
+      console.log('response.data:', response.data);
+      console.log('response type:', typeof response);
+      
       // Transform API response to match table format
-      const apiData = Array.isArray(response.data?.data) ? response.data.data : (response.data || []);
-      const transformedItems = apiData.map((item, index) => ({
-        sNo: index + 1,
-        barcode: item.barcode || '',
-        itemName: item.itemName || '',
-        qty: item.qty || 1,
-        print: 'N',
-        selected: false,
-        unit: item.fUnit || item.unit || '',
-        hsn: item.fhsn || item.hsn || '',
-        mrp: item.mrp || 0,
-        inTax: item.inTax || 0,
-        sRate: item.sRate || 0,
-        amount: (item.qty || 1) * (item.sRate || 0)
-      }));
+      let apiData = [];
+      
+      if (Array.isArray(response)) {
+        // Response itself is an array
+        apiData = response;
+      } else if (Array.isArray(response.data)) {
+        // Data is in response.data
+        apiData = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        // Nested in data.data property
+        apiData = response.data.data;
+      } else if (response && typeof response === 'object' && !Array.isArray(response)) {
+        // Single object response
+        apiData = [response];
+      } else if (response.data && typeof response.data === 'object') {
+        // Single object in data
+        apiData = [response.data];
+      }
+      
+      console.log('API Data to transform:', apiData);
+      console.log('API Data length:', apiData.length);
+      
+      const transformedItems = apiData.map((item, index) => {
+        const qty = parseFloat(item.qty) || 1;
+        const asRate = parseFloat(item.asRate) || 0;
+        const rs = parseFloat(item.rs) || 0;
+        const avgWt = parseFloat(item.avgWt) || 0;
+        const hsn = item.hsn || item.hsnCode || '';
+        const itemName = item.item || '';
+        const preRate = parseFloat(item.preRate) || 0;
+        const li = item.itemName || "";
+        const sudoR=item.sudoR || "";
+        const sudoA=item.sudoA || "";
+        const categoryName=item.categoryName || "";
+       
+        const transformedItem = {
+          sNo: index + 1,
+          barcode: item.tagNo || '',
+          tagNo: item.tagNo || '',
+          itemName: itemName,
+          qty: qty,
+          print: 'N',
+          selected: false,
+          unit: item.fUnit || '',
+          hsn: hsn,
+          mrp: asRate,
+          preRate: preRate,
+          inTax: 0,
+          sRate: asRate,
+          amount: rs,
+          avgWt: avgWt,
+          // Additional fields for printing
+          brandName: item.brandName || '',
+          modelName: item.modelName || '',
+          sizeName: item.sizeName || '',
+          supplierName: item.supplierName || '',
+          sudo: item.sudo || '',
+          rate: item.rate || 0,
+          item: li,
+          sudoR:sudoR || "",
+          sudoA:sudoA || "",
+          categoryName :categoryName || ""
+        };
+        
+        console.log('Transformed item:', transformedItem);
+        return transformedItem;
+      });
+      
+      console.log('All Transformed Items:', transformedItems);
       
       setItems(transformedItems);
       setPrintItems([]);
@@ -825,8 +883,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     try {
       setIsLoading(true);
       
-      // No backend connection - just generate local print
-      toast.info('Generating print preview (Backend not connected)');
+     
       
       // Generate print preview
       generatePrintContent({
@@ -846,169 +903,102 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
     }
   };
 
-  // Generate print content - Generate individual barcode tags for each preview row
-  const generatePrintContent = (printData) => {
-    // Create hidden iframe for printing
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-    
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    
-    iframeDoc.open();
-    iframeDoc.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Tag Print - ${printData.purchaseNo}</title>
-        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: Arial, sans-serif; 
-            padding: 0;
-            margin: 0;
-            background: #fff;
-          }
-          .barcode-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0;
-            padding: 0;
-            margin: 0;
-          }
-          .barcode-tag {
-            width: auto;
-            border: none;
-            padding: 0;
-            margin: 10px;
-            page-break-inside: avoid;
-            background: transparent;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-          }
-          .barcode-display {
-            text-align: center;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-          }
-          .barcode-svg {
-            max-width: 100%;
-            height: auto;
-          }
-          .barcode-text {
-            font-size: 12px;
-            font-weight: bold;
-            margin-top: 5px;
-            text-align: center;
-            color: #000;
-          }
-          @media print {
-            body { 
-              margin: 0; 
-              padding: 0; 
-            }
-            .barcode-tag { 
-              page-break-inside: avoid;
-              margin: 10px;
-            }
-            .barcode-container {
-              gap: 0;
-              padding: 0;
-              margin: 0;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="barcode-container">
-    `);
-    
-    // Generate one barcode tag for each preview row
-    previewRows.forEach((row, index) => {
-      const tagNumber = index + 1;
-      const itemName = (row.itemName || 'N/A').replace(/[|]/g, '-');
-      const prefixValue = (prefix || 'N/A').replace(/[|]/g, '-');
-      const hsnValue = (row.hsn || 'N/A').replace(/[|]/g, '-');
-      const mrpValue = row.mrp?.toFixed(2) || '0.00';
-      const sRateValue = row.sRate?.toFixed(2) || '0.00';
-      const cpValue = row.sRate?.toFixed(2) || '0.00';
-      const dateValue = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-      const qtyValue = row.qty || '0';
+  // Generate print content - Generate SPSTOREPRN1.txt file
+  const generatePrintContent = async(printData) => {
+    try {
+
+      console.log("generatePrintContent-------",{printData});
+      // Build printer command content
+      let content = '';
       
-      // Encode all data into barcode with pipe delimiter
-      const encodedData = `${hsnValue}|${qtyValue}|${sRateValue}`;
-      const barcodeId = `barcode-${index}`;
+      // Process each item individually
+      const itemsToProcess = previewRows.length > 0 ? previewRows : printData.items;
+      const numberOfPrints = printData.noOfPrints || 1;
       
-      iframeDoc.write(`
-        <div class="barcode-tag">
-          <div class="barcode-display">
-            <svg id="${barcodeId}" class="barcode-svg"></svg>
-            <div class="barcode-text">${hsnValue} - 1 - ₹${sRateValue}</div>
-          </div>
-        </div>
-      `);
-    });
-    
-    iframeDoc.write(`
-        </div>
-        <script>
-          // Generate barcodes after DOM is loaded
-          window.addEventListener('load', function() {
-            ${previewRows.map((row, index) => {
-              const tagNumber = index + 1;
-              const itemName = (row.itemName || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
-              const prefixValue = (prefix || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
-              const hsnValue = (row.hsn || 'N/A').replace(/[|]/g, '-').replace(/'/g, "\\'");
-              const mrpValue = row.mrp?.toFixed(2) || '0.00';
-              const sRateValue = row.sRate?.toFixed(2) || '0.00';
-              const cpValue = row.sRate?.toFixed(2) || '0.00';
-              const dateValue = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-              const qtyValue = row.qty || '0';
-              
-              const encodedData = `${hsnValue}|${qtyValue}|${sRateValue}`;
-              const barcodeId = `barcode-${index}`;
-              
-              return `
-                try {
-                  JsBarcode("#${barcodeId}", "${encodedData}", {
-                    format: "CODE128",
-                    width: 6,
-                    height: 250,
-                    displayValue: false,
-                    margin: 0,
-                    background: "transparent"
-                  });
-                } catch (e) {
-                  console.error('Barcode generation error:', e);
-                }
-              `;
-            }).join('\n')}
-            
-            // Trigger print after barcodes are generated
-            setTimeout(function() {
-              window.print();
-              // Remove iframe after printing
-              setTimeout(function() {
-                window.parent.document.body.removeChild(window.frameElement);
-              }, 100);
-            }, 500);
-          });
-        </script>
-      </body>
-      </html>
-    `);
-    
-    iframeDoc.close();
+      // Repeat the entire content generation noOfPrints times including header
+      for (let printCopy = 0; printCopy < numberOfPrints; printCopy++) {
+        // Header - repeated for each print copy
+        content += `<xpml><page quantity='0' pitch='40.0 mm'></xpml>SIZE 97.5 mm, 40 mm\n`;
+        content += `GAP 3 mm, 0 mm\n`;
+        content += `SPEED 3\n`;
+        content += `DENSITY 14\n`;
+        content += `SET RIBBON ON\n`;
+        content += `DIRECTION 0,0\n`;
+        content += `REFERENCE 0,0\n`;
+        content += `OFFSET 0 mm\n`;
+        content += `SET PEEL OFF\n`;
+        content += `SET CUTTER OFF\n`;
+        content += `<xpml></page></xpml><xpml><page quantity='1' pitch='40.0 mm'></xpml>SET TEAR ON\n`;
+        content += `CLS\n`;
+        content += `CODEPAGE 1252\n`;
+        
+        for (let i = 0; i < itemsToProcess.length; i++) {
+          const item = itemsToProcess[i];
+          
+          // Alternate between position 777 (right) and 377 (left) for each item
+          const isRightPosition = i % 2 === 0;
+          const xPos = isRightPosition ? 777 : 377;
+          const qrPos = isRightPosition ? 522 : 122;
+          const pricePos = isRightPosition ? 655 : 255;
+          const ratePos = isRightPosition ? 628 : 228;
+          
+          const brand = item.brandName || '';
+          const productName = item.itemName || '';
+          const modelSize = `${item.modelName || ''}${item.modelName && item.sizeName ? ' ' : ''}${item.sizeName || ''}`.trim() || '';
+          const qrCode = item.barcode || item.tagNo || '';
+          const sudoR = item.sudoR || '';
+          const sudoA = item.sudoA || '';
+          const supplyInfo = item.supplierName || `SUPPLY${new Date().toLocaleDateString('en-GB').replace(/\//g, '')}${purchaseNo}`;
+          const serialNo = String(item.tagNo || item.barcode ).padStart(6, '0');
+          const category = item.categoryName || '';
+          const price = (item.mrp || item.preRate || 0).toFixed(2);
+          const weight = (item.avgWt || 0).toFixed(3);
+          const rate = (item.sRate || item.asRate || 0).toFixed(2);
+          
+          // Check if weight is 0
+          const isWeightZero = parseFloat(weight) === 0;
+          const sudoDisplay = isWeightZero ? sudoR : `${sudoR}-${sudoA}`;
+         
+          content += `TEXT ${xPos},260,"0",180,8,8,"${brand} ${productName}"\n`;
+          content += `TEXT ${xPos},232,"0",180,8,8,"${modelSize}"\n`;
+          content += `QRCODE ${qrPos},237,L,5,A,180,M2,S7,"${qrCode}"\n`;
+          content += `TEXT ${xPos},199,"0",180,8,8,"${sudoDisplay}"\n`;
+          content += `TEXT ${xPos},129,"0",180,8,8,"${supplyInfo}"\n`;
+          content += `TEXT ${xPos},169,"0",180,12,12,"${serialNo}"\n`;
+          content += `TEXT ${xPos},67,"0",180,8,8,"${category}"\n`;
+          content += `TEXT ${pricePos},42,"0",180,14,14,"Rs.${price}/-"\n`;          
+          content += `TEXT ${xPos},97,"0",180,10,10,"Wt:${weight}"\n`;     
+          if (!isWeightZero) {
+          content += `TEXT ${ratePos},97,"0",180,10,10,"Rate :${rate}"\n`;          }
+             
+          // Print after every 2 tags or at the end
+          if (i % 2 === 1 || i === itemsToProcess.length - 1) {
+            content += `PRINT 1,1\n`;
+          }
+        }
+      }
+      
+      // Footer
+      content += `<xpml></page></xpml><xpml><end/></xpml>\n`;
+      
+      // Create and download the file
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `SPSTOREPRN.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+     
+      console.log('Generated print content:', content);
+      
+    } catch (error) {
+      console.error('Error generating print file:', error);
+      
+    }
   };
 
   const buildPreviewRows = (list) => {
@@ -1036,6 +1026,35 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
             {/* LEFT SIDE: Search fields */}
             <div style={styles.leftSide}>
               {/* Purchase No - Popup */}
+              {/* From Date */}
+              <div style={styles.formField}>
+                <label style={styles.label}>From Date:</label>
+                <input
+                  ref={fromDateRef}
+                  type="date"
+                  style={focusedField === 'fromDate' ? styles.inputFocused : styles.input}
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                  onKeyDown={handleFromDateKeyDown}
+                  onFocus={() => setFocusedField('fromDate')}
+                  onBlur={() => setFocusedField('')}
+                />
+              </div>
+
+              {/* To Date */}
+              <div style={styles.formField}>
+                <label style={styles.label}>To Date:</label>
+                <input
+                  ref={toDateRef}
+                  type="date"
+                  style={focusedField === 'toDate' ? styles.inputFocused : styles.input}
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                  onKeyDown={handleToDateKeyDown}
+                  onFocus={() => setFocusedField('toDate')}
+                  onBlur={() => setFocusedField('')}
+                />
+              </div>
               <div style={styles.formField}>
                 <label style={styles.label}>Purchase No:</label>
                 <input
@@ -1067,35 +1086,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                 />
               </div>
 
-              {/* From Date */}
-              <div style={styles.formField}>
-                <label style={styles.label}>From Date:</label>
-                <input
-                  ref={fromDateRef}
-                  type="date"
-                  style={focusedField === 'fromDate' ? styles.inputFocused : styles.input}
-                  value={fromDate}
-                  onChange={e => setFromDate(e.target.value)}
-                  onKeyDown={handleFromDateKeyDown}
-                  onFocus={() => setFocusedField('fromDate')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
-
-              {/* To Date */}
-              <div style={styles.formField}>
-                <label style={styles.label}>To Date:</label>
-                <input
-                  ref={toDateRef}
-                  type="date"
-                  style={focusedField === 'toDate' ? styles.inputFocused : styles.input}
-                  value={toDate}
-                  onChange={e => setToDate(e.target.value)}
-                  onKeyDown={handleToDateKeyDown}
-                  onFocus={() => setFocusedField('toDate')}
-                  onBlur={() => setFocusedField('')}
-                />
-              </div>
+              
             </div>
 
             {/* RIGHT SIDE: Buttons */}
@@ -1124,9 +1115,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                 <th style={{...styles.th, width: '80px'}}>Qty</th>
                 <th style={{...styles.th, width: '80px'}}>Print(Y/N)</th>
                 <th style={{...styles.th, width: '80px'}}>Unit</th>
-                <th style={{...styles.th, width: '80px'}}>HSN</th>
-                <th style={{...styles.th, width: '80px'}}>MRP</th>
-                <th style={{...styles.th, width: '80px'}}>In Tax</th>
+                <th style={{...styles.th, width: '80px'}}>avgWt</th>
                 <th style={{...styles.th, width: '80px'}}>S.Rate</th>
                 <th style={{...styles.th, width: '100px'}}>Amount</th>
               </tr>
@@ -1134,7 +1123,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan="11" style={styles.emptyMsg}>
+                  <td colSpan="9" style={styles.emptyMsg}>
                     {hasSearched 
                       ? 'No items found. Select a purchase number to view items.' 
                       : ''}
@@ -1142,7 +1131,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                 </tr>
               ) : isLoading ? (
                 <tr>
-                  <td colSpan="11" style={styles.emptyMsg}>
+                  <td colSpan="9" style={styles.emptyMsg}>
                     Loading items...
                   </td>
                 </tr>
@@ -1186,9 +1175,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
                         {item.print}
                       </td>
                       <td style={styles.td}>{item.unit}</td>
-                      <td style={styles.td}>{item.hsn}</td>
-                      <td style={styles.td}>₹{item.mrp?.toFixed(2)}</td>
-                      <td style={styles.td}>{item.inTax?.toFixed(2)}</td>
+                      <td style={styles.td}>{item.avgWt?.toFixed(3)}</td>
                       <td style={styles.td}>₹{item.sRate?.toFixed(2)}</td>
                       <td style={styles.td}>₹{item.amount?.toFixed(2)}</td>
                     </tr>
@@ -1209,40 +1196,34 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={{...styles.th, width: '50px'}}>No.</th>
-                  <th style={{...styles.th, width: '120px'}}>Item Name</th>
-                  <th style={{...styles.th, width: '80px'}}>Prefix</th>
-                  <th style={{...styles.th, width: '80px'}}>HSN</th>
-                  <th style={{...styles.th, width: '80px'}}>W.P</th>
-                  <th style={{...styles.th, width: '80px'}}>R.P</th>
+                  <th style={{...styles.th, width: '50px'}}>S.No</th>
+                  <th style={{...styles.th, width: '120px'}}>Barcode</th>
+                  <th style={{...styles.th, width: '150px'}}>Item Name</th>
                   <th style={{...styles.th, width: '80px'}}>Qty</th>
-                  <th style={{...styles.th, width: '80px'}}>Pcs</th>
-                  <th style={{...styles.th, width: '80px'}}>Print</th>
-                  <th style={{...styles.th, width: '80px'}}>BARCODE</th>
-                  <th style={{...styles.th, width: '80px'}}>CP</th>
-                  <th style={{...styles.th, width: '100px'}}>SI No</th>
+                  <th style={{...styles.th, width: '80px'}}>Print(Y/N)</th>
+                  <th style={{...styles.th, width: '80px'}}>Unit</th>
+                  <th style={{...styles.th, width: '80px'}}>avgWt</th>
+                  <th style={{...styles.th, width: '80px'}}>S.Rate</th>
+                  <th style={{...styles.th, width: '100px'}}>Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {previewRows.length === 0 ? (
                   <tr>
-                    <td colSpan="12" style={styles.td}>&nbsp;</td>
+                    <td colSpan="9" style={styles.td}>&nbsp;</td>
                   </tr>
                 ) : (
                   previewRows.map((item, idx) => (
                     <tr key={idx}>
                       <td style={styles.td}>{idx + 1}</td>
+                      <td style={styles.td}>{item.barcode || 'N/A'}</td>
                       <td style={styles.td}>{item.itemName || 'N/A'}</td>
-                      <td style={styles.td}>{prefix || 'N/A'}</td>
-                      <td style={styles.td}>{item.hsn || 'N/A'}</td>
-                      <td style={styles.td}>₹{item.mrp?.toFixed(2) || '0.00'}</td>
-                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
-                      <td style={styles.td}>{item.qty || '0'}</td>
                       <td style={styles.td}>1</td>
                       <td style={styles.td}>Y</td>
-                      <td style={styles.td}>{item.barcode || 'N/A'}</td>
+                      <td style={styles.td}>{item.unit || 'N/A'}</td>
+                      <td style={styles.td}>{item.avgWt?.toFixed(3) || '0.000'}</td>
                       <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
-                      <td style={styles.td}>{item.sNo || idx + 1}</td>
+                      <td style={styles.td}>₹{item.sRate?.toFixed(2) || '0.00'}</td>
                     </tr>
                   ))
                 )}
@@ -1253,19 +1234,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
 
       {/* Footer Section */}
       <div style={styles.footer}>
-        <div style={styles.footerLeft}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <input
-              type="checkbox"
-              style={styles.checkbox}
-              checked={selectAll}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-              disabled={items.length === 0}
-            />
-            <span style={{ fontSize: TYPOGRAPHY.fontSize.sm, fontWeight: TYPOGRAPHY.fontWeight.medium }}>
-              Select All
-            </span>
-          </div>
+        <div style={styles.footerLeft}>          
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: TYPOGRAPHY.fontSize.sm, fontWeight: TYPOGRAPHY.fontWeight.medium }}>
               No of Prints:
@@ -1279,7 +1248,7 @@ const fetchPurchaseNumbersForPopup = async (page = 1, searchText = '') => {
             />
           </div>
           <div style={{ fontSize: TYPOGRAPHY.fontSize.sm, color: '#666' }}>
-            Selected for printing: {selectedItems.length} items
+            Tags to print: {previewRows.length}
           </div>
         </div>
         

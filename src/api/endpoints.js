@@ -418,6 +418,10 @@ PAYMENTVOUCHER: {
     GET_DAY_BOOK: (compCode, fromDate, toDate) =>
       `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
   },
+  STOCK_BARCODE_WISE: {
+    GET_STOCK_BARCODE_WISE: (fromDate, toDate, compCode, search = '', page = 1, pageSize = 100) =>
+      `stockbarcodewise/getStock/${compCode}?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&pageNumber=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+  },
 
   DAYCLOSE: {
     GET: (compCode) => `DayClose/get-DayClose/${compCode}`,
@@ -443,7 +447,7 @@ PAYMENTVOUCHER: {
     &page=${params.page}
     &pageSize=${params.pageSize}`,
   GET_TAG_PRINT_ITEMS: (params) =>
-    `tagprint/TagPrintDetails?voucher=${encodeURIComponent(params.voucher)}&compCode=${encodeURIComponent(params.compCode)}&page=${params.page}&pageSize=${params.pageSize}`,
+    `tagprint/purchase-details?voucher=${encodeURIComponent(params.voucher)}&compCode=${encodeURIComponent(params.compCode)}`,
 },
 
   PREFIX_HISTORY: {

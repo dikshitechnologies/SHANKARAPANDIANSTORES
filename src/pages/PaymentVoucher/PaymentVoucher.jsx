@@ -34,6 +34,27 @@ const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
 
 const PaymentVoucher = () => {
   const { userData } = useAuth() || {};
+  console.log('User data in PurchaseInvoice:', userData.date);
+    // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return new Date().toISOString().substring(0, 10);
+    
+    try {
+      // Split the date string
+      const datePart = dateString.split(' ')[0]; // Get "dd-mm-yyyy"
+      const [day, month, year] = datePart.split('-');
+      
+      if (day && month && year) {
+        // Create a date string in yyyy-MM-dd format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+    }
+    
+    // Fallback to current date
+    return new Date().toISOString().substring(0, 10);
+  };
   // --- PERMISSIONS ---
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
@@ -73,7 +94,7 @@ const PaymentVoucher = () => {
   const [voucherDetails, setVoucherDetails] = useState({
     voucherNo: '',
     gstType: 'CGST/SGST',
-    date: new Date(userData.date).toISOString().substring(0, 10),
+    date: formatDateForInput(userData?.date),
     costCenter: '',
     accountName: '',
     accountCode: '',
@@ -90,7 +111,7 @@ const PaymentVoucher = () => {
       crDr: 'CR',
       type: 'CASH',
       chqNo: '',
-      chqDt: new Date().toISOString().substring(0, 10),
+      chqDt: formatDateForInput(userData?.date),
       narration: '',
       amount: ''
     }
@@ -865,19 +886,19 @@ const PaymentVoucher = () => {
       const ledger = response.bledger;
       
       const safeFormatDate = (dateValue) => {
-        if (!dateValue) return new Date().toISOString().substring(0, 10);
+        if (!dateValue) return formatDateForInput(userData?.date);
         try {
           if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
             return dateValue;
           }
           const date = new Date(dateValue);
           if (isNaN(date.getTime())) {
-            return new Date().toISOString().substring(0, 10);
+            return formatDateForInput(userData?.date);
           }
-          return date.toISOString().substring(0, 10);
+          return formatDateForInput(date.toISOString().substring(0, 10));
         } catch (e) {
           console.warn('Date parsing error:', e);
-          return new Date().toISOString().substring(0, 10);
+          return formatDateForInput(userData?.date);
         }
       };
       
@@ -1105,7 +1126,7 @@ const PaymentVoucher = () => {
     setVoucherDetails({
       voucherNo: '',
       gstType: 'CGST/SGST',
-      date: new Date().toISOString().substring(0, 10),
+      date: formatDateForInput(userData?.date),
       costCenter: '',
       accountName: '',
       accountCode: '',
@@ -1442,7 +1463,7 @@ const PaymentVoucher = () => {
           const updatedItem = { ...item, [field]: value };
           // Automatically set current date when type changes to CHQ
           if (field === 'type' && value === 'CHQ' && !item.chqDt) {
-            updatedItem.chqDt = new Date().toISOString().substring(0, 10);
+            updatedItem.chqDt = formatDateForInput(userData?.date);
           }
           console.log(`🟢 DEBUG - Item ${id} updated:`, updatedItem);
           return updatedItem;
@@ -1546,9 +1567,9 @@ const PaymentVoucher = () => {
   };
 
   const formatDateToYYYYMMDD = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return formatDateForInput(userData?.date);
     const date = new Date(dateString);
-    return date.toISOString().substring(0, 10);
+    return formatDateForInput(date.toISOString().substring(0, 10));
   };
 
   // Build voucher data for printing

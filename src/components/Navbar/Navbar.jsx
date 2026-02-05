@@ -349,6 +349,12 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "ITEM_WISE_STOCK",
     }, 
+    {
+      name: "Stock Barcode Wise",
+      path: "/reports/StockBarcodeWise",
+      icon: <DatabaseOutlined />,
+      permission: "STOCK_BARCODE_WISE",
+    }, 
 
   ];
 
@@ -462,6 +468,7 @@ const Navbar = () => {
                   "/transactions/Purchasereturn": "Purchase Return",
                   "/mastersScrapRateFix/": "Scrap Rate Fix",
                   "/reports/Billcollectorreport": "Bill Collector Report",
+                  "/reports/StockBarcodeWise": "Stock Barcode Wise",
                 };
 
                 // if path is predefined in map
