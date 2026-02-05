@@ -55,11 +55,11 @@ export default function TransportCreation() {
   // ---------- Permissions ----------
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
-  const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.TRANSPORT_CREATION),
-    Edit: hasModifyPermission(PERMISSION_CODES.TRANSPORT_CREATION),
-    Delete: hasDeletePermission(PERMISSION_CODES.TRANSPORT_CREATION)
-  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+ const formPermissions = useMemo(() => ({
+  add: hasAddPermission(PERMISSION_CODES.TRANSPORT_CREATION),
+  edit: hasModifyPermission(PERMISSION_CODES.TRANSPORT_CREATION),
+  delete: hasDeletePermission(PERMISSION_CODES.TRANSPORT_CREATION),
+}), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------
   const [transports, setTransports] = useState([]);
@@ -198,6 +198,19 @@ export default function TransportCreation() {
     }
   };
 
+
+  useEffect(() => {
+  if (actionType === "Edit" && !formPermissions.edit) {
+    setActionType("Add");
+    setMessage({
+      type: "warning",
+      text: "Edit permission is disabled for your role."
+    });
+    resetForm(true);
+  }
+}, [actionType, formPermissions.edit]);
+
+
   const updateTransport = async (transportData) => {
     try {
       setLoading(true);
@@ -309,7 +322,8 @@ export default function TransportCreation() {
   };
 
   const handleEdit = async () => {
-    if (!formPermissions.Edit) {
+    if (!formPermissions.edit) {
+
       setMessage({ 
         type: "error", 
         text: "You do not have permission to edit transports." 
@@ -364,7 +378,8 @@ export default function TransportCreation() {
   };
 
   const handleDelete = async () => {
-    if (!formPermissions.Delete) {
+   if (!formPermissions.delete) {
+
       setMessage({ 
         type: "error", 
         text: "You do not have permission to delete transports." 
@@ -997,9 +1012,24 @@ export default function TransportCreation() {
           </div>
 
           <div className="actions" role="toolbar" aria-label="actions">
-            <AddButton onClick={() => { setActionType("Add"); resetForm(true); }} disabled={loading || !formPermissions.add} isActive={actionType === "Add"} />
-            <EditButton onClick={openEditModal} disabled={loading || !formPermissions.Edit} isActive={actionType === "Edit"} />
-            <DeleteButton onClick={openDeleteModal} disabled={loading || !formPermissions.Delete} isActive={actionType === "Delete"} />
+           <AddButton
+  onClick={() => { setActionType("Add"); resetForm(true); }}
+  disabled={loading || !formPermissions.add}
+  isActive={actionType === "Add"}
+/>
+
+<EditButton
+  onClick={openEditModal}
+  disabled={loading || !formPermissions.edit}
+  isActive={actionType === "Edit"}
+/>
+
+<DeleteButton
+  onClick={openDeleteModal}
+  disabled={loading || !formPermissions.delete}
+  isActive={actionType === "Delete"}
+/>
+
           </div>
         </div>
 
