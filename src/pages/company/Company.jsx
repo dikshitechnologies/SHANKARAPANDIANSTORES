@@ -1279,11 +1279,11 @@ const Company = () => {
           {/* Left Column - Split into two columns */}
           <div className="left-column">
             <div className={`card form-card ${getFormClass()}`}>
-              {message && (
+              {/* {message && (
                 <div className={`message-box message-${message.type}`}>
                   {message.text}
                 </div>
-              )}
+              )} */}
 
               {/* Two-column form layout */}
               <div className="two-column-form">
