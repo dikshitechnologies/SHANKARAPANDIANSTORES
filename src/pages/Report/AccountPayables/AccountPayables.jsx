@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -36,6 +37,9 @@ const formatDate = (date) => {
 };
 
 const AccountPayables = () => {
+  // --- PERMISSIONS ---
+  const { hasPrintPermission, checkPrintPermission } = usePrintPermission('ACCOUNT_PAYABLE');
+
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
   const [fromDate, setFromDate] = useState(currentDate);
@@ -301,13 +305,20 @@ const AccountPayables = () => {
     setPayablesData([]);
   };
 
-  const handlePrintClick = () => {
-    if (payablesData.length === 0) {
-      toast.warning('No data available to print');
-      return;
-    }
-    setShowPrintConfirm(true);
-  };
+const handlePrintClick = () => {
+  // ✅ Check print permission first
+  if (!checkPrintPermission()) {
+    return;
+  }
+
+  if (payablesData.length === 0) {
+    toast.warning('No data available to print');
+    return;
+  }
+
+  setShowPrintConfirm(true);
+};
+
 
   const handleExportClick = () => {
     if (payablesData.length === 0) {
@@ -1357,10 +1368,11 @@ const AccountPayables = () => {
         </div>
         <div style={styles.buttonGroup}>
           <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={payablesData.length === 0}
-          />
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || payablesData.length === 0}
+/>
+
           <ExportButton 
             onClick={handleExportClick}
             isActive={true}
