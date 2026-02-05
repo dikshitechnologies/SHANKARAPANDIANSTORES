@@ -31,7 +31,11 @@ const Navbar = () => {
   const [mobileMenuState, setMobileMenuState] = useState({
     masters: false,
     transactions: false,
-    reports: false,
+    reports: true,
+    acbook: true,
+    purchasereport: true,
+    salesreport: true,
+    stock: true,
   });
   const location = useLocation();
   const navigate = useNavigate();
@@ -268,109 +272,137 @@ const Navbar = () => {
 
   const reportItems = [ 
     {
-      name: "Account Payable",
-      path: "/reports/account-payable",
+      name: "AC/Book",
       icon: <DatabaseOutlined />,
-      permission: "ACCOUNT_PAYABLE",
-      printPermission: "ACCOUNT_PAYABLE",
+      isGroup: true,
+      children: [
+        {
+          name: "Account Payable",
+          path: "/reports/account-payable",
+          icon: <FileTextOutlined />,
+          permission: "ACCOUNT_PAYABLE",
+          printPermission: "ACCOUNT_PAYABLE",
+        },
+        {
+          name: "Account Receivable",
+          path: "/reports/account-receivable",
+          icon: <FileTextOutlined />,
+          permission: "ACCOUNT_RECEIVABLE",
+          printPermission: "ACCOUNT_RECEIVABLE",
+        },
+        {
+          name: "Bill Collector Report",
+          path: "/reports/Billcollectorreport",
+          icon: <FileTextOutlined />,
+          permission: "BILL_COLLECTOR_REPORT",
+          printPermission: "BILL_COLLECTOR_REPORT",
+        },
+        {
+          name: "Day Book",
+          path: "/reports/day-book",
+          icon: <FileTextOutlined />,
+          permission: "DAY_BOOK",
+          printPermission: "DAY_BOOK",
+        },
+        {
+          name: "Daily Report",
+          path: "/reports/DailyReport",
+          icon: <FileTextOutlined />,
+          permission: "DAILY_REPORT",
+          printPermission: "DAILY_REPORT",
+        },
+        {
+          name: "Ledger",
+          path: "/reports/ledger",
+          icon: <FileTextOutlined />,
+          permission: "LEDGER",
+          printPermission: "LEDGER",
+        },
+      ]
     },
     {
-      name: "Account Receivable",
-      path: "/reports/account-receivable",
-      icon: <DatabaseOutlined />,
-      permission: "ACCOUNT_RECEIVABLE",
-      printPermission: "ACCOUNT_RECEIVABLE",
+      name: "Purchase Report",
+      icon: <ShopOutlined />,
+      isGroup: true,
+      children: [
+        {
+          name: "Purchase Register",
+          path: "/reports/purchase-register",
+          icon: <FileTextOutlined />,
+          permission: "PURCHASE_REGISTER",
+          printPermission: "PURCHASE_REGISTER",
+        },
+        {
+          name: "Purchase Return Register",
+          path: "/reports/PurchaseReturnregister",
+          icon: <FileTextOutlined />,
+          permission: "PURCHASE_RETURN_REGISTER",
+          printPermission: "PURCHASE_RETURN_REGISTER",
+        },
+        {
+          name: "Scrap Purchase",
+          path: "/reports/scrap-purchase",
+          icon: <FileTextOutlined />,
+          permission: "SCRAP_PURCHASE",
+          printPermission: "SCRAP_PURCHASE",
+        },
+      ]
     },
     {
-      name: "Bill Collector Report",
-      path: "/reports/Billcollectorreport",
-      icon: <DatabaseOutlined />,
-      permission: "BILL_COLLECTOR_REPORT",
-      printPermission: "BILL_COLLECTOR_REPORT",
-    }, 
-    {
-      name: "Day Book",
-      path: "/reports/day-book",
-      icon: <DatabaseOutlined />,
-      permission: "DAY_BOOK",
-      printPermission: "DAY_BOOK",
+      name: "Sales Report",
+      icon: <DollarOutlined />,
+      isGroup: true,
+      children: [
+        {
+          name: "Sales Register",
+          path: "/reports/sales-register",
+          icon: <FileTextOutlined />,
+          permission: "SALES_REGISTER",
+          printPermission: "SALES_REGISTER",
+        },
+        {
+          name: "Sales Return Register",
+          path: "/reports/SalesReturnregister",
+          icon: <FileTextOutlined />,
+          permission: "SALES_RETURN_REGISTER",
+          printPermission: "SALES_RETURN_REGISTER",
+        },
+      ]
     },
     {
-      name: "Daily Report",
-      path: "/reports/DailyReport",
+      name: "Stock",
       icon: <DatabaseOutlined />,
-      permission: "DAILY_REPORT",
-      printPermission: "DAILY_REPORT",
-    },
-    {
-      name: "Group-wise Stock",
-      path: "/reports/Groupwisestock",
-      icon: <DatabaseOutlined />,
-      permission: "GROUP_WISE_STOCK",
-      printPermission: "GROUP_WISE_STOCK",
-    }, 
-    {
-      name: "Item Wise Stock",
-      path: "/reports/Itemwisestock",
-      icon: <DatabaseOutlined />,
-      permission: "ITEM_WISE_STOCK",
-      printPermission: "ITEM_WISE_STOCK",
-    }, 
-    {
-      name: "Ledger",
-      path: "/reports/ledger",
-      icon: <DatabaseOutlined />,
-      permission: "LEDGER",
-      printPermission: "LEDGER",
-    },
-    {
-      name: "Prefix History",
-      path: "/reports/PrefixHistory",
-      icon: <DatabaseOutlined />,
-      permission: "PREFIX_HISTORY",
-      printPermission: "PREFIX_HISTORY",
-    },
-    {
-      name: "Purchase Register",
-      path: "/reports/purchase-register",
-      icon: <FileTextOutlined />,
-      permission: "PURCHASE_REGISTER",
-      printPermission: "PURCHASE_REGISTER",
-    }, 
-    {
-      name: "Purchase Return Register",
-      path: "/reports/PurchaseReturnregister",
-      icon: <FileTextOutlined />,
-      permission: "PURCHASE_RETURN_REGISTER",
-      printPermission: "PURCHASE_RETURN_REGISTER",
-    },
-    {
-      name: "Stock Barcode Wise",
-      path: "/reports/StockBarcodeWise",
-      icon: <DatabaseOutlined />,
-      permission: "STOCK_BARCODE_WISE",
-      printPermission: "STOCK_BARCODE_WISE",
-    }, 
-    {
-      name: "Sales Register",
-      path: "/reports/sales-register",
-      icon: <FileTextOutlined />,
-      permission: "SALES_REGISTER",
-      printPermission: "SALES_REGISTER",
-    }, 
-    {
-      name: "Sales Return Register",
-      path: "/reports/SalesReturnregister",
-      icon: <FileTextOutlined />,
-      permission: "SALES_RETURN_REGISTER",
-      printPermission: "SALES_RETURN_REGISTER",
-    }, 
-    {
-      name: "Scrap Purchase",
-      path: "/reports/scrap-purchase",
-      icon: <DatabaseOutlined />,
-      permission: "SCRAP_PURCHASE",
-      printPermission: "SCRAP_PURCHASE",
+      isGroup: true,
+      children: [
+        {
+          name: "Item Wise Stock",
+          path: "/reports/Itemwisestock",
+          icon: <FileTextOutlined />,
+          permission: "ITEM_WISE_STOCK",
+          printPermission: "ITEM_WISE_STOCK",
+        },
+        {
+          name: "Group-wise Stock",
+          path: "/reports/Groupwisestock",
+          icon: <FileTextOutlined />,
+          permission: "GROUP_WISE_STOCK",
+          printPermission: "GROUP_WISE_STOCK",
+        },
+        {
+          name: "Stock Barcode Wise",
+          path: "/reports/StockBarcodeWise",
+          icon: <FileTextOutlined />,
+          permission: "STOCK_BARCODE_WISE",
+          printPermission: "STOCK_BARCODE_WISE",
+        },
+        {
+          name: "Prefix History",
+          path: "/reports/PrefixHistory",
+          icon: <FileTextOutlined />,
+          permission: "PREFIX_HISTORY",
+          printPermission: "PREFIX_HISTORY",
+        },
+      ]
     },
   ];
 
@@ -388,9 +420,20 @@ const Navbar = () => {
   }, [hasPermission]);
 
   const filteredReportItems = useMemo(() => {
-    return reportItems.filter(
-      (item) => !item.permission || hasPermission(item.permission)
-    );
+    return reportItems.map(group => {
+      if (group.isGroup && group.children) {
+        const filteredChildren = group.children.filter(
+          (item) => !item.permission || hasPermission(item.permission)
+        );
+        return { ...group, children: filteredChildren };
+      }
+      return group;
+    }).filter(group => {
+      if (group.isGroup) {
+        return group.children && group.children.length > 0;
+      }
+      return !group.permission || hasPermission(group.permission);
+    });
   }, [hasPermission]);
 
   // Desktop hover handlers
@@ -424,7 +467,15 @@ const Navbar = () => {
 
   const closeMobileMenu = () => {
     setIsMenuOpen(false);
-    setMobileMenuState({ masters: false, transactions: false });
+    setMobileMenuState({ 
+      masters: false, 
+      transactions: false, 
+      reports: false,
+      acBook: false,
+      purchaseReport: false,
+      salesReport: false,
+      stock: false,
+    });
   };
 
   const toggleMobileDropdown = (menu) => {
@@ -816,18 +867,62 @@ const Navbar = () => {
                         mobileMenuState.reports ? styles.open : ""
                       }`}
                     >
-                      {filteredReportItems.map((item) => (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          className={`${styles["mobile-dropdown-item"]} ${
-                            location.pathname === item.path ? styles.active : ""
-                          }`}
-                          onClick={closeMobileMenu}
-                        >
-                          {item.icon} {item.name}
-                        </Link>
-                      ))}
+                      {filteredReportItems.map((item, index) => {
+                        if (item.isGroup && item.children) {
+                          const groupKey = item.name.toLowerCase().replace(/\s+/g, '').replace(/\//g, '');
+                          return (
+                            <div key={index} className={styles["mobile-nested-group"]}>
+                              <div
+                                className={`${styles["mobile-nested-header"]} ${
+                                  mobileMenuState[groupKey] ? styles.active : ""
+                                }`}
+                                onClick={() => toggleMobileDropdown(groupKey)}
+                              >
+                                <div className={styles["header-content"]}>
+                                  {item.icon} {item.name}
+                                </div>
+                                <span className={styles["arrow-icon"]}>
+                                  {mobileMenuState[groupKey] ? (
+                                    <UpOutlined />
+                                  ) : (
+                                    <DownOutlined />
+                                  )}
+                                </span>
+                              </div>
+                              <div
+                                className={`${styles["mobile-nested-items"]} ${
+                                  mobileMenuState[groupKey] ? styles.open : ""
+                                }`}
+                              >
+                                {item.children.map((child) => (
+                                  <Link
+                                    key={child.path}
+                                    to={child.path}
+                                    className={`${styles["mobile-nested-item"]} ${
+                                      location.pathname === child.path ? styles.active : ""
+                                    }`}
+                                    onClick={closeMobileMenu}
+                                  >
+                                    {child.icon} {child.name}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`${styles["mobile-dropdown-item"]} ${
+                              location.pathname === item.path ? styles.active : ""
+                            }`}
+                            onClick={closeMobileMenu}
+                          >
+                            {item.icon} {item.name}
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
