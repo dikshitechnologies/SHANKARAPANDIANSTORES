@@ -4155,6 +4155,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                   { ...styles.editableInputFocused, textAlign: 'center' } : 
                   { ...styles.editableInput, textAlign: 'center' }}
                 value={item.sudo || ''}
+                maxLength={2}
                 data-row={index}
                 data-field="sudo"
                 onChange={(e) => {

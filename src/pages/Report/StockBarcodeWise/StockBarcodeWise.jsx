@@ -618,7 +618,7 @@ const StockBarcodeWise = () => {
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       backgroundColor: '#f5f7fa',
-      height: '90vh',
+      height: '85vh',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -1329,7 +1329,7 @@ const StockBarcodeWise = () => {
       {/* Footer Section with Totals */}
       {tableLoaded && stockBarcodeData.length > 0 && (
         <div style={styles.footerSection}>
-          <div style={styles.balanceContainer}>
+          {/* <div style={styles.balanceContainer}>
             <div style={styles.balanceItem}>
               <div style={styles.balanceLabel}>Total Qty</div>
               <div style={styles.balanceValue}>{apiTotals.totalQty.toLocaleString()}</div>
@@ -1346,7 +1346,7 @@ const StockBarcodeWise = () => {
                 {apiTotals.totalAStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
-          </div>
+          </div> */}
           <div style={styles.buttonGroup}>
             <PrintButton 
               onClick={handlePrintClick}
