@@ -4,6 +4,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -68,6 +70,10 @@ const TenderReport = () => {
   const [tenderData, setTenderData] = useState([]);
   const [pageNo, setPageNo] = useState(1);
   const [pageSize] = useState(20);
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [searchInvoiceNo, setSearchInvoiceNo] = useState('');
   const [hasMore, setHasMore] = useState(true);
   const [apiTotals, setApiTotals] = useState({
@@ -284,6 +290,149 @@ const TenderReport = () => {
       totalCard: 0,
       totalUpi: 0,
     });
+  };
+
+  const handlePrintClick = () => {
+    if (tenderData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (tenderData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const formatNumber = (num) => {
+    return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const generatePDF = () => {
+    try {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Tender Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; font-size: 10px; }
+            td { padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 10px; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .total-row { background-color: #e3f2fd; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Tender Report</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Branches: ${branchDisplay || 'All'}</p>
+            <p>Total Records: ${tenderData.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Invoice Date</th>
+                <th>Invoice No</th>
+                <th>Gross Amt</th>
+                <th>Bill Amt</th>
+                <th>Net Amt</th>
+                <th>Cash</th>
+                <th>Card</th>
+                <th>UPI</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tenderData.map((row, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${row.invoiceDate || ''}</td>
+                  <td>${row.invoiceNo || ''}</td>
+                  <td>₹${row.grossAmt || '0.00'}</td>
+                  <td>₹${row.billAmt || '0.00'}</td>
+                  <td>₹${row.netAmt || '0.00'}</td>
+                  <td>₹${row.cash || '0.00'}</td>
+                  <td>₹${row.card || '0.00'}</td>
+                  <td>₹${row.upi || '0.00'}</td>
+                </tr>
+              `).join('')}
+              <tr class="total-row">
+                <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
+                <td><strong>₹${formatNumber(apiTotals.totalGross)}</strong></td>
+                <td><strong>₹${formatNumber(apiTotals.totalBill)}</strong></td>
+                <td><strong>₹${formatNumber(apiTotals.totalNet)}</strong></td>
+                <td><strong>₹${formatNumber(apiTotals.totalCash)}</strong></td>
+                <td><strong>₹${formatNumber(apiTotals.totalCard)}</strong></td>
+                <td><strong>₹${formatNumber(apiTotals.totalUpi)}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      let csvContent = 'Tender Report\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Branches: ${branchDisplay || 'All'}\n`;
+      csvContent += `Total Records: ${tenderData.length}\n\n`;
+      
+      csvContent += 'No,Invoice Date,Invoice No,Gross Amt,Bill Amt,Net Amt,Cash,Card,UPI\n';
+      
+      tenderData.forEach((row, index) => {
+        csvContent += `${index + 1},${row.invoiceDate || ''},${row.invoiceNo || ''},${row.grossAmt || '0'},${row.billAmt || '0'},${row.netAmt || '0'},${row.cash || '0'},${row.card || '0'},${row.upi || '0'}\n`;
+      });
+      
+      csvContent += `,,Total,${apiTotals.totalGross.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalBill.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalNet.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalCash.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalCard.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalUpi.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n`;
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Tender_Report_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
 
   // Handle key navigation
@@ -878,6 +1027,12 @@ const TenderReport = () => {
         background: '#ffebee',
       }
     },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      marginLeft: 'auto',
+      alignItems: 'center',
+    },
   };
 
   // Calculate totals from cumulative data
@@ -1138,9 +1293,9 @@ const TenderReport = () => {
                 )
               ) : (
                 <tr>
-                  <td colSpan="19" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  {/* <td colSpan="19" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                     Click "Search" to view tender records
-                  </td>
+                  </td> */}
                 </tr>
               )}
               {isMoreLoading && (
@@ -1156,52 +1311,90 @@ const TenderReport = () => {
       </div>
 
       {/* Footer Section with Totals - CENTERED */}
-      {/* <div style={styles.footerSection}>
-        <div style={{
-          ...styles.balanceContainer,
-          justifyContent: 'center',
-          width: '100%',
-          flexWrap: 'wrap',
-          gap: '20px'
-        }}>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Gross Amt</span>
-            <span style={styles.balanceValue}>
-              ₹{totalGross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+      {tableLoaded && tenderData.length > 0 && (
+        <div style={styles.footerSection}>
+          <div style={{
+            ...styles.balanceContainer,
+            justifyContent: 'center',
+            width: '100%',
+            flexWrap: 'wrap',
+            gap: '20px'
+          }}>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Gross Amt</span>
+              <span style={styles.balanceValue}>
+                ₹{totalGross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Bill Amt</span>
+              <span style={styles.balanceValue}>
+                ₹{totalBill.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Net Amt</span>
+              <span style={styles.balanceValue}>
+                ₹{totalNet.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Cash</span>
+              <span style={styles.balanceValue}>
+                ₹{totalCash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>Card</span>
+              <span style={styles.balanceValue}>
+                ₹{totalCard.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div style={styles.balanceItem}>
+              <span style={styles.balanceLabel}>UPI</span>
+              <span style={styles.balanceValue}>
+                ₹{totalUpi.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
           </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Bill Amt</span>
-            <span style={styles.balanceValue}>
-              ₹{totalBill.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Net Amt</span>
-            <span style={styles.balanceValue}>
-              ₹{totalNet.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Cash</span>
-            <span style={styles.balanceValue}>
-              ₹{totalCash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>Card</span>
-            <span style={styles.balanceValue}>
-              ₹{totalCard.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div style={styles.balanceItem}>
-            <span style={styles.balanceLabel}>UPI</span>
-            <span style={styles.balanceValue}>
-              ₹{totalUpi.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+          <div style={styles.buttonGroup}>
+            <PrintButton 
+              onClick={handlePrintClick}
+              isActive={true}
+              disabled={tenderData.length === 0}
+            />
+            <ExportButton 
+              onClick={handleExportClick}
+              isActive={true}
+              disabled={tenderData.length === 0}
+            />
           </div>
         </div>
-      </div> */}
+      )}
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Tender Report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Tender Report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
 
       {/* Branch Selection Popup */}
       {showBranchPopup && (
