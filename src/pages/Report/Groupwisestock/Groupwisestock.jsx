@@ -1227,16 +1227,7 @@ const GroupwiseStock = () => {
             gap: screenSize.isMobile ? '8px' : '15px',
             flexDirection: screenSize.isMobile ? 'column' : 'row'
           }}>
-            <button 
-              style={styles.backButton} 
-              onClick={viewLevel === 'items' ? handleBackToGroups : handleBackToItems}
-            >
-              ← Back
-            </button>
-            <div style={styles.headerTitle}>
-              {viewLevel === 'items' && `Branch Wise Stock for ${companyDisplay} (${fromDate} - ${toDate})`}
-              {viewLevel === 'bills' && `Branch Wise Stock for ${companyDisplay} (${fromDate} - ${toDate})`}
-            </div>
+            
           </div>
         )}
         
@@ -1258,9 +1249,7 @@ const GroupwiseStock = () => {
               <tbody>
                 {!hasSearched ? (
                   <tr>
-                    <td colSpan="7" style={styles.emptyMsg}>
-                      Enter search criteria and click "Search" to view group wise stock
-                    </td>
+                    
                   </tr>
                 ) : isLoading ? (
                   <tr>
