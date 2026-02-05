@@ -213,6 +213,44 @@ const Navbar = () => {
   ];
 
   const transactionItems = [
+     {
+      name: "Voucher",
+      icon: <MoneyCollectOutlined />,
+      isGroup: true,
+      children: [
+        {
+          name: "Payment Voucher",
+          path: "/payment-voucher",
+          icon: <MoneyCollectOutlined />,
+          permission: "PAYMENT_VOUCHER",
+        },
+        {
+          name: "Receipt Voucher",
+          path: "/transactions/receipt-voucher",
+          icon: <MoneyCollectOutlined />,
+          permission: "RECEIPT_VOUCHER",
+        },
+      ],
+    },
+      {
+      name: "Purchase",
+      icon: <DollarOutlined />,
+      isGroup: true,
+      children: [
+        {
+          name: "Purchase Invoice",
+          path: "/transactions/purchase-invoice",
+          icon: <DollarOutlined />,
+          permission: "PURCHASE_INVOICE",
+        },
+        {
+          name: "Purchase Return",
+          path: "/transactions/Purchasereturn",
+          icon: <DollarOutlined />,
+          permission: "PURCHASE_RETURN",
+        },
+      ],
+    },
     {
       name: "Sales",
       icon: <FileTextOutlined />,
@@ -238,44 +276,8 @@ const Navbar = () => {
         },
       ],
     },
-    {
-      name: "Purchase",
-      icon: <DollarOutlined />,
-      isGroup: true,
-      children: [
-        {
-          name: "Purchase Invoice",
-          path: "/transactions/purchase-invoice",
-          icon: <DollarOutlined />,
-          permission: "PURCHASE_INVOICE",
-        },
-        {
-          name: "Purchase Return",
-          path: "/transactions/Purchasereturn",
-          icon: <DollarOutlined />,
-          permission: "PURCHASE_RETURN",
-        },
-      ],
-    },
-    {
-      name: "Voucher",
-      icon: <MoneyCollectOutlined />,
-      isGroup: true,
-      children: [
-        {
-          name: "Payment Voucher",
-          path: "/payment-voucher",
-          icon: <MoneyCollectOutlined />,
-          permission: "PAYMENT_VOUCHER",
-        },
-        {
-          name: "Receipt Voucher",
-          path: "/transactions/receipt-voucher",
-          icon: <MoneyCollectOutlined />,
-          permission: "RECEIPT_VOUCHER",
-        },
-      ],
-    },
+  
+   
     {
       name: "Scrap RateFix",
       path: "/mastersScrapRateFix/",
