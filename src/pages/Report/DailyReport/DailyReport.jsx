@@ -4,6 +4,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { usePrintPermission } from '../../../hooks/usePrintPermission';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 // Helper function to convert YYYY-MM-DD to DD/MM/YYYY
 const formatDateToDDMMYYYY = (dateString) => {
@@ -36,6 +38,8 @@ const { hasPrintPermission, checkPrintPermission } =
   const [focusedField, setFocusedField] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   
   // Set default dates when component mounts
   useEffect(() => {
@@ -140,6 +144,25 @@ const { hasPrintPermission, checkPrintPermission } =
       minHeight: 0,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
+    },
+    footerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderTop: '1px solid #e0e0e0',
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '14px',
+      boxShadow: '0 -2px 4px rgba(0,0,0,0.05)',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+    },
+    footerButtonContainer: {
+      display: 'flex',
+      gap: '10px',
+      backgroundColor: '#ffffff',
+      padding: '0.4rem',
+      borderRadius: '50px',
+      border: '2px solid #1976d2',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
     },
     filterRow: {
       display: 'flex',
@@ -530,6 +553,40 @@ const { hasPrintPermission, checkPrintPermission } =
     return formatDateToDDMMYYYY(dateString);
   };
 
+  // --- PRINT & EXPORT HANDLERS ---
+  const handlePrintClick = () => {
+    if (!reportData || !showReport) {
+      toast.warning('Please search and load report data before printing');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    // TODO: Implement PDF generation logic here
+    toast.success('Generating PDF...');
+    // Example: window.print() or use a PDF library
+    window.print();
+  };
+
+  const handleExportClick = () => {
+    if (!reportData || !showReport) {
+      toast.warning('Please search and load report data before exporting');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    // TODO: Implement Excel export logic here
+    toast.success('Exporting to Excel...');
+    // Example: Use libraries like xlsx or exceljs
+    // For now, just a placeholder
+    console.log('Export to Excel:', reportData);
+  };
+
   return (
     <div style={styles.container}>
       {/* Header Section */}
@@ -735,6 +792,46 @@ const { hasPrintPermission, checkPrintPermission } =
           </table>
         </div>
       </div>
+
+      {/* Footer Section */}
+      <div style={styles.footerSection}>
+        <div style={styles.footerButtonContainer}>
+          <PrintButton 
+            onClick={handlePrintClick}
+            disabled={!reportData || !showReport}
+            isActive={true}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            disabled={!reportData || !showReport}
+            isActive={true}
+          />
+        </div>
+      </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Report"
+        message="Do you want to print this daily report as PDF?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Report"
+        message="Do you want to export this daily report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="success"
+      />
     </div>
   );
 };
