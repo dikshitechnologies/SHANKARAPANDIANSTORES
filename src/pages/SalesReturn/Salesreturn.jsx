@@ -753,6 +753,8 @@ const resetForm = async () => {
     setDiscount("");
     setDiscountPercent(0);
     setDiscountAmount(0);
+    setRoundOffValue(0);
+    setRoundedTotalAmount(0);
 
     // Fetch new voucher number and refresh voucher list
     await fetchMaxVoucherNo();
@@ -1733,6 +1735,8 @@ const requestData = {
       resetForm();
       setDiscountPercent(0);
       setDiscountAmount(0);
+      setRoundOffValue(0);
+     
       setDiscount("");
       
       // Save discount data to localStorage with voucher number as key
@@ -1773,6 +1777,7 @@ const requestData = {
             // Reset form when user says no
             resetForm();
             setDiscountPercent(0);
+            setRoundOffValue(0);
             setDiscountAmount(0);
             setDiscount("");
           }
