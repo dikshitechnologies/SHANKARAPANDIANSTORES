@@ -310,10 +310,10 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
     }
   }, [actionType, formData.itemName, formData.fitemCode]);
 
-  // Auto-focus Item Name on component mount
+  // Auto-focus Product Name on component mount
   useEffect(() => {
-    if (itemNameRef.current) {
-      itemNameRef.current.focus();
+    if (productRef.current) {
+      productRef.current.focus();
     }
   }, []);
 
@@ -3431,11 +3431,7 @@ const [isTaxPopupOpen, setIsTaxPopupOpen] = useState(false);
                     e.preventDefault();
                     e.stopPropagation();
 
-                    if (!formData.itemName) {
-                      setMessage({ type: "error", text: 'Please enter Item Name.' });
-                      itemNameRef.current?.focus();
-                      return;
-                    }
+                   
                     if (!mainGroup) {
                       setMessage({ type: "error", text: 'Please select Group Name.' });
                       return;
