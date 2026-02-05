@@ -2878,9 +2878,9 @@ export default function LedgerCreation({ onCreated }) {
             setFormData(prev => ({ ...prev, state: item.fname || item.state || '' }));
             setIsStatePopupOpen(false);
             setStateSearch('');
-            // Focus next field after state selection
-            if (emailRef.current) {
-              emailRef.current.focus();
+            // Focus Active Status after state selection
+            if (activeSwitchRef.current) {
+              activeSwitchRef.current.focus();
             }
           }}
           fetchItems={(page, search) => fetchStatesWithSearch(page, search)}
