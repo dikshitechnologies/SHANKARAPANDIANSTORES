@@ -340,7 +340,7 @@ const Navbar = () => {
     }, 
      {
       name: "Purchase Return Register",
-      path: "/reports/PurchasReturnregister",
+      path: "/reports/PurchaseReturnregister",
       icon: <FileTextOutlined />,
       permission: "PURCHASE_RETURN_REGISTER",
     },
@@ -487,6 +487,21 @@ const Navbar = () => {
                   "/mastersScrapRateFix/": "Scrap Rate Fix",
                   "/reports/Billcollectorreport": "Bill Collector Report",
                   "/reports/StockBarcodeWise": "Stock Barcode Wise",
+                  "/reports/DailyReport": "Daily Report",
+                   "/reports/Groupwisestock": "Groupwise Stock",
+                   "/reports/Itemwisestock": "Itemwise Stock",
+                   "/reports/ledger": "Ledger Report",
+                   "/reports/PrefixHistory": "Prefix History",
+                   "/reports/purchase-register": "Purchase Register",
+                   "/reports/PurchaseReturnregister": "Purchase Return Register",
+                   "/reports/SalesReturnregister": "Sales Return Register",
+                    "/ScrapProcurement": "Scrap Procurement",
+                    "/masters/DayClose": "Day Close",
+                    "/masters/SalesmanCreation": "Salesman Creation",
+                     "/masters/Statecreation": "State Creation",
+
+               
+               
                 };
 
                 // if path is predefined in map
