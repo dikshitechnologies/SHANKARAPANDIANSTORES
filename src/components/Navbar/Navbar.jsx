@@ -140,13 +140,7 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "TRANSPORT_CREATION",
     },
-    
-    {
-      name: "DayClose",
-      path: "/masters/DayClose",
-      icon: <BuildOutlined />,
-      permission: "DayClose",
-    },
+   
     
 
     {
@@ -191,10 +185,20 @@ const Navbar = () => {
       icon: <UserOutlined />,
       permission: "SALESMAN_CREATION",
     },
+     
+   
     // { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
         { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
         { name: 'Administration', path: '/Administration', icon: <BuildOutlined />, permission: 'ADMINISTRATION' },
     { name: 'Tax Creation', path: '/masters/Tax-Creation', icon: <BuildOutlined />, permission: 'TAX_CREATION' },
+
+     
+    {
+      name: "DayClose",
+      path: "/masters/DayClose",
+      icon: <BuildOutlined />,
+      permission: "DayClose",
+    },
   ];
 
   const transactionItems = [
@@ -263,49 +267,13 @@ const Navbar = () => {
   ];
 
   const reportItems = [ 
-    {
-      name: "Purchase Register",
-      path: "/reports/purchase-register",
-      icon: <FileTextOutlined />,
-      permission: "PURCHASE_REGISTER",
-    }, 
-    {
-      name: "Sales Register",
-      path: "/reports/sales-register",
-      icon: <FileTextOutlined />,
-      permission: "SALES_REGISTER",
-    },     
-    {
-      name: "Purchase Return Register",
-      path: "/reports/PurchaseReturnregister",
-      icon: <FileTextOutlined />,
-      permission: "PURCHASE_RETURN_REGISTER",
-    },
+   
+   
     
-    {
-      name: "Sales Return Register",
-      path: "/reports/SalesReturnregister",
-      icon: <FileTextOutlined />,
-      permission: "SALES_RETURN_REGISTER",
-    },
-     {
-      name: "Scrap Purchase",
-      path: "/reports/scrap-purchase",
-      icon: <DatabaseOutlined />,
-      permission: "SCRAP_PURCHASE",
-    },
-     {
-      name: "Day Book",
-      path: "/reports/day-book",
-      icon: <DatabaseOutlined />,
-      permission: "DAY_BOOK",
-    },
-     {
-      name: "Ledger",
-      path: "/reports/ledger",
-      icon: <DatabaseOutlined />,
-      permission: "LEDGER_REPORT",
-    },
+   
+   
+
+    
     {
       name: "Account Payable",
       path: "/reports/account-payable",
@@ -318,6 +286,26 @@ const Navbar = () => {
       icon: <DatabaseOutlined />,
       permission: "ACCOUNT_RECEIVABLE",
     },
+
+     {
+      name: "Bill Collector Report",
+      path: "/reports/Billcollectorreport",
+      icon: <DatabaseOutlined />,
+      permission: "BILL_COLLECTOR_REPORT",
+    }, 
+     {
+      name: "Day Book",
+      path: "/reports/day-book",
+      icon: <DatabaseOutlined />,
+      permission: "DAY_BOOK",
+    },
+    
+      {
+      name: "Daily Report",
+      path: "/reports/DailyReport",
+      icon: <DatabaseOutlined />,
+      permission: "DAILY_REPORT",
+    },
      {
       name: "Group-wise Stock",
       path: "/reports/Groupwisestock",
@@ -325,36 +313,66 @@ const Navbar = () => {
       permission: "GROUP_WISE_STOCK",
     }, 
     {
-      name: "Bill Collector Report",
-      path: "/reports/Billcollectorreport",
+      name: "Item Wise Stock",
+      path: "/reports/Itemwisestock",
       icon: <DatabaseOutlined />,
-      permission: "BILL_COLLECTOR_REPORT",
+      permission: "ITEM_WISE_STOCK",
     }, 
+    
+     {
+      name: "Ledger",
+      path: "/reports/ledger",
+      icon: <DatabaseOutlined />,
+      permission: "LEDGER_REPORT",
+    },
+  
      {
       name: "Prefix History",
       path: "/reports/PrefixHistory",
       icon: <DatabaseOutlined />,
       permission: "PREFIX_HISTORY",
     },
-
-      {
-      name: "Daily Report",
-      path: "/reports/DailyReport",
-      icon: <DatabaseOutlined />,
-      permission: "DAILY_REPORT",
-    },
-    {
-      name: "Item Wise Stock",
-      path: "/reports/Itemwisestock",
-      icon: <DatabaseOutlined />,
-      permission: "ITEM_WISE_STOCK",
+     {
+      name: "Purchase Register",
+      path: "/reports/purchase-register",
+      icon: <FileTextOutlined />,
+      permission: "PURCHASE_REGISTER",
     }, 
+     {
+      name: "Purchase Return Register",
+      path: "/reports/PurchasReturnregister",
+      icon: <FileTextOutlined />,
+      permission: "PURCHASE_RETURN_REGISTER",
+    },
+
+    
     {
       name: "Stock Barcode Wise",
       path: "/reports/StockBarcodeWise",
       icon: <DatabaseOutlined />,
       permission: "STOCK_BARCODE_WISE",
     }, 
+     {
+      name: "Sales Register",
+      path: "/reports/sales-register",
+      icon: <FileTextOutlined />,
+      permission: "SALES_REGISTER",
+    }, 
+     {
+      name: "Sales Return Register",
+      path: "/reports/SalesReturnregister",
+      icon: <FileTextOutlined />,
+      permission: "SALES_RETURN_REGISTER",
+    }, 
+      {
+      name: "Scrap Purchase",
+      path: "/reports/scrap-purchase",
+      icon: <DatabaseOutlined />,
+      permission: "SCRAP_PURCHASE",
+    },
+    
+       
+   
 
   ];
 
