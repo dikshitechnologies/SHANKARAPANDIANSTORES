@@ -31,11 +31,14 @@ const Navbar = () => {
   const [mobileMenuState, setMobileMenuState] = useState({
     masters: false,
     transactions: false,
-    reports: true,
-    acbook: true,
-    purchasereport: true,
-    salesreport: true,
-    stock: true,
+    sales: false,
+    purchase: false,
+    voucher: false,
+    reports: false,
+    acbook: false,
+    purchasereport: false,
+    salesreport: false,
+    stock: false,
   });
   const location = useLocation();
   const navigate = useNavigate();
@@ -207,41 +210,67 @@ const Navbar = () => {
 
   const transactionItems = [
     {
-      name: "Purchase Invoice",
-      path: "/transactions/purchase-invoice",
-      icon: <DollarOutlined />,
-      permission: "PURCHASE_INVOICE",
-    },
-    {
-      name: "Purchase Return",
-      path: "/transactions/Purchasereturn",
-      icon: <DollarOutlined />,
-      permission: "PURCHASE_RETURN",
-    },
-    {
-      name: "Receipt Voucher",
-      path: "/transactions/receipt-voucher",
-      icon: <MoneyCollectOutlined />,
-      permission: "RECEIPT_VOUCHER",
-    },
-    {
-      name: "Payment Voucher",
-      path: "/payment-voucher",
-      icon: <MoneyCollectOutlined />,
-      permission: "PAYMENT_VOUCHER",
-    },
-
-    {
-      name: "Sales Invoice",
-      path: "/sales-invoice",
+      name: "Sales",
       icon: <FileTextOutlined />,
-      permission: "SALES_INVOICE",
+      isGroup: true,
+      children: [
+        {
+          name: "Sales Invoice",
+          path: "/sales-invoice",
+          icon: <FileTextOutlined />,
+          permission: "SALES_INVOICE",
+        },
+        {
+          name: "Sales Return",
+          path: "/transactions/sales-return",
+          icon: <FileTextOutlined />,
+          permission: "SALES_RETURN",
+        },
+        {
+          name: "Bill Collector",
+          path: "/transactions/bill-collector",
+          icon: <MoneyCollectOutlined />,
+          permission: "BILL_COLLECTOR",
+        },
+      ],
     },
     {
-      name: "Sales Return",
-      path: "/transactions/sales-return",
-      icon: <FileTextOutlined />,
-      permission: "SALES_RETURN",
+      name: "Purchase",
+      icon: <DollarOutlined />,
+      isGroup: true,
+      children: [
+        {
+          name: "Purchase Invoice",
+          path: "/transactions/purchase-invoice",
+          icon: <DollarOutlined />,
+          permission: "PURCHASE_INVOICE",
+        },
+        {
+          name: "Purchase Return",
+          path: "/transactions/Purchasereturn",
+          icon: <DollarOutlined />,
+          permission: "PURCHASE_RETURN",
+        },
+      ],
+    },
+    {
+      name: "Voucher",
+      icon: <MoneyCollectOutlined />,
+      isGroup: true,
+      children: [
+        {
+          name: "Payment Voucher",
+          path: "/payment-voucher",
+          icon: <MoneyCollectOutlined />,
+          permission: "PAYMENT_VOUCHER",
+        },
+        {
+          name: "Receipt Voucher",
+          path: "/transactions/receipt-voucher",
+          icon: <MoneyCollectOutlined />,
+          permission: "RECEIPT_VOUCHER",
+        },
+      ],
     },
     {
       name: "Scrap RateFix",
@@ -255,14 +284,7 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "SCRAP_PROCUREMENT",
     },
-    // { name: 'Test page', path: '/Transaction/test', icon: <DollarOutlined />, permission: 'TENDER' },
     {
-      name: "Bill Collector",
-      path: "/transactions/bill-collector",
-      icon: <MoneyCollectOutlined />,
-      permission: "BILL_COLLECTOR",
-    },
-     {
       name: "Tag Print",
       path: "/transactions/Tag-Print",
       icon: <DollarOutlined />,
@@ -414,9 +436,20 @@ const Navbar = () => {
   }, [hasPermission]);
 
   const filteredTransactionItems = useMemo(() => {
-    return transactionItems.filter(
-      (item) => !item.permission || hasPermission(item.permission)
-    );
+    return transactionItems.map(group => {
+      if (group.isGroup && group.children) {
+        const filteredChildren = group.children.filter(
+          (item) => !item.permission || hasPermission(item.permission)
+        );
+        return { ...group, children: filteredChildren };
+      }
+      return group;
+    }).filter(group => {
+      if (group.isGroup) {
+        return group.children && group.children.length > 0;
+      }
+      return !group.permission || hasPermission(group.permission);
+    });
   }, [hasPermission]);
 
   const filteredReportItems = useMemo(() => {
@@ -827,18 +860,62 @@ const Navbar = () => {
                         mobileMenuState.transactions ? styles.open : ""
                       }`}
                     >
-                      {filteredTransactionItems.map((item) => (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          className={`${styles["mobile-dropdown-item"]} ${
-                            location.pathname === item.path ? styles.active : ""
-                          }`}
-                          onClick={closeMobileMenu}
-                        >
-                          {item.icon} {item.name}
-                        </Link>
-                      ))}
+                      {filteredTransactionItems.map((item, index) => {
+                        if (item.isGroup && item.children) {
+                          const groupKey = item.name.toLowerCase().replace(/\s+/g, '').replace(/\//g, '');
+                          return (
+                            <div key={index} className={styles["mobile-nested-group"]}>
+                              <div
+                                className={`${styles["mobile-nested-header"]} ${
+                                  mobileMenuState[groupKey] ? styles.active : ""
+                                }`}
+                                onClick={() => toggleMobileDropdown(groupKey)}
+                              >
+                                <div className={styles["header-content"]}>
+                                  {item.icon} {item.name}
+                                </div>
+                                <span className={styles["arrow-icon"]}>
+                                  {mobileMenuState[groupKey] ? (
+                                    <UpOutlined />
+                                  ) : (
+                                    <DownOutlined />
+                                  )}
+                                </span>
+                              </div>
+                              <div
+                                className={`${styles["mobile-nested-items"]} ${
+                                  mobileMenuState[groupKey] ? styles.open : ""
+                                }`}
+                              >
+                                {item.children.map((child) => (
+                                  <Link
+                                    key={child.path}
+                                    to={child.path}
+                                    className={`${styles["mobile-nested-item"]} ${
+                                      location.pathname === child.path ? styles.active : ""
+                                    }`}
+                                    onClick={closeMobileMenu}
+                                  >
+                                    {child.icon} {child.name}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`${styles["mobile-dropdown-item"]} ${
+                              location.pathname === item.path ? styles.active : ""
+                            }`}
+                            onClick={closeMobileMenu}
+                          >
+                            {item.icon} {item.name}
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
 
