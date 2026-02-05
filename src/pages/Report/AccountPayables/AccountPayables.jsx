@@ -45,6 +45,8 @@ const AccountPayables = () => {
   const [fromDate, setFromDate] = useState(currentDate);
   const [toDate, setToDate] = useState(currentDate);
   const [selectedCompanies, setSelectedCompanies] = useState(['ALL']); // Initial value is ALL
+  const [searchTerm, setSearchTerm] = useState('');
+  const [balanceType, setBalanceType] = useState(''); // '' = ALL, 'DR' = Debit, 'CR' = Credit
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const [tempSelectedCompanies, setTempSelectedCompanies] = useState([]); // Initially empty
   const [selectAll, setSelectAll] = useState(false); // Initially false
@@ -238,8 +240,8 @@ const AccountPayables = () => {
         selectedCompanyCodes = selectedCompanies.join(',');
       }
       
-      // Build the API URL
-      const apiUrl = `${API_BASE}${API_ENDPOINTS.ACC_PAY.LIST(selectedCompanyCodes, 1, 20)}`;
+      // Build the API URL with search and balance type filters
+      const apiUrl = `${API_BASE}${API_ENDPOINTS.ACC_PAY.LIST(selectedCompanyCodes, 1, 20, searchTerm, balanceType)}`;
       console.log('API URL:', apiUrl);
       
       // Fetch data from API
@@ -302,6 +304,8 @@ const AccountPayables = () => {
     setCompanyDisplay('ALL');
     setTempSelectedCompanies([]);
     setSelectAll(false);
+    setSearchTerm('');
+    setBalanceType('');
     setPayablesData([]);
   };
 
@@ -1078,7 +1082,7 @@ const handlePrintClick = () => {
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* LEFT SIDE: Dates and Company */}
+          {/* LEFT SIDE: Dates, Company, Search & Filter */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -1180,6 +1184,51 @@ const handlePrintClick = () => {
                   marginLeft: '8px' 
                 }}>▼</span>
               </div>
+            </div>
+
+            {/* Search Field */}
+            <div style={{
+              ...styles.formField,
+              flex: 1,
+              minWidth: screenSize.isMobile ? '100%' : '200px',
+            }}>
+              <label style={styles.inlineLabel}>Search:</label>
+              <input
+                type="text"
+                placeholder="Search accounts..."
+                style={
+                  focusedField === 'search'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setFocusedField('search')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
+
+            {/* Balance Type Filter */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
+            }}>
+              <label style={styles.inlineLabel}>Type:</label>
+              <select
+                style={
+                  focusedField === 'balanceType'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
+                }
+                value={balanceType}
+                onChange={(e) => setBalanceType(e.target.value)}
+                onFocus={() => setFocusedField('balanceType')}
+                onBlur={() => setFocusedField('')}
+              >
+                <option value="">All</option>
+                <option value="DR">Debit</option>
+                <option value="CR">Credit</option>
+              </select>
             </div>
           </div>
 

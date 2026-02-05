@@ -382,17 +382,17 @@ PAYMENTVOUCHER: {
   },
   ACC_REC: {
     COMPANIES: 'AccRec/companies',
-    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
-      `AccRec/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20, search = '',balanceType='') => 
+      `AccRec/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}&balanceType=${balanceType}`,
+  
   },
- 
   
   LEDGER: {
     COMPANIES: 'ledger/companies',
     PARTY_LIST: (pageNumber = 1, pageSize = 20, search = '') => 
       `ledger/partyList?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
-    GET_LEDGER: (accountCode, compCode, fromDate, toDate) =>
-      `ledger/GetLedger?accountCode=${encodeURIComponent(accountCode)}&compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+    GET_LEDGER: (accountCode, compCode, fromDate, toDate, search = '', balanceType = '') =>
+      `ledger/GetLedger?accountCode=${encodeURIComponent(accountCode)}&compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&search=${encodeURIComponent(search)}&balanceType=${balanceType}`,
   },
   
   SALES_REGISTER: {
@@ -402,8 +402,8 @@ PAYMENTVOUCHER: {
 
   ACC_PAY: {
     COMPANIES: 'AccPayable/companies',
-    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20) => 
-      `AccPayable/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    LIST: (selectedCompanies, pageNumber = 1, pageSize = 20, search = '', balanceType = '') => 
+      `AccPayable/list?selectedCompanies=${encodeURIComponent(selectedCompanies)}&pageNumber=${pageNumber}&pageSize=${pageSize}&search=${encodeURIComponent(search)}&balanceType=${balanceType}`,
   },
 
   GROUP_WISE_STOCK: {
