@@ -308,22 +308,87 @@ const TenderReport = () => {
     setShowExportConfirm(true);
   };
 
-  const handlePrintConfirm = () => {
+  const handlePrintConfirm = async () => {
     setShowPrintConfirm(false);
-    generatePDF();
+    await generatePDF();
   };
 
-  const handleExportConfirm = () => {
+  const handleExportConfirm = async () => {
     setShowExportConfirm(false);
-    exportToExcel();
+    await exportToExcel();
   };
 
   const formatNumber = (num) => {
     return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const generatePDF = () => {
+  const fetchAllData = async () => {
     try {
+      setIsLoading(true);
+      const compCode = selectedBranches.includes('ALL') ? defaultCompCode : selectedBranches[0];
+      const apiFromDate = formatDateForAPI(fromDate);
+      const apiToDate = formatDateForAPI(toDate);
+      
+      let allRecords = [];
+      let currentPage = 1;
+      let hasMoreData = true;
+      const fetchPageSize = 100; // Fetch larger chunks
+      
+      while (hasMoreData) {
+        const response = await fetch(`${API_BASE}${API_ENDPOINTS.BILL_COLLECTOR_REPORT.GET_BILL_COLLECTOR_REPORT(apiFromDate, apiToDate, compCode, currentPage, fetchPageSize, searchInvoiceNo)}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const records = data.data || [];
+        
+        allRecords = [...allRecords, ...records];
+        
+        if (records.length < fetchPageSize) {
+          hasMoreData = false;
+        } else {
+          currentPage++;
+        }
+      }
+      
+      setIsLoading(false);
+      return allRecords;
+    } catch (error) {
+      console.error('Error fetching all data:', error);
+      setIsLoading(false);
+      toast.error('Failed to fetch all data for export');
+      return [];
+    }
+  };
+
+  const generatePDF = async () => {
+    try {
+      const allData = await fetchAllData();
+      
+      if (allData.length === 0) {
+        toast.warning('No data available to print');
+        return;
+      }
+
+      // Calculate totals from all data
+      const totals = allData.reduce((acc, row) => ({
+        totalGross: acc.totalGross + (parseFloat(row.grossAmt) || 0),
+        totalBill: acc.totalBill + (parseFloat(row.billAmt) || 0),
+        totalNet: acc.totalNet + (parseFloat(row.netAmt) || 0),
+        totalCash: acc.totalCash + (parseFloat(row.cashAmt) || 0),
+        totalCard: acc.totalCard + (parseFloat(row.cardAmt) || 0),
+        totalUpi: acc.totalUpi + (parseFloat(row.upiAmt) || 0),
+      }), {
+        totalGross: 0,
+        totalBill: 0,
+        totalNet: 0,
+        totalCash: 0,
+        totalCard: 0,
+        totalUpi: 0,
+      });
+
       const printContent = `
         <!DOCTYPE html>
         <html>
@@ -333,9 +398,11 @@ const TenderReport = () => {
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { text-align: center; color: #1B91DA; }
             .info { text-align: center; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; font-size: 10px; }
-            td { padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 9px; }
+            th { background-color: #1B91DA; color: white; padding: 8px; text-align: center; font-size: 9px; }
+            td { padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 9px; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
             tr:nth-child(even) { background-color: #f9f9f9; }
             .total-row { background-color: #e3f2fd; font-weight: bold; }
           </style>
@@ -345,44 +412,76 @@ const TenderReport = () => {
           <div class="info">
             <p>Period: ${fromDate} to ${toDate}</p>
             <p>Branches: ${branchDisplay || 'All'}</p>
-            <p>Total Records: ${tenderData.length}</p>
+            <p>Total Records: ${allData.length}</p>
           </div>
           <table>
             <thead>
               <tr>
                 <th>No</th>
-                <th>Invoice Date</th>
-                <th>Invoice No</th>
-                <th>Gross Amt</th>
+                <th>Inv No</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Gross</th>
                 <th>Bill Amt</th>
                 <th>Net Amt</th>
+                <th>Dis %</th>
+                <th>Dis Amt</th>
+                <th>Scrap No</th>
+                <th>Scrap Amt</th>
+                <th>Return No</th>
+                <th>Return Amt</th>
                 <th>Cash</th>
-                <th>Card</th>
-                <th>UPI</th>
+                <th>Balance</th>
+                <th>Card Name</th>
+                <th>Card Amt</th>
+                <th>UPI Name</th>
+                <th>UPI Amt</th>
+                <th>Srv Chg</th>
               </tr>
             </thead>
             <tbody>
-              ${tenderData.map((row, index) => `
+              ${allData.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td>${row.invoiceDate || ''}</td>
-                  <td>${row.invoiceNo || ''}</td>
-                  <td>₹${row.grossAmt || '0.00'}</td>
-                  <td>₹${row.billAmt || '0.00'}</td>
-                  <td>₹${row.netAmt || '0.00'}</td>
-                  <td>₹${row.cash || '0.00'}</td>
-                  <td>₹${row.card || '0.00'}</td>
-                  <td>₹${row.upi || '0.00'}</td>
+                  <td>${row.invNo || ''}</td>
+                  <td>${row.date ? row.date.replaceAll('-', '/') : ''}</td>
+                  <td class="text-left">${row.customer || ''}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.grossAmt) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.billAmt) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.netAmt) || 0)}</td>
+                  <td>${row.disPer || '0'}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.disAmt) || 0)}</td>
+                  <td>${row.scrapNo || ''}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.scrapAmt) || 0)}</td>
+                  <td>${row.salesReturnNo || ''}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.salesReturnAmt) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.cashAmt) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.balance) || 0)}</td>
+                  <td>${row.cardName || ''}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.cardAmt) || 0)}</td>
+                  <td>${row.upiName || ''}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.upiAmt) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.serviceChargeAmt) || 0)}</td>
                 </tr>
               `).join('')}
               <tr class="total-row">
-                <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
-                <td><strong>₹${formatNumber(apiTotals.totalGross)}</strong></td>
-                <td><strong>₹${formatNumber(apiTotals.totalBill)}</strong></td>
-                <td><strong>₹${formatNumber(apiTotals.totalNet)}</strong></td>
-                <td><strong>₹${formatNumber(apiTotals.totalCash)}</strong></td>
-                <td><strong>₹${formatNumber(apiTotals.totalCard)}</strong></td>
-                <td><strong>₹${formatNumber(apiTotals.totalUpi)}</strong></td>
+                <td colspan="4" style="text-align: right;"><strong>Total:</strong></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalGross)}</strong></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalBill)}</strong></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalNet)}</strong></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalCash)}</strong></td>
+                <td></td>
+                <td></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalCard)}</strong></td>
+                <td></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalUpi)}</strong></td>
+                <td></td>
               </tr>
             </tbody>
           </table>
@@ -403,20 +502,58 @@ const TenderReport = () => {
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
+      const allData = await fetchAllData();
+      
+      if (allData.length === 0) {
+        toast.warning('No data available to export');
+        return;
+      }
+
+      // Calculate totals from all data
+      const totals = allData.reduce((acc, row) => ({
+        totalGross: acc.totalGross + (parseFloat(row.grossAmt) || 0),
+        totalBill: acc.totalBill + (parseFloat(row.billAmt) || 0),
+        totalNet: acc.totalNet + (parseFloat(row.netAmt) || 0),
+        totalCash: acc.totalCash + (parseFloat(row.cashAmt) || 0),
+        totalCard: acc.totalCard + (parseFloat(row.cardAmt) || 0),
+        totalUpi: acc.totalUpi + (parseFloat(row.upiAmt) || 0),
+      }), {
+        totalGross: 0,
+        totalBill: 0,
+        totalNet: 0,
+        totalCash: 0,
+        totalCard: 0,
+        totalUpi: 0,
+      });
+
       let csvContent = 'Tender Report\n';
       csvContent += `Period: ${fromDate} to ${toDate}\n`;
       csvContent += `Branches: ${branchDisplay || 'All'}\n`;
-      csvContent += `Total Records: ${tenderData.length}\n\n`;
+      csvContent += `Total Records: ${allData.length}\n\n`;
       
-      csvContent += 'No,Invoice Date,Invoice No,Gross Amt,Bill Amt,Net Amt,Cash,Card,UPI\n';
+      csvContent += 'No,Inv No,Date,Customer,Gross,Bill Amt,Net Amt,Dis %,Dis Amt,Scrap No,Scrap Amt,Return No,Return Amt,Cash,Balance,Card Name,Card Amt,UPI Name,UPI Amt,Srv Chg\n';
       
-      tenderData.forEach((row, index) => {
-        csvContent += `${index + 1},${row.invoiceDate || ''},${row.invoiceNo || ''},${row.grossAmt || '0'},${row.billAmt || '0'},${row.netAmt || '0'},${row.cash || '0'},${row.card || '0'},${row.upi || '0'}\n`;
+      allData.forEach((row, index) => {
+        const grossAmt = parseFloat(row.grossAmt) || 0;
+        const billAmt = parseFloat(row.billAmt) || 0;
+        const netAmt = parseFloat(row.netAmt) || 0;
+        const disAmt = parseFloat(row.disAmt) || 0;
+        const scrapAmt = parseFloat(row.scrapAmt) || 0;
+        const salesReturnAmt = parseFloat(row.salesReturnAmt) || 0;
+        const cashAmt = parseFloat(row.cashAmt) || 0;
+        const balance = parseFloat(row.balance) || 0;
+        const cardAmt = parseFloat(row.cardAmt) || 0;
+        const upiAmt = parseFloat(row.upiAmt) || 0;
+        const serviceChargeAmt = parseFloat(row.serviceChargeAmt) || 0;
+        
+        const date = row.date ? row.date.replaceAll('-', '/') : '';
+        
+        csvContent += `${index + 1},${row.invNo || ''},${date},"${row.customer || ''}",${grossAmt.toFixed(2)},${billAmt.toFixed(2)},${netAmt.toFixed(2)},${row.disPer || '0'},${disAmt.toFixed(2)},${row.scrapNo || ''},${scrapAmt.toFixed(2)},${row.salesReturnNo || ''},${salesReturnAmt.toFixed(2)},${cashAmt.toFixed(2)},${balance.toFixed(2)},${row.cardName || ''},${cardAmt.toFixed(2)},${row.upiName || ''},${upiAmt.toFixed(2)},${serviceChargeAmt.toFixed(2)}\n`;
       });
       
-      csvContent += `,,Total,${apiTotals.totalGross.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalBill.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalNet.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalCash.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalCard.toLocaleString(undefined, { minimumFractionDigits: 2 })},${apiTotals.totalUpi.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n`;
+      csvContent += `,,,Total,${totals.totalGross.toFixed(2)},${totals.totalBill.toFixed(2)},${totals.totalNet.toFixed(2)},,,,,,,${totals.totalCash.toFixed(2)},,,,${totals.totalCard.toFixed(2)},,${totals.totalUpi.toFixed(2)},\n`;
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
