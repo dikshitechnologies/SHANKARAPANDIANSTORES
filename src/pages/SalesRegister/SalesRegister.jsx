@@ -5,6 +5,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { API_BASE } from '../../api/apiService';
 import { useAuth } from '../../context/AuthContext';
+import { PrintButton, ExportButton } from '../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -46,6 +48,10 @@ const SalesRegister = () => {
   const [focusedField, setFocusedField] = useState('');
   const [salesData, setSalesData] = useState([]);
   const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -250,6 +256,145 @@ const SalesRegister = () => {
     setFromDate(today);
     setToDate(today);
     setSalesData([]);
+  };
+
+  const handlePrintClick = () => {
+    if (salesData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (salesData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const generatePDF = () => {
+    try {
+      // Create a printable HTML content
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Sales Register</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .summary { margin-top: 20px; font-weight: bold; }
+            .summary-item { display: inline-block; margin-right: 30px; }
+          </style>
+        </head>
+        <body>
+          <h1>Sales Register Report</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Total Records: ${salesData.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Sales Party</th>
+                <th>Bill No</th>
+                <th>Bill Date</th>
+                <th>Bill Amount</th>
+                <th>Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${salesData.map((row) => `
+                <tr>
+                  <td>${row.no}</td>
+                  <td>${row.salesParty}</td>
+                  <td>${row.billNo}</td>
+                  <td>${row.billDate}</td>
+                  <td>₹${row.billAmount}</td>
+                  <td>${row.qty}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="summary">
+            <div class="summary-item">Total Bill Amount: ₹${formatNumber(totals.billAmount)}</div>
+            <div class="summary-item">Total Quantity: ${totals.qty.toFixed(2)}</div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Open print window
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      // Create CSV content
+      let csvContent = 'Sales Register Report\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Total Records: ${salesData.length}\n\n`;
+      
+      // Headers
+      csvContent += 'No,Sales Party,Bill No,Bill Date,Bill Amount,Qty\n';
+      
+      // Data rows
+      salesData.forEach((row) => {
+        const billAmount = parseFloat(row.billAmount?.replace(/,/g, '')) || 0;
+        const qty = parseFloat(row.qty) || 0;
+        csvContent += `${row.no},"${row.salesParty}",${row.billNo},${row.billDate},${billAmount},${qty}\n`;
+      });
+      
+      // Summary
+      csvContent += `\n\n`;
+      csvContent += `Summary\n`;
+      csvContent += `Total Bill Amount,${totals.billAmount}\n`;
+      csvContent += `Total Quantity,${totals.qty}\n`;
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Sales_Register_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
 
   // Handle key navigation
@@ -556,6 +701,12 @@ const SalesRegister = () => {
       fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       color: '#1976d2',
       fontWeight: 'bold',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center',
+      marginLeft: screenSize.isMobile ? '0' : 'auto',
     },
     searchButton: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
@@ -939,7 +1090,43 @@ const SalesRegister = () => {
           {/* Removed: Total Bales */}
           {/* Removed: Total Records */}
         </div>
+        <div style={styles.buttonGroup}>
+          <PrintButton 
+            onClick={handlePrintClick}
+            isActive={true}
+            disabled={salesData.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={true}
+            disabled={salesData.length === 0}
+          />
+        </div>
       </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Sales Register report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Sales Register report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 };

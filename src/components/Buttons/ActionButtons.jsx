@@ -41,6 +41,13 @@ const PrintIcon = () => (
   </svg>
 );
 
+const ExportIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+  </svg>
+);
+
 
 export const ActionButtons = ({ children, activeButton, onButtonClick }) => {
   // Clone and modify children to add active state and click handler
@@ -169,6 +176,20 @@ export const PrintButton = ({ onClick, disabled, isActive, buttonType = 'print' 
   </button>
 );
 
+export const ExportButton = ({ onClick, disabled, isActive, buttonType = 'export' }) => (
+  <button 
+    style={{ 
+      ...styles.btn, 
+      ...(!isActive ? styles.inactiveBtn : styles.exportBtn),
+      ...(disabled ? styles.disabled : {}) 
+    }} 
+    onClick={onClick}
+    disabled={disabled}
+  >
+    <ExportIcon /> Export
+  </button>
+);
+
 const styles = {
   btn: {
     display: 'inline-flex',
@@ -216,6 +237,11 @@ const styles = {
     background: '#6a1b9a',
     color: 'white',
     boxShadow: '0 4px 20px rgba(106, 27, 154, 0.18)'
+  },
+  exportBtn: {
+    background: '#00897b',
+    color: 'white',
+    boxShadow: '0 4px 20px rgba(0, 137, 123, 0.18)'
   },
   disabled: {
     opacity: 0.5,
