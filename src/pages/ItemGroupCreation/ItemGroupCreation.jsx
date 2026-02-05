@@ -1757,10 +1757,10 @@ export default function ItemGroupCreation() {
         }}
         fetchItems={fetchPopupItems}
         title={`Select Item Group to ${actionType === 'Edit' ? 'Edit' : 'Delete'}`}
-        displayFieldKeys={['fName', 'fParent']}
-        searchFields={['fName', 'fParent']}
-        headerNames={['Group Name', 'Parent']}
-        columnWidths={{ fName: '70%', fParent: '30%' }}
+        displayFieldKeys={['fName']}
+        searchFields={['fName']}
+        headerNames={['Group Name']}
+        columnWidths={{ fName: '100%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />

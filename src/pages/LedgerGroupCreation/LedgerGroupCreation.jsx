@@ -1654,10 +1654,10 @@ export default function LedgerGroupCreation() {
         }}
         fetchItems={fetchDropdownItems}
         title={actionType === 'Delete' ? 'Select Ledger Group to Delete' : 'Select Ledger Group to Edit'}
-        displayFieldKeys={[ 'fAcname', 'parentName' ]}
-        searchFields={[ 'fAcname', 'parentName' ]}
-        headerNames={[ 'Name', 'Parent' ]}
-        columnWidths={{ fAcname: '70%', parentName: '30%' }}
+        displayFieldKeys={[ 'fAcname']}
+        searchFields={[ 'fAcname']}
+        headerNames={[ 'Name']}
+        columnWidths={{ fAcname: '100%' }}
         maxHeight="60vh"
         responsiveBreakpoint={640}
       />
