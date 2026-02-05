@@ -4,6 +4,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -38,6 +40,10 @@ const Ledger = () => {
   const [openingBalance, setOpeningBalance] = useState(0);
   const [closingBalance, setClosingBalance] = useState({ debit: 0, credit: 0 });
   const [totals, setTotals] = useState({ debit: 0, credit: 0 });
+  
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   
   // Popup states for Party
   const [showPartyPopup, setShowPartyPopup] = useState(false);
@@ -390,6 +396,149 @@ const Ledger = () => {
     setTotals({ debit: 0, credit: 0 });
   };
 
+  const handlePrintClick = () => {
+    if (ledgerData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (ledgerData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const formatNumber = (num) => {
+    return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const generatePDF = () => {
+    try {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Ledger Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .summary { margin-top: 20px; font-weight: bold; }
+            .summary-item { display: inline-block; margin-right: 30px; }
+          </style>
+        </head>
+        <body>
+          <h1>Ledger Report</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Party: ${partyDisplay}</p>
+            <p>Company: ${companyDisplay}</p>
+            <p>Total Records: ${ledgerData.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Date</th>
+                <th>Voucher No</th>
+                <th>Particulars</th>
+                <th>Debit</th>
+                <th>Credit</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ledgerData.map((row, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${row.date || row.voucherDate || ''}</td>
+                  <td>${row.voucherNo || ''}</td>
+                  <td>${row.particulars || row.narration || ''}</td>
+                  <td>₹${formatNumber(row.debit || 0)}</td>
+                  <td>₹${formatNumber(row.credit || 0)}</td>
+                  <td>₹${formatNumber(row.balance || 0)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="summary">
+            <div class="summary-item">Opening Balance: ₹${formatNumber(openingBalance)}</div>
+            <div class="summary-item">Closing Balance: ₹${formatNumber((closingBalance.credit || 0) - (closingBalance.debit || 0))}</div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      let csvContent = 'Ledger Report\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Party: ${partyDisplay}\n`;
+      csvContent += `Company: ${companyDisplay}\n`;
+      csvContent += `Total Records: ${ledgerData.length}\n\n`;
+      
+      csvContent += 'No,Date,Voucher No,Particulars,Debit,Credit,Balance\n';
+      
+      ledgerData.forEach((row, index) => {
+        const debit = row.debit || 0;
+        const credit = row.credit || 0;
+        const balance = row.balance || 0;
+        csvContent += `${index + 1},${row.date || row.voucherDate || ''},${row.voucherNo || ''},"${row.particulars || row.narration || ''}",${debit},${credit},${balance}\n`;
+      });
+      
+      csvContent += `\n\n`;
+      csvContent += `Summary\n`;
+      csvContent += `Opening Balance,${openingBalance}\n`;
+      csvContent += `Closing Balance,${(closingBalance.credit || 0) - (closingBalance.debit || 0)}\n`;
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Ledger_${partyDisplay}_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
+  };
+
   // Handle key navigation
   const handleKeyDown = (e, currentField) => {
     if (e.key === 'Enter') {
@@ -671,6 +820,12 @@ const Ledger = () => {
       fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       color: '#1976d2',
       fontWeight: 'bold',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center',
+      marginLeft: screenSize.isMobile ? '0' : 'auto',
     },
     searchButton: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
@@ -1444,7 +1599,43 @@ const Ledger = () => {
             </span>
           </div>
         </div>
+        <div style={styles.buttonGroup}>
+          <PrintButton 
+            onClick={handlePrintClick}
+            isActive={true}
+            disabled={ledgerData.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={true}
+            disabled={ledgerData.length === 0}
+          />
+        </div>
       </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Ledger report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Ledger report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
 
       {/* Party Selection Popup */}
       {showPartyPopup && (

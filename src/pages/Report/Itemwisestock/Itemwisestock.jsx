@@ -4,6 +4,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { API_BASE } from '../../../api/apiService';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -59,6 +61,10 @@ const AccountPayables = () => {
   const [showCompanyNamePopup, setShowCompanyNamePopup] = useState(false);
   const [selectedCompanyNames, setSelectedCompanyNames] = useState([]);
   const [selectAllCompanies, setSelectAllCompanies] = useState(false);
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -397,6 +403,131 @@ const AccountPayables = () => {
     setPayablesData([]);
   };
 
+  const handlePrintClick = () => {
+    if (payablesData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (payablesData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const generatePDF = () => {
+    try {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Item Wise Stock Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; }
+            td { padding: 8px; border: 1px solid #ddd; text-align: center; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+          </style>
+        </head>
+        <body>
+          <h1>Item Wise Stock Report</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Company: ${companyDisplay}</p>
+            <p>Item: ${selectedItem?.itemname || 'All Items'}</p>
+            <p>Total Records: ${payablesData.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Item Name</th>
+                <th>Company</th>
+                <th>Opening Qty</th>
+                <th>Purchase Qty</th>
+                <th>Sales Qty</th>
+                <th>Closing Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${payablesData.map((row, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${row.itemName || ''}</td>
+                  <td>${row.company || ''}</td>
+                  <td>${row.openingQty || ''}</td>
+                  <td>${row.purchaseQty || ''}</td>
+                  <td>${row.salesQty || ''}</td>
+                  <td>${row.closingQty || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      let csvContent = 'Item Wise Stock Report\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Company: ${companyDisplay}\n`;
+      csvContent += `Item: ${selectedItem?.itemname || 'All Items'}\n`;
+      csvContent += `Total Records: ${payablesData.length}\n\n`;
+      
+      csvContent += 'No,Item Name,Company,Opening Qty,Purchase Qty,Sales Qty,Closing Qty\n';
+      
+      payablesData.forEach((row, index) => {
+        csvContent += `${index + 1},"${row.itemName || ''}","${row.company || ''}",${row.openingQty || ''},${row.purchaseQty || ''},${row.salesQty || ''},${row.closingQty || ''}\n`;
+      });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Item_Wise_Stock_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
+  };
+
   // Handle key navigation
   const handleKeyDown = (e, currentField) => {
     if (e.key === 'Enter') {
@@ -679,6 +810,12 @@ const AccountPayables = () => {
       fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       color: '#1976d2',
       fontWeight: 'bold',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center',
+      marginLeft: screenSize.isMobile ? '0' : 'auto',
     },
     companyInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1281,7 +1418,43 @@ const AccountPayables = () => {
             </span>
           </div>
         </div>
+        <div style={styles.buttonGroup}>
+          <PrintButton 
+            onClick={handlePrintClick}
+            isActive={true}
+            disabled={payablesData.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={true}
+            disabled={payablesData.length === 0}
+          />
+        </div>
       </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Item Wise Stock report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Item Wise Stock report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
 
       {/* Company Selection Popup */}
       {showCompanyPopup && (

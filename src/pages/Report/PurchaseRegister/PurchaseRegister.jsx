@@ -5,6 +5,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import axiosInstance from '../../../api/axiosInstance';
 import { useAuth } from '../../../context/AuthContext';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 // Helper functions (keep these outside the component)
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
@@ -92,6 +94,10 @@ const PurchaseRegister = () => {
   const [hoveredButton, setHoveredButton] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   // Infinite scroll state
   const [currentPage, setCurrentPage] = useState(1);
@@ -312,6 +318,153 @@ const PurchaseRegister = () => {
     setHasMore(true);
     setFocusedField('fromDate');
     toast.info('Filters cleared! Select dates and click Search to view data');
+  };
+
+  const handlePrintClick = () => {
+    if (data.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (data.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const generatePDF = () => {
+    try {
+      // Create a printable HTML content
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Purchase Register</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .summary { margin-top: 20px; font-weight: bold; }
+            .summary-item { display: inline-block; margin-right: 30px; }
+          </style>
+        </head>
+        <body>
+          <h1>Purchase Register Report</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Total Records: ${summary.totalRecords}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Party Name</th>
+                <th>Voucher Date</th>
+                <th>Ref No</th>
+                <th>Bill No</th>
+                <th>Sub Total</th>
+                <th>Less</th>
+                <th>Amount</th>
+                <th>Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((row, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${safeDisplay(row.name)}</td>
+                  <td>${safeDisplay(row.voucherDate)}</td>
+                  <td>${safeDisplay(row.invoice)}</td>
+                  <td>${safeDisplay(row.bill)}</td>
+                  <td>₹${safeFormatNumber(row.subTotal)}</td>
+                  <td>₹${safeFormatNumber(row.less)}</td>
+                  <td>₹${safeFormatNumber(row.netAmount)}</td>
+                  <td>${safeDisplayNumber(row.qty)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="summary">
+            <div class="summary-item">Sub Total: ₹${formatNumber(summary.totals.subTotal)}</div>
+            <div class="summary-item">Less: ₹${formatNumber(summary.totals.less)}</div>
+            <div class="summary-item">Net Total: ₹${formatNumber(summary.totals.amount)}</div>
+            <div class="summary-item">Quantity: ${formatNumber(summary.totals.qty)}</div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Open print window
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      // Create CSV content
+      let csvContent = 'Purchase Register Report\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Total Records: ${summary.totalRecords}\n\n`;
+      
+      // Headers
+      csvContent += 'No,Party Name,Voucher Date,Ref No,Bill No,Sub Total,Less,Amount,Qty\n';
+      
+      // Data rows
+      data.forEach((row, index) => {
+        csvContent += `${index + 1},"${safeDisplay(row.name)}",${safeDisplay(row.voucherDate)},${safeDisplay(row.invoice)},${safeDisplay(row.bill)},${parseNumber(row.subTotal)},${parseNumber(row.less)},${parseNumber(row.netAmount)},${safeDisplayNumber(row.qty)}\n`;
+      });
+      
+      // Summary
+      csvContent += `\n\n`;
+      csvContent += `Summary\n`;
+      csvContent += `Sub Total,${parseNumber(summary.totals.subTotal)}\n`;
+      csvContent += `Less,${parseNumber(summary.totals.less)}\n`;
+      csvContent += `Net Total,${parseNumber(summary.totals.amount)}\n`;
+      csvContent += `Quantity,${parseNumber(summary.totals.qty)}\n`;
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Purchase_Register_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
 
   // Keyboard navigation
@@ -610,6 +763,7 @@ const PurchaseRegister = () => {
       left: 0,
       right: 0,
       flex: '0 0 auto',
+      display: 'flex',
       flexDirection: screenSize.isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -657,6 +811,12 @@ const PurchaseRegister = () => {
       fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       color: '#1976d2',
       fontWeight: 'bold',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center',
+      marginLeft: screenSize.isMobile ? '0' : 'auto',
     },
     searchButton: {
       padding: screenSize.isMobile ? '8px 16px' : screenSize.isTablet ? '10px 20px' : '12px 24px',
@@ -965,7 +1125,43 @@ const PurchaseRegister = () => {
             </span>
           </div>
         </div>
+        <div style={styles.buttonGroup}>
+          <PrintButton 
+            onClick={handlePrintClick}
+            isActive={true}
+            disabled={data.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={true}
+            disabled={data.length === 0}
+          />
+        </div>
       </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Purchase Register report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Purchase Register report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 };

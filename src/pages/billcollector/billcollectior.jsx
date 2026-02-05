@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
+import { ActionButtons1, PrintButton, ExportButton } from '../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfirmationPopup';
 import TenderModal from '../../components/TenderModal/TenderModal';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
@@ -24,6 +25,7 @@ function BillCollector() {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [activeFooterAction, setActiveFooterAction] = useState('all');
   
   // Tender Modal state
@@ -513,7 +515,67 @@ const container = {
   };
 
   const handlePrint = () => {
+    if (bills.length === 0) {
+      alert('No bills available to print');
+      return;
+    }
     setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (bills.length === 0) {
+      alert('No bills available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const exportToExcel = () => {
+    try {
+      const totalAmount = bills.reduce((sum, bill) => sum + (bill.amount || 0), 0);
+      const totalDiscount = bills.reduce((sum, b) => sum + (b.damt || 0), 0);
+      
+      let csvContent = 'Bill Collection Report\n';
+      csvContent += `Generated on: ${new Date().toLocaleString('en-IN')}\n`;
+      csvContent += `Search Filter: ${searchInput || 'All'}\n`;
+      csvContent += `Page: ${pageNumber} | Total Records: ${totalCount}\n\n`;
+      
+      csvContent += 'SNo,Date,Bill No,Salesman,Customer,Mobile,Items,Qty,Amount,Discount\n';
+      
+      bills.forEach((row, i) => {
+        const sno = (pageNumber - 1) * pageSize + i + 1;
+        const date = row.date ? new Date(row.date).toLocaleDateString('en-IN') : '-';
+        const amount = Number(row.amount || 0);
+        const discount = Number(row.damt || 0);
+        
+        csvContent += `${sno},${date},${row.billNo},"${row.salesman || '-'}","${row.customer || '-'}",${row.mobile || '-'},${row.items || 0},${row.qty || 0},${amount},${discount}\n`;
+      });
+      
+      csvContent += `\nSummary:\n`;
+      csvContent += `Total Bills,${bills.length}\n`;
+      csvContent += `Total Amount,${totalAmount}\n`;
+      csvContent += `Total Discount,${totalDiscount}\n`;
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Bill_Collection_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Failed to export to Excel');
+    }
   };
 
   const confirmPrint = () => {
@@ -740,8 +802,59 @@ const container = {
         )}
       </div>
 
-      {/* Print Confirmation Modal */}
-     
+      {/* Footer Section with Print and Export Buttons */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        padding: isMobile ? '6px 4px' : '8px 10px',
+        backgroundColor: 'white',
+        borderTop: '2px solid #e0e0e0',
+        boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+        gap: '10px',
+        zIndex: 100,
+      }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <PrintButton 
+            onClick={handlePrint}
+            isActive={true}
+            disabled={bills.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={true}
+            disabled={bills.length === 0}
+          />
+        </div>
+      </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={confirmPrint}
+        title="Print Confirmation"
+        message="Do you want to print the Bill Collection report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Bill Collection report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
 
       {/* Tender Modal */}
       <TenderModal 
