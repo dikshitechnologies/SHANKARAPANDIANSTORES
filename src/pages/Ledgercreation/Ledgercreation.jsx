@@ -1639,13 +1639,13 @@ export default function LedgerCreation({ onCreated }) {
           
           .actions {
             width: 100%;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 8px;
           }
           
           .action-pill {
-            flex: 1;
-            min-width: 0;
+            flex: 0 0 auto;
+            min-width: fit-content;
             padding: 8px 10px;
             font-size: 12px;
             justify-content: center;
@@ -1728,14 +1728,17 @@ export default function LedgerCreation({ onCreated }) {
           }
           
           .actions {
-            flex-direction: column;
+            flex-direction: row;
             width: 100%;
+            gap: 6px;
+            justify-content: flex-start;
           }
           
           .action-pill {
-            width: 100%;
-            padding: 10px;
-            font-size: 13px;
+            flex: 0 0 auto;
+            padding: 8px 12px;
+            font-size: 12px;
+            min-width: fit-content;
           }
           
           .form-container {
