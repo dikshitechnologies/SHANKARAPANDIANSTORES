@@ -1026,7 +1026,8 @@ const PurchaseInvoice = () => {
         .filter(l => typeof l === 'string')
         .map(l => l.toUpperCase())
     );
-
+    // Add '.' to valid characters
+  validLetters.add('.');
     const sudoUpper = sudoValue.toUpperCase();
     const invalidLetters = [];
 
@@ -2199,21 +2200,39 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     let amt = 0;
 
     /* ---------- PROFIT % ---------- */
-    const fseudoMap = userData?.fseudo || fseudo || {};
-    const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
-      if (typeof l === "string") a[l.toLowerCase()] = i;
-      return a;
-    }, {});
+      const fseudoMap = userData?.fseudo || fseudo || {};
+  const letterToNum = Object.values(fseudoMap).reduce((a, l, i) => {
+    if (typeof l === 'string') a[l.toLowerCase()] = i;
+    return a;
+  }, {});
 
-    const profitPercent = item.sudo?.trim()
-      ? Number(
-          item.sudo
-            .toLowerCase()
-            .split("")
-            .map(c => c === '.' ? '.' : (letterToNum[c] ?? ""))
-            .join("")
-        ) || 0
-      : Number(item.profitPercent) || 0;
+  let profitPercent = 0;
+  
+  // Check if sudo field has value
+  if (item.sudo !== undefined && item.sudo !== null && item.sudo.toString().trim() !== '') {
+    const sudoLower = item.sudo.toLowerCase();
+    let convertedValue = '';
+    
+    // Convert each character
+    for (const char of sudoLower) {
+      if (char === '.') {
+        // Keep decimal point as is
+        convertedValue += '.';
+      } else if (letterToNum[char] !== undefined) {
+        // Convert letter to its corresponding number
+        convertedValue += letterToNum[char];
+      }
+      // Ignore other characters (they should have been validated already)
+    }
+    
+    // Parse the converted string as a decimal number
+    profitPercent = parseFloat(convertedValue) || 0;
+    
+    console.log(`Sudo conversion: "${item.sudo}" -> "${convertedValue}" -> ${profitPercent}%`);
+  } else {
+    // If sudo is cleared, also clear profitPercent
+    profitPercent = 0;
+  }
 
     /* ---------- CALCULATE CHARGE PER ITEM ---------- */
     let chargePerItem = 0;
