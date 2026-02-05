@@ -44,6 +44,8 @@ const AccountReceivables = () => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selectedCompanies, setSelectedCompanies] = useState(['ALL']);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [balanceType, setBalanceType] = useState(''); // '' = ALL, 'DR' = Debit, 'CR' = Credit
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const [tempSelectedCompanies, setTempSelectedCompanies] = useState([]);
   const [companySearchTerm, setCompanySearchTerm] = useState('');
@@ -231,7 +233,7 @@ const AccountReceivables = () => {
         : selectedCompanies;
       const selectedCompaniesStr = selectedCodes.join(',');
       
-      const data = await get(API_ENDPOINTS.ACC_REC.LIST(selectedCompaniesStr));
+      const data = await get(API_ENDPOINTS.ACC_REC.LIST(selectedCompaniesStr, 1, 20, searchTerm, balanceType));
       
       // Map the data
       const mappedData = data.map((item, index) => ({
@@ -279,6 +281,8 @@ const AccountReceivables = () => {
     setToDate(formattedToday);
     setSelectedCompanies(['ALL']);
     setCompanyDisplay('ALL');
+    setSearchTerm('');
+    setBalanceType('');
     setReceivablesData([]);
   };
 
@@ -1050,7 +1054,7 @@ closeButton: {
           flexWrap: screenSize.isMobile ? 'wrap' : 'nowrap',
           width: '100%',
         }}>
-          {/* LEFT SIDE: Dates and Company */}
+          {/* LEFT SIDE: Dates, Company, Search & Filter */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -1152,6 +1156,51 @@ closeButton: {
                   marginLeft: '8px' 
                 }}>▼</span>
               </div>
+            </div>
+
+            {/* Search Field */}
+            <div style={{
+              ...styles.formField,
+              flex: 1,
+              minWidth: screenSize.isMobile ? '100%' : '200px',
+            }}>
+              <label style={styles.inlineLabel}>Search:</label>
+              <input
+                type="text"
+                placeholder="Search accounts..."
+                style={
+                  focusedField === 'search'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setFocusedField('search')}
+                onBlur={() => setFocusedField('')}
+              />
+            </div>
+
+            {/* Balance Type Filter */}
+            <div style={{
+              ...styles.formField,
+              minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
+            }}>
+              <label style={styles.inlineLabel}>Type:</label>
+              <select
+                style={
+                  focusedField === 'balanceType'
+                    ? styles.inlineInputFocused
+                    : styles.inlineInput
+                }
+                value={balanceType}
+                onChange={(e) => setBalanceType(e.target.value)}
+                onFocus={() => setFocusedField('balanceType')}
+                onBlur={() => setFocusedField('')}
+              >
+                <option value="">All</option>
+                <option value="DR">Debit</option>
+                <option value="CR">Credit</option>
+              </select>
             </div>
           </div>
 

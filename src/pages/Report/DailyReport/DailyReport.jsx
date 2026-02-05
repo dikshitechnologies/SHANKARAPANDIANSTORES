@@ -3,14 +3,23 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
+import { usePrintPermission } from '../../../hooks/usePrintPermission';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 // Helper function to convert YYYY-MM-DD to DD/MM/YYYY
 const formatDateToDDMMYYYY = (dateString) => {
+  if (!dateString) return '';
   const [year, month, day] = dateString.split('-');
   return `${day}/${month}/${year}`;
 };
 
 const DailyReport = () => {
+// --- PERMISSIONS ---
+const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('DAILY_REPORT');
+
+
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
@@ -19,16 +28,25 @@ const DailyReport = () => {
   const searchButtonRef = useRef(null);
 
   // --- STATE MANAGEMENT ---
-  const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
-  const [openingBalance, setOpeningBalance] = useState(0.00);
-  const [closingBalance, setClosingBalance] = useState(17362349.75);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [openingBalance, setOpeningBalance] = useState('');
+  const [closingBalance, setClosingBalance] = useState('');
+  const [openingBalanceType, setOpeningBalanceType] = useState('DR');
+  const [closingBalanceType, setClosingBalanceType] = useState('CR');
   const [showReport, setShowReport] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [reportData, setReportData] = useState(null);
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
   
-  // Auto-focus on fromDate when component mounts
+  // Set default dates when component mounts
   useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setFromDate(today);
+    setToDate(today);
+    
     if (fromDateRef.current) {
       setTimeout(() => {
         fromDateRef.current.focus();
@@ -126,6 +144,25 @@ const DailyReport = () => {
       minHeight: 0,
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
+    },
+    footerSection: {
+      flex: '0 0 auto',
+      backgroundColor: 'white',
+      borderTop: '1px solid #e0e0e0',
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '14px',
+      boxShadow: '0 -2px 4px rgba(0,0,0,0.05)',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+    },
+    footerButtonContainer: {
+      display: 'flex',
+      gap: '10px',
+      backgroundColor: '#ffffff',
+      padding: '0.4rem',
+      borderRadius: '50px',
+      border: '2px solid #1976d2',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
     },
     filterRow: {
       display: 'flex',
@@ -426,62 +463,60 @@ const DailyReport = () => {
     },
   };
 
-  // Sample data matching the image
-  const sampleData = [
-    // Sales data
-    { billNo: 'B00001AA', name: 'TEST 1234', grossWt: '100.000', netWt: '100.000', pure: '92.000', rateCut: '100.000', amount: '30961.00', rightBillNo: 'B00001AA', rightName: 'Sales' },
-    { billNo: 'B00005AA', name: 'TEST 1234', grossWt: '344.000', netWt: '234.000', pure: '53.820', rateCut: '324.000', amount: '1162433.00', rightBillNo: 'B00005AA', rightName: 'Sales' },
-    { billNo: 'B00007AA', name: 'TEST 1234', grossWt: '234.000', netWt: '3.000', pure: '0.690', rateCut: '34.000', amount: '12283.00', rightBillNo: 'B00007AA', rightName: 'Sales' },
-    { billNo: 'B00008AA', name: 'TEST 1234', grossWt: '345.000', netWt: '455.000', pure: '154.700', rateCut: '', amount: '5344156.00', rightBillNo: 'B00008AA', rightName: 'Sales' },
-    { billNo: 'C00002AA', name: 'SHEETAL SOLLITAIRELL', grossWt: '5.000', netWt: '5.000', pure: '1.000', rateCut: '', amount: '17003.00', rightBillNo: 'C00002AA', rightName: 'Sales' },
-    { billNo: 'C00002AA', name: 'ABI', grossWt: '100.000', netWt: '100.000', pure: '', rateCut: '', amount: '14788280.00', rightBillNo: 'C00002AA', rightName: 'Sales' },
-    { billNo: 'C00004AA', name: 'TEST', grossWt: '100.000', netWt: '100.000', pure: '', rateCut: '', amount: '24788280.00', rightBillNo: 'C00004AA', rightName: 'Sales' },
-    { billNo: 'C00006AA', name: 'AISHU', grossWt: '8.000', netWt: '8.000', pure: '', rateCut: '', amount: '37412.00', rightBillNo: 'C00006AA', rightName: 'Sales' },
-    { billNo: 'C00007AA', name: 'AISHU', grossWt: '8.000', netWt: '8.000', pure: '', rateCut: '', amount: '13000.00', rightBillNo: 'C00007AA', rightName: 'Sales' },
-    { billNo: 'C00008AA', name: 'AISHU', grossWt: '8.000', netWt: '8.000', pure: '', rateCut: '', amount: '129000.00', rightBillNo: 'C00008AA', rightName: 'Sales' },
-    { billNo: 'C00009AA', name: 'AISHU', grossWt: '5.000', netWt: '5.000', pure: '', rateCut: '', amount: '66000.00', rightBillNo: 'C00009AA', rightName: 'Sales' },
-    { billNo: 'C00101AA', name: 'AISHU', grossWt: '2.000', netWt: '2.000', pure: '', rateCut: '', amount: '32520.00', rightBillNo: 'C00101AA', rightName: 'Sales' },
-    { billNo: 'C00102AA', name: 'YMCA PURASWAKKAM', grossWt: '15.000', netWt: '10.000', pure: '', rateCut: '', amount: '16549.00', rightBillNo: 'C00102AA', rightName: 'Sales' },
-    { billNo: 'C00103AA', name: 'AISHU', grossWt: '10.000', netWt: '10.000', pure: '', rateCut: '', amount: '223101.00', rightBillNo: 'C00103AA', rightName: 'Sales' },
-    { billNo: 'C00104AA', name: 'TEST 1234', grossWt: '15.000', netWt: '10.000', pure: '', rateCut: '', amount: '189000.00', rightBillNo: 'C00104AA', rightName: 'Sales' },
-    { billNo: 'C00105AA', name: 'AISHU', grossWt: '9.254', netWt: '9.254', pure: '', rateCut: '', amount: '17500.00', rightBillNo: 'C00105AA', rightName: 'Sales' },
-  ];
-
-  // Totals
-  const totals = {
-    grossWt: '4773.254',
-    netWt: '2082.254',
-    pure: '301.360',
-    amount: '22586590.00'
-  };
-
   // Handlers
   const handleSearch = async (e) => {
     e.preventDefault();
     
+    if (!fromDate || !toDate) {
+      toast.error('Please select both from and to dates');
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // API call to fetch daily report data
+      const response = await get(API_ENDPOINTS.dailyReport, {
+        params: {
+          fromDate,
+          toDate,
+          openingBalance: openingBalance || 0,
+          closingBalance: closingBalance || 0
+        }
+      });
       
-      // For demo purposes, always show the report
-      setShowReport(true);
-    //   toast.success('Daily report loaded successfully');
+      if (response.data) {
+        setReportData(response.data);
+        // Set balance types from backend if available
+        if (response.data.openingBalanceType) {
+          setOpeningBalanceType(response.data.openingBalanceType);
+        }
+        if (response.data.closingBalanceType) {
+          setClosingBalanceType(response.data.closingBalanceType);
+        }
+        setShowReport(true);
+        toast.success('Daily report loaded successfully');
+      } else {
+        setReportData(null);
+        toast.error('No data found for the selected date range');
+      }
       
     } catch (error) {
       toast.error('Failed to load daily report');
       console.error('Error fetching daily report:', error);
+      setReportData(null);
     } finally {
       setIsLoading(false);
     }
   };
   
   const handleRefresh = () => {
-    setFromDate(new Date().toISOString().split('T')[0]);
-    setToDate(new Date().toISOString().split('T')[0]);
-    setOpeningBalance(0.00);
-    setClosingBalance(17362349.75);
+    const today = new Date().toISOString().split('T')[0];
+    setFromDate(today);
+    setToDate(today);
+    setOpeningBalance('');
+    setClosingBalance('');
     setShowReport(false);
+    setReportData(null);
   };
 
   // Keyboard navigation handlers
@@ -518,6 +553,48 @@ const DailyReport = () => {
     return formatDateToDDMMYYYY(dateString);
   };
 
+  // --- PRINT & EXPORT HANDLERS ---
+const handlePrintClick = () => {
+  if (!checkPrintPermission()) return;
+
+  if (!reportData || !showReport) {
+    toast.warning('Please search and load report data before printing');
+    return;
+  }
+
+  setShowPrintConfirm(true);
+};
+
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    // TODO: Implement PDF generation logic here
+    toast.success('Generating PDF...');
+    // Example: window.print() or use a PDF library
+    window.print();
+  };
+
+ const handleExportClick = () => {
+  if (!checkPrintPermission()) return;
+
+  if (!reportData || !showReport) {
+    toast.warning('Please search and load report data before exporting');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    // TODO: Implement Excel export logic here
+    toast.success('Exporting to Excel...');
+    // Example: Use libraries like xlsx or exceljs
+    // For now, just a placeholder
+    console.log('Export to Excel:', reportData);
+  };
+
   return (
     <div style={styles.container}>
       {/* Header Section */}
@@ -538,6 +615,7 @@ const DailyReport = () => {
                   onKeyDown={handleFromDateKeyDown}
                   onFocus={() => setFocusedField('fromDate')}
                   onBlur={() => setFocusedField('')}
+                  required
                 />
               </div>
 
@@ -553,6 +631,7 @@ const DailyReport = () => {
                   onKeyDown={handleToDateKeyDown}
                   onFocus={() => setFocusedField('toDate')}
                   onBlur={() => setFocusedField('')}
+                  required
                 />
               </div>
 
@@ -562,18 +641,17 @@ const DailyReport = () => {
                 <div style={focusedField === 'openingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
                   <input
                     ref={openingBalanceRef}
-                    type="number"
-                    step="0.01"
+                    type="text"
                     style={focusedField === 'openingBalance' ? styles.balanceInputFocused : styles.balanceInput}
                     value={openingBalance}
-                    onChange={e => setOpeningBalance(parseFloat(e.target.value) || 0)}
+                    onChange={e => setOpeningBalance(e.target.value)}
                     onKeyDown={handleOpeningBalanceKeyDown}
                     onFocus={() => setFocusedField('openingBalance')}
                     onBlur={() => setFocusedField('')}
                     placeholder="0.00"
                   />
                   <div style={focusedField === 'openingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
-                    DR
+                    {openingBalanceType}
                   </div>
                 </div>
               </div>
@@ -584,18 +662,17 @@ const DailyReport = () => {
                 <div style={focusedField === 'closingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
                   <input
                     ref={closingBalanceRef}
-                    type="number"
-                    step="0.01"
+                    type="text"
                     style={focusedField === 'closingBalance' ? styles.balanceInputFocused : styles.balanceInput}
                     value={closingBalance}
-                    onChange={e => setClosingBalance(parseFloat(e.target.value) || 0)}
+                    onChange={e => setClosingBalance(e.target.value)}
                     onKeyDown={handleClosingBalanceKeyDown}
                     onFocus={() => setFocusedField('closingBalance')}
                     onBlur={() => setFocusedField('')}
                     placeholder="0.00"
                   />
                   <div style={focusedField === 'closingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
-                    CR
+                    {closingBalanceType}
                   </div>
                 </div>
               </div>
@@ -603,7 +680,9 @@ const DailyReport = () => {
 
             {/* RIGHT SIDE: Buttons */}
             <div style={styles.rightSide}>
-              <button ref={searchButtonRef} type="submit" style={styles.button}>Search</button>
+              <button ref={searchButtonRef} type="submit" style={styles.button} disabled={isLoading}>
+                {isLoading ? 'Loading...' : 'Search'}
+              </button>
               <button type="button" style={styles.buttonSecondary} onClick={handleRefresh}>Refresh</button>
             </div>
           </div>
@@ -638,9 +717,9 @@ const DailyReport = () => {
             <tbody>
               {!showReport ? (
                 <tr>
-                  <td colSpan="13" style={styles.emptyMsg}>
-                    {/* Select date range and click "Search" to view daily report */}
-                  </td>
+                  {/* <td colSpan="13" style={styles.emptyMsg}>
+                    Select date range and click "Search" to view daily report
+                  </td> */}
                 </tr>
               ) : isLoading ? (
                 <tr>
@@ -648,103 +727,125 @@ const DailyReport = () => {
                     Loading...
                   </td>
                 </tr>
-              ) : (
+              ) : reportData ? (
                 <>
-                  {/* Sales Data Rows */}
-                  {sampleData.map((item, index) => (
-                    <tr key={index}>
-                      <td style={styles.td}>{item.billNo}</td>
-                      <td style={{...styles.td, textAlign: 'left'}}>{item.name}</td>
-                      <td style={styles.td}>{item.grossWt}</td>
-                      <td style={styles.td}>{item.netWt}</td>
-                      <td style={styles.td}>{item.pure}</td>
-                      <td style={styles.td}>{item.rateCut}</td>
-                      <td style={styles.td}>{item.amount}</td>
+                  {/* Render actual data from API response */}
+                  {reportData.transactions && reportData.transactions.length > 0 ? (
+                    reportData.transactions.map((item, index) => (
+                      <tr key={index}>
+                        <td style={styles.td}>{item.billNo || ''}</td>
+                        <td style={{...styles.td, textAlign: 'left'}}>{item.name || ''}</td>
+                        <td style={styles.td}>{item.grossWt || ''}</td>
+                        <td style={styles.td}>{item.netWt || ''}</td>
+                        <td style={styles.td}>{item.pure || ''}</td>
+                        <td style={styles.td}>{item.rateCut || ''}</td>
+                        <td style={styles.td}>{item.amount || ''}</td>
+                        
+                        <td style={styles.td}>{item.rightBillNo || ''}</td>
+                        <td style={{...styles.td, textAlign: 'left'}}>{item.rightName || ''}</td>
+                        <td style={styles.td}>{item.rightGrossWt || ''}</td>
+                        <td style={styles.td}>{item.rightNetWt || ''}</td>
+                        <td style={styles.td}>{item.rightPure || ''}</td>
+                        <td style={styles.td}>{item.rightRateCut || ''}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="13" style={styles.emptyMsg}>
+                        No transactions found for the selected date range
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Render totals if available */}
+                  {reportData.totals && (
+                    <tr style={styles.totalRow}>
+                      <td style={styles.td}><strong>Total</strong></td>
+                      <td style={styles.td}></td>
+                      <td style={styles.td}><strong>{reportData.totals.grossWt || ''}</strong></td>
+                      <td style={styles.td}><strong>{reportData.totals.netWt || ''}</strong></td>
+                      <td style={styles.td}><strong>{reportData.totals.pure || ''}</strong></td>
+                      <td style={styles.td}></td>
+                      <td style={styles.td}><strong>{reportData.totals.amount || ''}</strong></td>
                       
-                      <td style={styles.td}>{item.rightBillNo}</td>
-                      <td style={{...styles.td, textAlign: 'left'}}>{item.rightName}</td>
                       <td style={styles.td}></td>
                       <td style={styles.td}></td>
-                      <td style={styles.td}></td>
-                      <td style={styles.td}></td>
+                      <td style={styles.td}><strong>{reportData.totals.rightGrossWt || ''}</strong></td>
+                      <td style={styles.td}><strong>{reportData.totals.rightNetWt || ''}</strong></td>
+                      <td style={styles.td}><strong>{reportData.totals.rightPure || ''}</strong></td>
+                      <td style={styles.td}><strong>{reportData.totals.rightRateCut || ''}</strong></td>
+                    </tr>
+                  )}
+
+                  {/* Render balance rows if available */}
+                  {reportData.balanceRows && reportData.balanceRows.map((row, index) => (
+                    <tr style={styles.totalRow} key={`balance-${index}`}>
+                      <td style={{...styles.td, textAlign: 'left'}} colSpan="7">
+                        {row.leftText || ''}
+                      </td>
+                      <td style={{...styles.td, textAlign: 'left'}} colSpan="6">
+                        {row.rightText || ''}
+                      </td>
                     </tr>
                   ))}
-
-                  {/* Total Row */}
-                  <tr style={styles.totalRow}>
-                    <td style={styles.td}><strong>Total</strong></td>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}><strong>{totals.grossWt}</strong></td>
-                    <td style={styles.td}><strong>{totals.netWt}</strong></td>
-                    <td style={styles.td}><strong>{totals.pure}</strong></td>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}><strong>{totals.amount}</strong></td>
-                    
-                    <td style={styles.td}></td>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}></td>
-                    <td style={styles.td}></td>
-                  </tr>
-
-                  {/* Balance in Purchase Row */}
-                  <tr style={styles.totalRow}>
-                    <td style={{...styles.td, textAlign: 'left'}} colSpan="7">
-                      Balance in Purchase
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      P00014AA
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      BANK(OCCC)
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      8.920
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      16825.00
-                    </td>
-                    <td style={{...styles.td, textAlign: 'left'}} colSpan="6">
-                      P00014AA
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      BANK(OCCC)
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      122.000
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      122.000
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      104.920
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      96.000
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      16825.00
-                    </td>
-                  </tr>
-
-                  {/* Purchase Row */}
-                  <tr style={styles.totalRow}>
-                    <td style={styles.td} colSpan="7"></td>
-                    <td style={{...styles.td, textAlign: 'left'}} colSpan="6">
-                      Purchase
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      P00014AA
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      BANK(OCCC)
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      122.000
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      122.000
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      104.920
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      96.000
-                      &nbsp;&nbsp;&nbsp;&nbsp;
-                      16825.00
-                    </td>
-                  </tr>
                 </>
+              ) : (
+                <tr>
+                  <td colSpan="13" style={styles.emptyMsg}>
+                    No data available
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Footer Section */}
+      <div style={styles.footerSection}>
+        <div style={styles.footerButtonContainer}>
+        {hasPrintPermission && (
+  <PrintButton
+    onClick={handlePrintClick}
+    disabled={!reportData || !showReport}
+    isActive={hasPrintPermission}
+  />
+)}
+
+{hasPrintPermission && (
+  <ExportButton
+    onClick={handleExportClick}
+    disabled={!reportData || !showReport}
+    isActive={hasPrintPermission}
+  />
+)}
+
+        </div>
+      </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Report"
+        message="Do you want to print this daily report as PDF?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Report"
+        message="Do you want to export this daily report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="success"
+      />
     </div>
   );
 };

@@ -42,6 +42,7 @@ const MASTER_ITEMS = [
   { label: "Product Creation", dbName: "PRODUCT_CREATION" },
   { label: "Brand Creation", dbName: "BRAND_CREATION" },
   { label: "Category Creation", dbName: "CATEGORY_CREATION" },
+  { label: "Transport Creation", dbName: "TRANSPORT_CREATION" },
     { label: "Design Creation", dbName: "DESIGN_CREATION" },
   { label: "Size Creation", dbName: "SIZE_CREATION" },
   { label: "Color Creation", dbName: "COLOR_CREATION" },

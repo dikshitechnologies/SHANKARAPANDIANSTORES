@@ -15,7 +15,9 @@ const formatDateForAPI = (dateString) => {
 
 const GroupwiseStock = () => {
   // --- PERMISSIONS ---
-  const { checkPrintPermission } = usePrintPermission('GROUP_WISE_STOCK');
+ const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('GROUP_WISE_STOCK');
+
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
@@ -644,31 +646,53 @@ const GroupwiseStock = () => {
     setShowPrintConfirm(true);
   };
 
-  const handleExportClick = () => {
-    if (viewLevel === 'groups' && stockData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    if (viewLevel === 'items' && groupDetailsData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    if (viewLevel === 'bills' && itemDetailsData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+const handleExportClick = () => {
+  // 🔒 SAME PERMISSION AS PRINT
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = () => {
+  if (viewLevel === 'groups' && stockData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+  if (viewLevel === 'items' && groupDetailsData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+  if (viewLevel === 'bills' && itemDetailsData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+ const handlePrintConfirm = () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    generatePDF();
-  };
+    return;
+  }
 
-  const handleExportConfirm = () => {
+  setShowPrintConfirm(false);
+  generatePDF();
+};
+
+
+ const handleExportConfirm = () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  exportToExcel();
+};
+
 
   const generatePDF = () => {
     try {
@@ -1580,24 +1604,28 @@ const GroupwiseStock = () => {
           zIndex: 100,
         }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <PrintButton 
-              onClick={handlePrintClick}
-              isActive={true}
-              disabled={
-                (viewLevel === 'groups' && stockData.length === 0) ||
-                (viewLevel === 'items' && groupDetailsData.length === 0) ||
-                (viewLevel === 'bills' && itemDetailsData.length === 0)
-              }
-            />
-            <ExportButton 
-              onClick={handleExportClick}
-              isActive={true}
-              disabled={
-                (viewLevel === 'groups' && stockData.length === 0) ||
-                (viewLevel === 'items' && groupDetailsData.length === 0) ||
-                (viewLevel === 'bills' && itemDetailsData.length === 0)
-              }
-            />
+          <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={
+    !hasPrintPermission ||
+    (viewLevel === 'groups' && stockData.length === 0) ||
+    (viewLevel === 'items' && groupDetailsData.length === 0) ||
+    (viewLevel === 'bills' && itemDetailsData.length === 0)
+  }
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={
+    !hasPrintPermission ||
+    (viewLevel === 'groups' && stockData.length === 0) ||
+    (viewLevel === 'items' && groupDetailsData.length === 0) ||
+    (viewLevel === 'bills' && itemDetailsData.length === 0)
+  }
+/>
+
           </div>
         </div>
       )}

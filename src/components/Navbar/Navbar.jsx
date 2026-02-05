@@ -39,6 +39,10 @@ const Navbar = () => {
     purchasereport: false,
     salesreport: false,
     stock: false,
+    scrapratefixscrap: false,
+    scrapratefix: false,
+    scrapprocurement: false,
+    tagprint: false,
   });
   const location = useLocation();
   const navigate = useNavigate();
@@ -417,13 +421,13 @@ const Navbar = () => {
           permission: "STOCK_BARCODE_WISE",
           printPermission: "STOCK_BARCODE_WISE",
         },
-        {
-          name: "Prefix History",
-          path: "/reports/PrefixHistory",
-          icon: <FileTextOutlined />,
-          permission: "PREFIX_HISTORY",
-          printPermission: "PREFIX_HISTORY",
-        },
+        // {
+        //   name: "Prefix History",
+        //   path: "/reports/PrefixHistory",
+        //   icon: <FileTextOutlined />,
+        //   permission: "PREFIX_HISTORY",
+        //   printPermission: "PREFIX_HISTORY",
+        // },
       ]
     },
   ];
@@ -501,13 +505,20 @@ const Navbar = () => {
   const closeMobileMenu = () => {
     setIsMenuOpen(false);
     setMobileMenuState({ 
-      masters: false, 
-      transactions: false, 
+      masters: false,
+      transactions: false,
+      sales: false,
+      purchase: false,
+      voucher: false,
       reports: false,
-      acBook: false,
-      purchaseReport: false,
-      salesReport: false,
+      acbook: false,
+      purchasereport: false,
+      salesreport: false,
       stock: false,
+      scrapratefixscrap: false,
+      scrapratefix: false,
+      scrapprocurement: false,
+      tagprint: false,
     });
   };
 
