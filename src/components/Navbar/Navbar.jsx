@@ -417,13 +417,13 @@ const Navbar = () => {
           permission: "STOCK_BARCODE_WISE",
           printPermission: "STOCK_BARCODE_WISE",
         },
-        {
-          name: "Prefix History",
-          path: "/reports/PrefixHistory",
-          icon: <FileTextOutlined />,
-          permission: "PREFIX_HISTORY",
-          printPermission: "PREFIX_HISTORY",
-        },
+        // {
+        //   name: "Prefix History",
+        //   path: "/reports/PrefixHistory",
+        //   icon: <FileTextOutlined />,
+        //   permission: "PREFIX_HISTORY",
+        //   printPermission: "PREFIX_HISTORY",
+        // },
       ]
     },
   ];
