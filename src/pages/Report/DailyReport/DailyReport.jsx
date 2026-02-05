@@ -30,6 +30,8 @@ const { hasPrintPermission, checkPrintPermission } =
   const [toDate, setToDate] = useState('');
   const [openingBalance, setOpeningBalance] = useState('');
   const [closingBalance, setClosingBalance] = useState('');
+  const [openingBalanceType, setOpeningBalanceType] = useState('DR');
+  const [closingBalanceType, setClosingBalanceType] = useState('CR');
   const [showReport, setShowReport] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -461,6 +463,13 @@ const { hasPrintPermission, checkPrintPermission } =
       
       if (response.data) {
         setReportData(response.data);
+        // Set balance types from backend if available
+        if (response.data.openingBalanceType) {
+          setOpeningBalanceType(response.data.openingBalanceType);
+        }
+        if (response.data.closingBalanceType) {
+          setClosingBalanceType(response.data.closingBalanceType);
+        }
         setShowReport(true);
         toast.success('Daily report loaded successfully');
       } else {
@@ -567,8 +576,7 @@ const { hasPrintPermission, checkPrintPermission } =
                 <div style={focusedField === 'openingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
                   <input
                     ref={openingBalanceRef}
-                    type="number"
-                    step="0.01"
+                    type="text"
                     style={focusedField === 'openingBalance' ? styles.balanceInputFocused : styles.balanceInput}
                     value={openingBalance}
                     onChange={e => setOpeningBalance(e.target.value)}
@@ -578,7 +586,7 @@ const { hasPrintPermission, checkPrintPermission } =
                     placeholder="0.00"
                   />
                   <div style={focusedField === 'openingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
-                    DR
+                    {openingBalanceType}
                   </div>
                 </div>
               </div>
@@ -589,8 +597,7 @@ const { hasPrintPermission, checkPrintPermission } =
                 <div style={focusedField === 'closingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
                   <input
                     ref={closingBalanceRef}
-                    type="number"
-                    step="0.01"
+                    type="text"
                     style={focusedField === 'closingBalance' ? styles.balanceInputFocused : styles.balanceInput}
                     value={closingBalance}
                     onChange={e => setClosingBalance(e.target.value)}
@@ -600,7 +607,7 @@ const { hasPrintPermission, checkPrintPermission } =
                     placeholder="0.00"
                   />
                   <div style={focusedField === 'closingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
-                    CR
+                    {closingBalanceType}
                   </div>
                 </div>
               </div>
