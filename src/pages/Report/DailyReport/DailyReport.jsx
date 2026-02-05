@@ -554,13 +554,17 @@ const { hasPrintPermission, checkPrintPermission } =
   };
 
   // --- PRINT & EXPORT HANDLERS ---
-  const handlePrintClick = () => {
-    if (!reportData || !showReport) {
-      toast.warning('Please search and load report data before printing');
-      return;
-    }
-    setShowPrintConfirm(true);
-  };
+const handlePrintClick = () => {
+  if (!checkPrintPermission()) return;
+
+  if (!reportData || !showReport) {
+    toast.warning('Please search and load report data before printing');
+    return;
+  }
+
+  setShowPrintConfirm(true);
+};
+
 
   const handlePrintConfirm = () => {
     setShowPrintConfirm(false);
@@ -570,13 +574,17 @@ const { hasPrintPermission, checkPrintPermission } =
     window.print();
   };
 
-  const handleExportClick = () => {
-    if (!reportData || !showReport) {
-      toast.warning('Please search and load report data before exporting');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+ const handleExportClick = () => {
+  if (!checkPrintPermission()) return;
+
+  if (!reportData || !showReport) {
+    toast.warning('Please search and load report data before exporting');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
 
   const handleExportConfirm = () => {
     setShowExportConfirm(false);
@@ -796,16 +804,22 @@ const { hasPrintPermission, checkPrintPermission } =
       {/* Footer Section */}
       <div style={styles.footerSection}>
         <div style={styles.footerButtonContainer}>
-          <PrintButton 
-            onClick={handlePrintClick}
-            disabled={!reportData || !showReport}
-            isActive={true}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            disabled={!reportData || !showReport}
-            isActive={true}
-          />
+        {hasPrintPermission && (
+  <PrintButton
+    onClick={handlePrintClick}
+    disabled={!reportData || !showReport}
+    isActive={hasPrintPermission}
+  />
+)}
+
+{hasPrintPermission && (
+  <ExportButton
+    onClick={handleExportClick}
+    disabled={!reportData || !showReport}
+    isActive={hasPrintPermission}
+  />
+)}
+
         </div>
       </div>
 
