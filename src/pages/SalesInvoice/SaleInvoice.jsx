@@ -1134,10 +1134,7 @@ useEffect(() => {
       
       const freshData = await fetchSavedInvoices(1, '');
       
-      if (freshData.length === 0) {
-        alert("No invoices found to edit. Please save an invoice first.");
-        return;
-      }
+     
       
       setEditInvoicePopupOpen(true);
       
@@ -1155,11 +1152,7 @@ useEffect(() => {
       
       const freshData = await fetchSavedInvoices(1, '');
       
-      if (freshData.length === 0) {
-        alert("No invoices found to delete. Please save an invoice first.");
-        return;
-      }
-      
+     
       setDeleteInvoicePopupOpen(true);
       
     } catch (err) {

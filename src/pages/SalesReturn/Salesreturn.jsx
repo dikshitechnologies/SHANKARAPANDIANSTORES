@@ -2679,12 +2679,7 @@ useEffect(() => {
       
       const freshVouchers = await fetchVoucherList();
       
-      if (!freshVouchers || freshVouchers.length === 0) {
-        toast.warning("No sales return vouchers available for editing.");
-        setLoading(false);
-        return;
-      }
-      
+    
       const editData = freshVouchers.map((voucher, index) => {
         const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
                          voucher.billNo || voucher.invoiceNo || voucher.id || 
@@ -2731,11 +2726,7 @@ useEffect(() => {
       
       const freshVouchers = await fetchVoucherList();
       
-      if (!freshVouchers || freshVouchers.length === 0) {
-        toast.warning("No sales return vouchers available for deletion.");
-        setLoading(false);
-        return;
-      }
+   
       
       const deleteData = freshVouchers.map((voucher, index) => {
         const voucherNo = voucher.voucherNo || voucher.voucherCode || voucher.code || 
