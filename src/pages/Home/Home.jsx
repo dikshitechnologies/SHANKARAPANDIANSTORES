@@ -5,12 +5,23 @@ import { useAuth } from "../../context/AuthContext";
 const Home = () => {
   const navigate = useNavigate();
   const { userData } = useAuth();
-  console.log(userData.date);
-  const currentDate = new Date(userData.date).toLocaleDateString("en-US", {
-    weekday: "long",
+  
+  // Parse date from DD-MM-YYYY HH:MM:SS format
+  const parseDate = (dateString) => {
+    if (!dateString) return new Date();
+    
+    // Extract date part (DD-MM-YYYY) from "04-02-2026 00:00:00"
+    const datePart = dateString.split(' ')[0];
+    const [day, month, year] = datePart.split('-');
+    
+    // Create date object (month is 0-indexed in JavaScript)
+    return new Date(year, month - 1, day);
+  };
+  
+  const currentDate = parseDate(userData.date).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
     year: "numeric",
-    month: "long",
-    day: "numeric",
   });
 
 
