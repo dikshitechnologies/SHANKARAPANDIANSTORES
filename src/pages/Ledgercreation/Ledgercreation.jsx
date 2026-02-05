@@ -1639,13 +1639,13 @@ export default function LedgerCreation({ onCreated }) {
           
           .actions {
             width: 100%;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 8px;
           }
           
           .action-pill {
-            flex: 1;
-            min-width: 0;
+            flex: 0 0 auto;
+            min-width: fit-content;
             padding: 8px 10px;
             font-size: 12px;
             justify-content: center;
@@ -1728,14 +1728,17 @@ export default function LedgerCreation({ onCreated }) {
           }
           
           .actions {
-            flex-direction: column;
+            flex-direction: row;
             width: 100%;
+            gap: 6px;
+            justify-content: flex-start;
           }
           
           .action-pill {
-            width: 100%;
-            padding: 10px;
-            font-size: 13px;
+            flex: 0 0 auto;
+            padding: 8px 12px;
+            font-size: 12px;
+            min-width: fit-content;
           }
           
           .form-container {
@@ -1968,40 +1971,40 @@ export default function LedgerCreation({ onCreated }) {
           }
         }
 
-        /* Dark mode support */
+        /* Keep light theme even in dark mode (avoid black on mobile) */
         @media (prefers-color-scheme: dark) {
           :root {
-            --bg-1: #0f172a;
-            --bg-2: #1e293b;
-            --glass: rgba(30, 41, 59, 0.8);
-            --glass-2: rgba(30, 41, 59, 0.6);
-            --accent: #3b82f6;
-            --accent-2: #60a5fa;
-            --muted: #94a3b8;
-            --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-1: #f0f7fb;
+            --bg-2: #f7fbff;
+            --glass: rgba(255,255,255,0.55);
+            --glass-2: rgba(255,255,255,0.35);
+            --accent: #307AC8;
+            --accent-2: #1B91DA;
+            --muted: #64748b;
+            --card-shadow: 0 8px 30px rgba(16,24,40,0.08);
+            --glass-border: rgba(255,255,255,0.45);
           }
           .dashboard {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.8));
-            color: #f1f5f9;
+            background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(245,248,255,0.65));
+            color: #0f172a;
           }
           .left-card, .right-card {
-            background: rgba(30, 41, 59, 0.7);
-            color: #f1f5f9;
+            background: transparent;
+            color: #0f172a;
           }
           .input, .search {
-            background: rgba(15, 23, 42, 0.6);
-            border-color: rgba(255, 255, 255, 0.1);
-            color: #f1f5f9;
+            background: linear-gradient(180deg, #fff, #fbfdff);
+            border-color: rgba(15,23,42,0.1);
+            color: #0f172a;
           }
           .input:focus, .search:focus {
-            border-color: var(--accent);
+            border-color: rgba(37,99,235,0.5);
           }
           .tree-row {
-            color: #f1f5f9;
+            color: #0f172a;
           }
           .node-text {
-            color: #f1f5f9;
+            color: #0f172a;
           }
         }
       `}</style>
