@@ -295,12 +295,21 @@ const AccountReceivables = () => {
   };
 
   const handleExportClick = () => {
-    if (receivablesData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+  // 🔒 SAME permission as PRINT
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
+
+  if (receivablesData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
 
   const handlePrintConfirm = () => {
     setShowPrintConfirm(false);
@@ -1329,17 +1338,18 @@ closeButton: {
           </div>
         </div>
         <div style={styles.buttonGroup}>
-          <PrintButton 
+        <PrintButton 
   onClick={handlePrintClick}
   isActive={hasPrintPermission}
   disabled={!hasPrintPermission || receivablesData.length === 0}
 />
 
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={receivablesData.length === 0}
-          />
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || receivablesData.length === 0}
+/>
+
         </div>
       </div>
 

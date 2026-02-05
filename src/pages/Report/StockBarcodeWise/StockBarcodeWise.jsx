@@ -320,22 +320,43 @@ const StockBarcodeWise = () => {
   };
 
   const handleExportClick = () => {
-    if (stockBarcodeData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = async () => {
+  if (stockBarcodeData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+ const handlePrintConfirm = async () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    await generatePDF();
-  };
+    return;
+  }
 
-  const handleExportConfirm = async () => {
+  setShowPrintConfirm(false);
+  await generatePDF();
+};
+
+
+ const handleExportConfirm = async () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    await exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  await exportToExcel();
+};
+
 
   const formatNumber = (num) => {
     return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1356,16 +1377,18 @@ const StockBarcodeWise = () => {
             </div>
           </div> */}
           <div style={styles.buttonGroup}>
-            <PrintButton 
-              onClick={handlePrintClick}
-              isActive={true}
-              disabled={stockBarcodeData.length === 0}
-            />
-            <ExportButton 
-              onClick={handleExportClick}
-              isActive={true}
-              disabled={stockBarcodeData.length === 0}
-            />
+          <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || stockBarcodeData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || stockBarcodeData.length === 0}
+/>
+
           </div>
         </div>
       )}

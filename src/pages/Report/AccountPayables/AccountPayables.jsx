@@ -320,13 +320,23 @@ const handlePrintClick = () => {
 };
 
 
-  const handleExportClick = () => {
-    if (payablesData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+ const handleExportClick = () => {
+  // 🔒 SAME PERMISSION AS PRINT
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
+
+  if (payablesData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
 
   const handlePrintConfirm = () => {
     setShowPrintConfirm(false);
@@ -1373,11 +1383,11 @@ const handlePrintClick = () => {
   disabled={!hasPrintPermission || payablesData.length === 0}
 />
 
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={payablesData.length === 0}
-          />
+         <ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || payablesData.length === 0}
+/>
         </div>
       </div>
 

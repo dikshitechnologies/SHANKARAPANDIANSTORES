@@ -58,9 +58,9 @@ export default function GSTPage() {
   const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
   
   const formPermissions = useMemo(() => ({
-    Add: hasAddPermission(PERMISSION_CODES.TAX_CREATION || PERMISSION_CODES.GST_CREATION),
-    Edit: hasModifyPermission(PERMISSION_CODES.TAX_CREATION || PERMISSION_CODES.GST_CREATION),
-    Delete: hasDeletePermission(PERMISSION_CODES.TAX_CREATION || PERMISSION_CODES.GST_CREATION)
+    Add: hasAddPermission(PERMISSION_CODES.TAX_CREATION),
+    Edit: hasModifyPermission(PERMISSION_CODES.TAX_CREATION),
+    Delete: hasDeletePermission(PERMISSION_CODES.TAX_CREATION)
   }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
 
   // ---------- state ----------

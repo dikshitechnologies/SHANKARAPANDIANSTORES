@@ -46,7 +46,9 @@ const formatDateForAPI = (date) => {
 
 const DayBook = () => {
   // --- PERMISSIONS ---
-  const { checkPrintPermission } = usePrintPermission('DAY_BOOK');
+ const { hasPrintPermission, checkPrintPermission } =
+  usePrintPermission('DAY_BOOK');
+
 
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
@@ -373,23 +375,45 @@ const DayBook = () => {
     setShowPrintConfirm(true);
   };
 
-  const handleExportClick = () => {
-    if (dayBookData.length === 0) {
-      toast.warning('No data available to export');
-      return;
-    }
-    setShowExportConfirm(true);
-  };
+const handleExportClick = () => {
+  // 🔒 SAME permission as PRINT
+  if (!hasPrintPermission) {
+    toast.error('You do not have permission to export this report', {
+      autoClose: 3000,
+    });
+    return;
+  }
 
-  const handlePrintConfirm = () => {
+  if (dayBookData.length === 0) {
+    toast.warning('No data available to export');
+    return;
+  }
+
+  setShowExportConfirm(true);
+};
+
+
+const handlePrintConfirm = () => {
+  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    generatePDF();
-  };
+    return;
+  }
 
-  const handleExportConfirm = () => {
+  setShowPrintConfirm(false);
+  generatePDF();
+};
+
+
+ const handleExportConfirm = () => {
+  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    exportToExcel();
-  };
+    return;
+  }
+
+  setShowExportConfirm(false);
+  exportToExcel();
+};
+
 
   const formatNumber = (num) => {
     return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -413,8 +437,10 @@ const DayBook = () => {
             th { background-color: #1B91DA; color: white; padding: 10px; text-align: left; }
             td { padding: 8px; border: 1px solid #ddd; }
             tr:nth-child(even) { background-color: #f9f9f9; }
+            .total-row { background-color: #f0f8ff; color: #1565c0; }
             .summary { margin-top: 20px; font-weight: bold; }
             .summary-item { display: inline-block; margin-right: 30px; }
+            .text-right { text-align: right; }
           </style>
         </head>
         <body>
@@ -422,28 +448,22 @@ const DayBook = () => {
           <div class="info">
             <p>Period: ${fromDate} to ${toDate}</p>
             <p>Branch: ${branchDisplay}</p>
-            <p>Total Records: ${dayBookData.length}</p>
+            <p>Total Records: ${dayBookData.filter(row => !row.isTotal).length}</p>
           </div>
           <table>
             <thead>
               <tr>
-                <th>No</th>
-                <th>Date</th>
-                <th>Ledger</th>
-                <th>Description</th>
-                <th>Debit</th>
-                <th>Credit</th>
+                <th>Acc Name</th>
+                <th style="text-align: right;">Receipts</th>
+                <th style="text-align: right;">Payments</th>
               </tr>
             </thead>
             <tbody>
               ${dayBookData.map((row, index) => `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>${row.date || row.voucherDate || ''}</td>
-                  <td>${row.ledgerName || row.name || ''}</td>
-                  <td>${row.description || row.narration || ''}</td>
-                  <td>₹${formatNumber(row.debit || 0)}</td>
-                  <td>₹${formatNumber(row.credit || 0)}</td>
+                <tr class="${row.isTotal ? 'total-row' : ''}">
+                  <td>${row.accName || ''}</td>
+                  <td class="text-right">${row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}</td>
+                  <td class="text-right">${row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -477,14 +497,14 @@ const DayBook = () => {
       let csvContent = 'Day Book Report\n';
       csvContent += `Period: ${fromDate} to ${toDate}\n`;
       csvContent += `Branch: ${branchDisplay}\n`;
-      csvContent += `Total Records: ${dayBookData.length}\n\n`;
+      csvContent += `Total Records: ${dayBookData.filter(row => !row.isTotal).length}\n\n`;
       
-      csvContent += 'No,Date,Ledger,Description,Debit,Credit\n';
+      csvContent += 'Acc Name,Receipts,Payments\n';
       
-      dayBookData.forEach((row, index) => {
-        const debit = row.debit || 0;
-        const credit = row.credit || 0;
-        csvContent += `${index + 1},${row.date || row.voucherDate || ''},"${row.ledgerName || row.name || ''}","${row.description || row.narration || ''}",${debit},${credit}\n`;
+      dayBookData.forEach((row) => {
+        const receipts = row.receipts || 0;
+        const payments = row.payments || 0;
+        csvContent += `"${row.accName || ''}",${receipts},${payments}\n`;
       });
       
       csvContent += `\n\n`;
@@ -1374,16 +1394,18 @@ const DayBook = () => {
           </div>
         </div>
         <div style={styles.buttonGroup}>
-          <PrintButton 
-            onClick={handlePrintClick}
-            isActive={true}
-            disabled={dayBookData.length === 0}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={true}
-            disabled={dayBookData.length === 0}
-          />
+        <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || dayBookData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || dayBookData.length === 0}
+/>
+
         </div>
       </div>
 
