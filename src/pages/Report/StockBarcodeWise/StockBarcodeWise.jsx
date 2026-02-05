@@ -319,22 +319,86 @@ const StockBarcodeWise = () => {
     setShowExportConfirm(true);
   };
 
-  const handlePrintConfirm = () => {
+  const handlePrintConfirm = async () => {
     setShowPrintConfirm(false);
-    generatePDF();
+    await generatePDF();
   };
 
-  const handleExportConfirm = () => {
+  const handleExportConfirm = async () => {
     setShowExportConfirm(false);
-    exportToExcel();
+    await exportToExcel();
   };
 
   const formatNumber = (num) => {
     return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const generatePDF = () => {
+  const fetchAllData = async () => {
     try {
+      setIsLoading(true);
+      const compCode = selectedBranches[0];
+      const apiFromDate = formatDateForAPI(fromDate);
+      const apiToDate = formatDateForAPI(toDate);
+      const searchTerm = debouncedSearchTerm.trim();
+      
+      let allRecords = [];
+      let currentPage = 1;
+      let hasMoreData = true;
+      const fetchPageSize = 100;
+      
+      while (hasMoreData) {
+        const response = await fetch(
+          `${API_BASE}${API_ENDPOINTS.STOCK_BARCODE_WISE.GET_STOCK_BARCODE_WISE(
+            apiFromDate,
+            apiToDate,
+            compCode,
+            searchTerm,
+            currentPage,
+            fetchPageSize
+          )}`
+        );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const records = data.data || [];
+        
+        allRecords = [...allRecords, ...records];
+        
+        if (records.length < fetchPageSize) {
+          hasMoreData = false;
+        } else {
+          currentPage++;
+        }
+      }
+      
+      setIsLoading(false);
+      return allRecords;
+    } catch (error) {
+      console.error('Error fetching all data:', error);
+      setIsLoading(false);
+      toast.error('Failed to fetch all data for export');
+      return [];
+    }
+  };
+
+  const generatePDF = async () => {
+    try {
+      const allData = await fetchAllData();
+      
+      if (allData.length === 0) {
+        toast.warning('No data available to print');
+        return;
+      }
+
+      const totals = allData.reduce((acc, record) => ({
+        totalQty: acc.totalQty + (parseFloat(record.qty) || 0),
+        totalStockValue: acc.totalStockValue + (parseFloat(record.stockValue) || 0),
+        totalAStockValue: acc.totalAStockValue + (parseFloat(record.aStockValue) || 0),
+      }), { totalQty: 0, totalStockValue: 0, totalAStockValue: 0 });
+
       const printContent = `
         <!DOCTYPE html>
         <html>
@@ -344,9 +408,11 @@ const StockBarcodeWise = () => {
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { text-align: center; color: #1B91DA; }
             .info { text-align: center; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #1B91DA; color: white; padding: 10px; text-align: center; font-size: 11px; }
-            td { padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 9px; }
+            th { background-color: #1B91DA; color: white; padding: 8px; text-align: center; font-size: 9px; }
+            td { padding: 6px; border: 1px solid #ddd; text-align: center; font-size: 9px; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
             tr:nth-child(even) { background-color: #f9f9f9; }
             .total-row { background-color: #e3f2fd; font-weight: bold; }
           </style>
@@ -356,49 +422,47 @@ const StockBarcodeWise = () => {
           <div class="info">
             <p>Period: ${fromDate} to ${toDate}</p>
             <p>Branches: ${branchDisplay}</p>
-            <p>Total Records: ${stockBarcodeData.length}</p>
+            <p>Total Records: ${allData.length}</p>
           </div>
           <table>
             <thead>
               <tr>
-                <th>No</th>
+                <th>S.No</th>
                 <th>Item Name</th>
-                <th>Prefix No</th>
-                <th>Color</th>
-                <th>Size</th>
-                <th>Barcode</th>
-                <th>Branch</th>
+                <th>Prefix</th>
                 <th>Qty</th>
-                <th>Price</th>
+                <th>Rate</th>
+                <th>ACost</th>
+                <th>SRate</th>
+                <th>ASRate</th>
                 <th>Stock Value</th>
-                <th>APrice</th>
                 <th>AStock Value</th>
               </tr>
             </thead>
             <tbody>
-              ${stockBarcodeData.map((row, index) => `
+              ${allData.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td>${row.itemName || ''}</td>
-                  <td>${row.prefixNo || ''}</td>
-                  <td>${row.color || ''}</td>
-                  <td>${row.size || ''}</td>
-                  <td>${row.barcode || ''}</td>
-                  <td>${row.branch || ''}</td>
-                  <td>${row.qty || 0}</td>
-                  <td>₹${row.price || '0.00'}</td>
-                  <td>₹${row.stockValue || '0.00'}</td>
-                  <td>₹${row.aPrice || '0.00'}</td>
-                  <td>₹${row.aStockValue || '0.00'}</td>
+                  <td class="text-left">${row.itemName || ''}</td>
+                  <td>${row.prefix || ''}</td>
+                  <td class="text-right">${(parseFloat(row.qty) || 0).toLocaleString()}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.rate) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.aCost) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.sRate) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.asRate) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.stockValue) || 0)}</td>
+                  <td class="text-right">₹${formatNumber(parseFloat(row.aStockValue) || 0)}</td>
                 </tr>
               `).join('')}
               <tr class="total-row">
-                <td colspan="7" style="text-align: right;"><strong>Total:</strong></td>
-                <td><strong>${apiTotals.totalQty.toLocaleString()}</strong></td>
+                <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
+                <td class="text-right"><strong>${totals.totalQty.toLocaleString()}</strong></td>
                 <td></td>
-                <td><strong>₹${formatNumber(apiTotals.totalStockValue)}</strong></td>
                 <td></td>
-                <td><strong>₹${formatNumber(apiTotals.totalAStockValue)}</strong></td>
+                <td></td>
+                <td></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalStockValue)}</strong></td>
+                <td class="text-right"><strong>₹${formatNumber(totals.totalAStockValue)}</strong></td>
               </tr>
             </tbody>
           </table>
@@ -419,20 +483,41 @@ const StockBarcodeWise = () => {
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
+      const allData = await fetchAllData();
+      
+      if (allData.length === 0) {
+        toast.warning('No data available to export');
+        return;
+      }
+
+      const totals = allData.reduce((acc, record) => ({
+        totalQty: acc.totalQty + (parseFloat(record.qty) || 0),
+        totalStockValue: acc.totalStockValue + (parseFloat(record.stockValue) || 0),
+        totalAStockValue: acc.totalAStockValue + (parseFloat(record.aStockValue) || 0),
+      }), { totalQty: 0, totalStockValue: 0, totalAStockValue: 0 });
+
       let csvContent = 'Stock Barcode Wise Report\n';
       csvContent += `Period: ${fromDate} to ${toDate}\n`;
       csvContent += `Branches: ${branchDisplay}\n`;
-      csvContent += `Total Records: ${stockBarcodeData.length}\n\n`;
+      csvContent += `Total Records: ${allData.length}\n\n`;
       
-      csvContent += 'No,Item Name,Prefix No,Color,Size,Barcode,Branch,Qty,Price,Stock Value,APrice,AStock Value\n';
+      csvContent += 'S.No,Item Name,Prefix,Qty,Rate,ACost,SRate,ASRate,Stock Value,AStock Value\n';
       
-      stockBarcodeData.forEach((row, index) => {
-        csvContent += `${index + 1},"${row.itemName || ''}",${row.prefixNo || ''},"${row.color || ''}","${row.size || ''}",${row.barcode || ''},${row.branch || ''},${row.qty || 0},${row.price || '0'},${row.stockValue || '0'},${row.aPrice || '0'},${row.aStockValue || '0'}\n`;
+      allData.forEach((row, index) => {
+        const qty = parseFloat(row.qty) || 0;
+        const rate = parseFloat(row.rate) || 0;
+        const aCost = parseFloat(row.aCost) || 0;
+        const sRate = parseFloat(row.sRate) || 0;
+        const asRate = parseFloat(row.asRate) || 0;
+        const stockValue = parseFloat(row.stockValue) || 0;
+        const aStockValue = parseFloat(row.aStockValue) || 0;
+        
+        csvContent += `${index + 1},"${row.itemName || ''}",${row.prefix || ''},${qty},${rate.toFixed(2)},${aCost.toFixed(2)},${sRate.toFixed(2)},${asRate.toFixed(2)},${stockValue.toFixed(2)},${aStockValue.toFixed(2)}\n`;
       });
       
-      csvContent += `,,,,,,Total,${apiTotals.totalQty.toLocaleString()},,${apiTotals.totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2 })},,${apiTotals.totalAStockValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}\n`;
+      csvContent += `,,Total,${totals.totalQty.toLocaleString()},,,,,,${totals.totalStockValue.toFixed(2)},${totals.totalAStockValue.toFixed(2)}\n`;
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
