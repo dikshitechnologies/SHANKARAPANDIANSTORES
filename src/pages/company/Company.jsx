@@ -574,13 +574,43 @@ const Company = () => {
     }
   };
 
-  // Handle pseudo field input - only allow alphanumeric characters
+  // Handle pseudo field input - only allow alphanumeric characters and no duplicates
   const handlePseudoInput = (field, value, pseudoIndex) => {
     // Remove any non-alphanumeric characters and convert to uppercase
     const cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     
     // Only take the first character
     const singleChar = cleanValue.charAt(0);
+    
+    // Check for duplicate alphabetic characters across ALL pseudo fields
+    if (singleChar && /[A-Z]/.test(singleChar)) {
+      const pseudoValues = [
+        formData.pseudo1,
+        formData.pseudo2,
+        formData.pseudo3,
+        formData.pseudo4,
+        formData.pseudo5,
+        formData.pseudo6,
+        formData.pseudo7,
+        formData.pseudo8,
+        formData.pseudo9,
+        formData.pseudo10
+      ];
+
+      // Check if this alphabetic character already exists in any OTHER pseudo field
+      const isDuplicateAlpha = pseudoValues.some((val, idx) =>
+        idx !== pseudoIndex && (val || '').toUpperCase() === singleChar
+      );
+
+      if (isDuplicateAlpha) {
+        setMessage({
+          type: "error",
+          text: `Duplicate alphabet "${singleChar}" not allowed. Each letter can appear only once in Pseudo Code.`
+        });
+        // Don't set the value, reject the input
+        return;
+      }
+    }
     
     setFormData(prev => ({
       ...prev,
