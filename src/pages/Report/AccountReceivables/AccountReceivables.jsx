@@ -4,6 +4,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
+import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
+import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
 
 const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   <svg
@@ -45,6 +47,10 @@ const AccountReceivables = () => {
   const [hoveredButton, setHoveredButton] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [companyDisplay, setCompanyDisplay] = useState('ALL');
+
+  // Confirmation popup states
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
 
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -268,6 +274,137 @@ const AccountReceivables = () => {
     setSelectedCompanies(['ALL']);
     setCompanyDisplay('ALL');
     setReceivablesData([]);
+  };
+
+  const handlePrintClick = () => {
+    if (receivablesData.length === 0) {
+      toast.warning('No data available to print');
+      return;
+    }
+    setShowPrintConfirm(true);
+  };
+
+  const handleExportClick = () => {
+    if (receivablesData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
+    setShowExportConfirm(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setShowPrintConfirm(false);
+    generatePDF();
+  };
+
+  const handleExportConfirm = () => {
+    setShowExportConfirm(false);
+    exportToExcel();
+  };
+
+  const formatNumber = (num) => {
+    return parseFloat(num || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const generatePDF = () => {
+    try {
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Account Receivables Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; color: #1B91DA; }
+            .info { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #1B91DA; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .total-row { background-color: #e3f2fd; font-weight: bold; }
+            .summary { margin-top: 20px; font-weight: bold; }
+            .summary-item { display: inline-block; margin-right: 30px; }
+          </style>
+        </head>
+        <body>
+          <h1>Account Receivables Report</h1>
+          <div class="info">
+            <p>Period: ${fromDate} to ${toDate}</p>
+            <p>Company: ${companyDisplay}</p>
+            <p>Total Records: ${receivablesData.filter(row => !row.isTotal).length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Account Name</th>
+                <th>Debit</th>
+                <th>Credit</th>
+                <th>Balance</th>
+                <th>Dr/Cr</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${receivablesData.map((row, index) => `
+                <tr class="${row.isTotal ? 'total-row' : ''}">
+                  <td>${row.isTotal ? '' : index + 1}</td>
+                  <td>${row.accountName || ''}</td>
+                  <td>₹${row.debit || '0.00'}</td>
+                  <td>₹${row.credit || '0.00'}</td>
+                  <td>₹${row.balance || '0.00'}</td>
+                  <td>${row.drCr || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      
+      toast.success('Print dialog opened');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      let csvContent = 'Account Receivables Report\n';
+      csvContent += `Period: ${fromDate} to ${toDate}\n`;
+      csvContent += `Company: ${companyDisplay}\n`;
+      csvContent += `Total Records: ${receivablesData.filter(row => !row.isTotal).length}\n\n`;
+      
+      csvContent += 'No,Account Name,Debit,Credit,Balance,Dr/Cr\n';
+      
+      receivablesData.forEach((row, index) => {
+        const debitNum = parseFloat(row.debit?.toString().replace(/,/g, '') || 0);
+        const creditNum = parseFloat(row.credit?.toString().replace(/,/g, '') || 0);
+        const balanceNum = parseFloat(row.balance?.toString().replace(/,/g, '') || 0);
+        csvContent += `${row.isTotal ? '' : index + 1},"${row.accountName || ''}",${debitNum},${creditNum},${balanceNum},${row.drCr || ''}\n`;
+      });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Account_Receivables_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Excel file downloaded successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
 
   // Handle key navigation
@@ -547,6 +684,12 @@ const AccountReceivables = () => {
       fontSize: screenSize.isMobile ? '14px' : screenSize.isTablet ? '16px' : '18px',
       color: '#1976d2',
       fontWeight: 'bold',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center',
+      marginLeft: screenSize.isMobile ? '0' : 'auto',
     },
     companyInput: {
       fontFamily: TYPOGRAPHY.fontFamily,
@@ -1175,7 +1318,43 @@ closeButton: {
             </span>
           </div>
         </div>
+        <div style={styles.buttonGroup}>
+          <PrintButton 
+            onClick={handlePrintClick}
+            isActive={true}
+            disabled={receivablesData.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={true}
+            disabled={receivablesData.length === 0}
+          />
+        </div>
       </div>
+
+      {/* Print Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showPrintConfirm}
+        onClose={() => setShowPrintConfirm(false)}
+        onConfirm={handlePrintConfirm}
+        title="Print Confirmation"
+        message="Do you want to print the Account Receivables report?"
+        confirmText="Print"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      {/* Export Confirmation Popup */}
+      <ConfirmationPopup
+        isOpen={showExportConfirm}
+        onClose={() => setShowExportConfirm(false)}
+        onConfirm={handleExportConfirm}
+        title="Export Confirmation"
+        message="Do you want to export the Account Receivables report to Excel?"
+        confirmText="Export"
+        cancelText="Cancel"
+        type="info"
+      />
 
       {/* Company Selection Popup */}
       {showCompanyPopup && (
