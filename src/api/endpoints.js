@@ -414,9 +414,9 @@ PAYMENTVOUCHER: {
     ITEM_DETAIL: (itemName, fromDate, toDate, compCodes) =>
       `GroupWiseStock/item-detail?itemName=${encodeURIComponent(itemName)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCodes=${encodeURIComponent(compCodes)}`,
   }, // <-- Add this closing brace for GROUP_WISE_STOCK
-  DAYBOOK: {
+   DAYBOOK: {
     GET_DAY_BOOK: (compCode, fromDate, toDate) =>
-      `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+      `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`
   },
   STOCK_BAR_CODE_WISE: {
     GET_STOCK_BAR_CODE_WISE: (toDate, compCode, search = '', page = 1, pageSize = 100) =>

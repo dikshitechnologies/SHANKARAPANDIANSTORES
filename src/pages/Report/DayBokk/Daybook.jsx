@@ -35,20 +35,18 @@ const formatDate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// Helper function to format date as YYYY-MM-DD for API (no special characters to avoid encoding issues)
+// Helper function to format date as DD/MM/YYYY for API
 const formatDateForAPI = (date) => {
   const d = new Date(date);
-  const year = d.getFullYear();
+  const year = d.getFullYear().toString().slice(-2); // Get last 2 digits of year
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${day}/${month}/${year}`;
 };
 
 const DayBook = () => {
   // --- PERMISSIONS ---
- const { hasPrintPermission, checkPrintPermission } =
-  usePrintPermission('DAY_BOOK');
-
+  const { hasPrintPermission, checkPrintPermission } = usePrintPermission('DAY_BOOK');
 
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
@@ -248,20 +246,30 @@ const DayBook = () => {
     
     try {
       // Use compCode from selected branches or default to defaultCompCode
-      const compCode = selectedBranches.includes('ALL') ? defaultCompCode : selectedBranches[0];
-      
+      let compCode = defaultCompCode;
+      if (selectedBranches.includes('ALL')) {
+        // Send all company codes except 'ALL', joined by comma
+        const allCodes = allBranches.filter(b => b.compCode !== 'ALL').map(b => b.compCode);
+        compCode = allCodes.join(',');
+      } else if (selectedBranches.length > 0) {
+        compCode = selectedBranches[0];
+      }
       const apiFromDate = formatDateForAPI(fromDate);
       const apiToDate = formatDateForAPI(toDate);
-      
+      console.log('API Request:', {
+        compCode,
+        apiFromDate,
+        apiToDate,
+        url: `${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, apiFromDate, apiToDate)}`
+      });
       const response = await fetch(`${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, apiFromDate, apiToDate)}`);
-      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const data = await response.json();
+      console.log('API Response:', data);
       
-      // Transform API response to match component's expected format
+      // Transform API response to match your table structure
       const transformedData = [];
       
       // Add opening balance if exists
@@ -270,44 +278,77 @@ const DayBook = () => {
           accName: "Opening Balance",
           receipts: data.openingDebit > 0 ? data.openingDebit.toFixed(2) : "",
           payments: data.openingCredit > 0 ? data.openingCredit.toFixed(2) : "",
+          isTotal: false
         });
       }
       
-      // Add entries
-      if (data.entries && data.entries.length > 0) {
+      // Add OPG entry if exists in API response
+      const opgEntry = data.entries?.find(entry => entry.accName?.includes('OPG ON'));
+      if (opgEntry) {
+        transformedData.push({
+          accName: opgEntry.accName,
+          receipts: "",
+          payments: "",
+          isTotal: false
+        });
+      }
+      
+      // Add all other entries (excluding OPG and CLG)
+      if (data.entries && Array.isArray(data.entries)) {
         data.entries.forEach(entry => {
-          transformedData.push({
-            accName: entry.accName || entry.description || "",
-            receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "",
-            payments: entry.credit > 0 ? entry.credit.toFixed(2) : "",
-          });
+          // Skip OPG and CLG entries as they are handled separately
+          if (entry.accName && (entry.accName.includes('OPG ON') || entry.accName.includes('CLG ON'))) {
+            return;
+          }
+          
+          // Handle empty account names (these are the actual transaction entries)
+          if (!entry.accName || entry.accName.trim() === '') {
+            transformedData.push({
+              accName: "", // Empty for blank rows
+              receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "", // Debit = Receipts
+              payments: entry.credit > 0 ? entry.credit.toFixed(2) : "", // Credit = Payments
+              isTotal: false
+            });
+          } 
+          // Handle Total entry
+          else if (entry.accName === "Total") {
+            transformedData.push({
+              accName: "Total",
+              receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "",
+              payments: entry.credit > 0 ? entry.credit.toFixed(2) : "",
+              isTotal: true
+            });
+          }
         });
       }
       
-      // Add total row
-      transformedData.push({
-        accName: "Total",
-        receipts: data.totalDebit.toFixed(2),
-        payments: data.totalCredit.toFixed(2),
-        isTotal: true
-      });
+      // Add closing balance if exists
+      const clgEntry = data.entries?.find(entry => entry.accName?.includes('CLG ON'));
+      if (clgEntry) {
+        transformedData.push({
+          accName: clgEntry.accName,
+          receipts: "",
+          payments: "",
+          isTotal: false
+        });
+      }
       
-      // Add closing balance if exists and not selecting ALL
-      if (!selectedBranches.includes('ALL') && (data.closingDebit > 0 || data.closingCredit > 0)) {
+      // Add closing balance totals
+      if (data.closingDebit > 0 || data.closingCredit > 0) {
         transformedData.push({
           accName: "Closing Balance",
           receipts: data.closingDebit > 0 ? data.closingDebit.toFixed(2) : "",
           payments: data.closingCredit > 0 ? data.closingCredit.toFixed(2) : "",
+          isTotal: false
         });
       }
       
-      // Check if no records found
-      const hasOpeningBalance = data.openingDebit > 0 || data.openingCredit > 0;
-      const hasEntries = data.entries && data.entries.length > 0;
-      const hasClosingBalance = !selectedBranches.includes('ALL') && (data.closingDebit > 0 || data.closingCredit > 0);
+      console.log('Transformed Data:', transformedData);
       
-      if (!hasOpeningBalance && !hasEntries && !hasClosingBalance) {
+      if (transformedData.length === 0) {
         toast.info('No records found for the selected date range');
+      } else {
+        toast.success(`Loaded ${transformedData.length} records`);
       }
       
       setDayBookData(transformedData);
@@ -364,45 +405,42 @@ const DayBook = () => {
     setShowPrintConfirm(true);
   };
 
-const handleExportClick = () => {
-  // 🔒 SAME permission as PRINT
-  if (!hasPrintPermission) {
-    toast.error('You do not have permission to export this report', {
-      autoClose: 3000,
-    });
-    return;
-  }
+  const handleExportClick = () => {
+    // 🔒 SAME permission as PRINT
+    if (!hasPrintPermission) {
+      toast.error('You do not have permission to export this report', {
+        autoClose: 3000,
+      });
+      return;
+    }
 
-  if (dayBookData.length === 0) {
-    toast.warning('No data available to export');
-    return;
-  }
+    if (dayBookData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
 
-  setShowExportConfirm(true);
-};
+    setShowExportConfirm(true);
+  };
 
+  const handlePrintConfirm = () => {
+    if (!hasPrintPermission) {
+      setShowPrintConfirm(false);
+      return;
+    }
 
-const handlePrintConfirm = () => {
-  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    return;
-  }
+    generatePDF();
+  };
 
-  setShowPrintConfirm(false);
-  generatePDF();
-};
+  const handleExportConfirm = () => {
+    if (!hasPrintPermission) {
+      setShowExportConfirm(false);
+      return;
+    }
 
-
- const handleExportConfirm = () => {
-  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    return;
-  }
-
-  setShowExportConfirm(false);
-  exportToExcel();
-};
-
+    exportToExcel();
+  };
 
   const formatNumber = (num) => {
     return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -730,19 +768,19 @@ const handlePrintConfirm = () => {
       width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
       maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
     },
-   td: {
-  fontFamily: TYPOGRAPHY.fontFamily,
-  fontSize: TYPOGRAPHY.fontSize.xs, // Match th font size (xs = 11-13px)
-  fontWeight: TYPOGRAPHY.fontWeight.bold, // Match th bold (700)
-  lineHeight: TYPOGRAPHY.lineHeight.tight, // Match th line height (1.2)
-  padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px', // Match th padding
-  textAlign: 'center',
-  border: '1px solid #ccc',
-  color: '#333',
-  minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-  width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-  maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
-},
+    td: {
+      fontFamily: TYPOGRAPHY.fontFamily,
+      fontSize: TYPOGRAPHY.fontSize.xs, // Match th font size (xs = 11-13px)
+      fontWeight: TYPOGRAPHY.fontWeight.bold, // Match th bold (700)
+      lineHeight: TYPOGRAPHY.lineHeight.tight, // Match th line height (1.2)
+      padding: screenSize.isMobile ? '5px 3px' : screenSize.isTablet ? '7px 5px' : '10px 6px', // Match th padding
+      textAlign: 'center',
+      border: '1px solid #ccc',
+      color: '#333',
+      minWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      width: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+      maxWidth: screenSize.isMobile ? '60px' : screenSize.isTablet ? '70px' : '80px',
+    },
     footerSection: {
       position: 'fixed',
       bottom: 0,
@@ -964,36 +1002,34 @@ const handlePrintConfirm = () => {
       boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
       border: '1px solid #ddd',
     },
-   popupHeader: {
-  background: '#1B91DA',
-  color: 'white',
-  padding: '16px 20px',
-  margin: 0,
-  fontSize: TYPOGRAPHY.fontSize.base,
-  fontWeight: TYPOGRAPHY.fontWeight.bold,
-  borderBottom: '1px solid #1479c0',
-  position: 'relative', // ✅ REQUIRED
-},
-
+    popupHeader: {
+      background: '#1B91DA',
+      color: 'white',
+      padding: '16px 20px',
+      margin: 0,
+      fontSize: TYPOGRAPHY.fontSize.base,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      borderBottom: '1px solid #1479c0',
+      position: 'relative', // ✅ REQUIRED
+    },
     closeButton: {
-  position: 'absolute',
-  right: '15px',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  background: 'rgba(255,255,255,0.2)',
-  border: 'none',
-  color: 'white',
-  fontSize: '20px',
-  cursor: 'pointer',
-  width: '30px',
-  height: '30px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: '4px',
-  transition: 'all 0.3s ease',
-},
-
+      position: 'absolute',
+      right: '15px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'rgba(255,255,255,0.2)',
+      border: 'none',
+      color: 'white',
+      fontSize: '20px',
+      cursor: 'pointer',
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'all 0.3s ease',
+    },
     searchContainer: {
       padding: '15px 20px',
       borderBottom: '1px solid #e0e0e0',
@@ -1010,7 +1046,6 @@ const handlePrintConfirm = () => {
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       boxSizing: 'border-box',
     },
-
     branchList: {
       padding: '20px',
       maxHeight: '300px',
@@ -1294,70 +1329,67 @@ const handlePrintConfirm = () => {
                 <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Payments</th>
               </tr>
             </thead>
-          <tbody>
-  {tableLoaded ? (
-    dayBookData.length > 0 ? (
-      dayBookData.map((row, index) => (
-        <tr key={index} style={{ 
-          backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
-          ...(row.isTotal ? { backgroundColor: '#f0f8ff' } : {}) // fontWeight removed
-        }}>
-          <td style={{ 
-            ...styles.td, 
-            minWidth: '200px', 
-            width: '200px', 
-            maxWidth: '200px',
-            textAlign: 'left',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
-            color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.accName}
-          </td>
-          <td style={{ 
-            ...styles.td, 
-            minWidth: '150px', 
-            width: '150px', 
-            maxWidth: '150px',
-            textAlign: 'right',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
-            color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })}` : ''}
-          </td>
-          <td style={{ 
-            ...styles.td, 
-            minWidth: '150px', 
-            width: '150px', 
-            maxWidth: '150px',
-            textAlign: 'right',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
-            color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            })}` : ''}
-          </td>
-        </tr>
-      ))
-    ) : (
-      <tr>
-        <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-          No records found
-        </td>
-      </tr>
-    )
-  ) : (
-    <tr>
-      <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-        {/* Enter search criteria and click "Search" to view day book entries */}
-      </td>
-    </tr>
-  )}
-</tbody>
+            <tbody>
+              {tableLoaded ? (
+                dayBookData.length > 0 ? (
+                  dayBookData.map((row, index) => (
+                    <tr key={index} style={{ 
+                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                      ...(row.isTotal ? { backgroundColor: '#f0f8ff' } : {})
+                    }}>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '200px', 
+                        width: '200px', 
+                        maxWidth: '200px',
+                        textAlign: 'left',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.accName}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '150px', 
+                        width: '150px', 
+                        maxWidth: '150px',
+                        textAlign: 'right',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}` : ''}
+                      </td>
+                      <td style={{ 
+                        ...styles.td, 
+                        minWidth: '150px', 
+                        width: '150px', 
+                        maxWidth: '150px',
+                        textAlign: 'right',
+                        color: row.isTotal ? '#1565c0' : '#333'
+                      }}>
+                        {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}` : ''}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No records found
+                    </td>
+                  </tr>
+                )
+              ) : (
+                <tr>
+                  <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                    {/* Enter search criteria and click "Search" to view day book entries */}
+                  </td>
+                </tr>
+              )}
+            </tbody>
           </table>
         </div>
       </div>
@@ -1383,18 +1415,16 @@ const handlePrintConfirm = () => {
           </div>
         </div>
         <div style={styles.buttonGroup}>
-        <PrintButton 
-  onClick={handlePrintClick}
-  isActive={hasPrintPermission}
-  disabled={!hasPrintPermission || dayBookData.length === 0}
-/>
-
-<ExportButton 
-  onClick={handleExportClick}
-  isActive={hasPrintPermission}
-  disabled={!hasPrintPermission || dayBookData.length === 0}
-/>
-
+          <PrintButton 
+            onClick={handlePrintClick}
+            isActive={hasPrintPermission}
+            disabled={!hasPrintPermission || dayBookData.length === 0}
+          />
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={hasPrintPermission}
+            disabled={!hasPrintPermission || dayBookData.length === 0}
+          />
         </div>
       </div>
 
@@ -1508,9 +1538,3 @@ const handlePrintConfirm = () => {
 };
 
 export default DayBook;
-      
-
-
-
-
-
