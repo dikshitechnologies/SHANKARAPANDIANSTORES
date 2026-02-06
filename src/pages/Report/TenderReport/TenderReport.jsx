@@ -1279,7 +1279,7 @@ const { hasPrintPermission, checkPrintPermission } =
               ...styles.formField,
               minWidth: screenSize.isMobile ? '100%' : '180px',
             }}>
-              <label style={styles.inlineLabel}>Branch:</label>
+              <label style={styles.inlineLabel}>Company:</label>
               <div
                 style={
                   focusedField === 'branch'

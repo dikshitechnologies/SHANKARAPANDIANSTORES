@@ -184,6 +184,16 @@ const { hasPrintPermission, checkPrintPermission } =
     }
   };
 
+  const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);
@@ -519,7 +529,8 @@ const handleExportConfirm = () => {
               ${ledgerData.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td>${row.date || ''}</td>
+                 <td>${formatDateDDMMYYYY(row.date)}</td>
+
                   <td class="text-left">${row.name || ''}</td>
                   <td>${row.voucherNo || ''}</td>
                   <td>${row.type || ''}</td>
@@ -566,7 +577,8 @@ const handleExportConfirm = () => {
       
       ledgerData.forEach((row, index) => {
         const amount = parseFloat(row.amount) || 0;
-        csvContent += `${index + 1},${row.date || ''},"${row.name || ''}",${row.voucherNo || ''},${row.type || ''},${row.crDr || ''},${row.billNo || ''},${row.billet || ''},${amount.toFixed(2)}\n`;
+        csvContent += `${index + 1},${formatDateDDMMYYYY(row.date)}
+,"${row.name || ''}",${row.voucherNo || ''},${row.type || ''},${row.crDr || ''},${row.billNo || ''},${row.billet || ''},${amount.toFixed(2)}\n`;
       });
       
       csvContent += `\n\n`;
@@ -1599,7 +1611,8 @@ const handleExportConfirm = () => {
                   ledgerData.map((row, index) => (
                     <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
                       <td style={{ ...styles.td, minWidth: '50px', width: '50px', maxWidth: '50px' }}>{index + 1}</td>
-                      <td style={styles.td}>{row.date}</td>
+                <td style={styles.td}>{formatDateDDMMYYYY(row.date)}</td>
+
                       <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
                       <td style={styles.td}>{row.voucherNo}</td>
                       <td style={styles.td}>{row.type}</td>
