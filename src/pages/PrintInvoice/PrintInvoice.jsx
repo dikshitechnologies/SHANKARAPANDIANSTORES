@@ -409,56 +409,34 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
   }));
 
   return (
-    <div>
-      {/* Hidden Print Content */}
-      <div ref={printRef} style={{ display: "none" }}>
-        <div className="receipt">
-          {/* Header with Logo */}
-          <div className="header">
-            <div style={{ textAlign: "center" }}>
-              <img
-                src={logo}
-                alt="Logo"
-                style={{
-                  width: 100,
-                  height: 100,
-                  objectFit: "contain",
-                  display: "inline-block",
-                }}
-              />
-            </div>
-            <div className="company-name">R.SANKARAPANDIAN STORE</div>
-            <div className="company-address">
-              51/179, HARIHARAN BAZAAR STREET<br />
-              PONNERI - 601204
-            </div>
-            <div className="contact">Customer Care: 044-27973611 / 72007 79217</div>
-            <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
+    <div ref={printRef} style={{ display: "none" }}>
+      <div className="receipt">
+        {/* Header with Logo */}
+        <div className="header">
+          <div style={{ textAlign: "center" }}>
+            <img
+              src={logo}
+              alt="Logo"
+              style={{
+                width: 100,
+                height: 100,
+                objectFit: "contain",
+                display: "inline-block",
+              }}
+            />
           </div>
-
-          {/* Dynamic Content */}
-          {mode === "tax_invoice" && renderSalesInvoice()}
+          <div className="company-name">R.SANKARAPANDIAN STORE</div>
+          <div className="company-address">
+            51/179, HARIHARAN BAZAAR STREET<br />
+            PONNERI - 601204
+          </div>
+          <div className="contact">Customer Care: 044-27973611 / 72007 79217</div>
+          <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
         </div>
-      </div>
 
-      {/* Print Button */}
-      <button
-        className="print-invoice-button-inner"
-        onClick={handlePrint}
-        style={{
-          padding: "10px 20px",
-          margin: "20px",
-          backgroundColor: "#1B91DA",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          fontSize: "14px",
-          display: "none"
-        }}
-      >
-        Print Invoice
-      </button>
+        {/* Dynamic Content */}
+        {mode === "tax_invoice" && renderSalesInvoice()}
+      </div>
     </div>
   );
 });

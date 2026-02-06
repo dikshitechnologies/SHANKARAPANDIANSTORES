@@ -1413,8 +1413,7 @@ const ReceiptVoucher = () => {
       try {
         const partyCode = account.code || '';
         if (partyCode) {
-          const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
-          const balanceResponse = await apiService.getSilent(balanceUrl);
+          const balanceResponse = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode));
           console.log('Party Balance Response:', balanceResponse);
           
           if (balanceResponse) {
