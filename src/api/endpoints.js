@@ -466,9 +466,13 @@ PAYMENTVOUCHER: {
     `ItemwiseStock/GetitemStock?itemCode=${itemCode}&compCode=${compCode}&startDate=${startDate}&endDate=${endDate}`,
   },
 
-  DAILY_REPORT: {
+ DAILY_REPORT: {
     GET_DAILY_REPORT_DETAILS: (fromDate, toDate, compCode, page = 1, pageSize = 20) =>
-      `Dailyreport/Daily-reportDetails?fromdate=${encodeURIComponent(fromDate)}&todate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&page=${page}&pageSize=${pageSize}`,
+      `/Dailyreport/Daily-reportDetails?fromdate=${encodeURIComponent(fromDate)}&todate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&search=search&page=${page}&pageSize=${pageSize}`,
+     COMPANY: {
+    GET_COMPANY_LIST: `/CompanyCreation/GetCompanyList`,
   },
 
+  },
+ 
 };
