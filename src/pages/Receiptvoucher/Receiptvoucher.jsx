@@ -3308,6 +3308,7 @@ const ReceiptVoucher = () => {
         type={confirmationPopup.type}
         confirmText={confirmationPopup.isLoading ? 'Processing...' : confirmationPopup.confirmText}
         showLoading={confirmationPopup.isLoading}
+        cancelText={confirmationPopup.cancelText}
         disableBackdropClose={confirmationPopup.isLoading}
       />
 
