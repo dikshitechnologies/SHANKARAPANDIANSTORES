@@ -330,7 +330,7 @@ const handleTransportFieldKeyDown = (e) => {
   // api/bankApi.js
 const fetchBankList = async (page, search) => {
   const res = await fetch(
-    `http://dikshiserver/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ''}`
+    `https://dikshi.ddns.net/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ''}`
   );
   const json = await res.json();
   return json?.data || [];
@@ -339,7 +339,7 @@ const fetchBankList = async (page, search) => {
 // Fetch transport list from API
 const fetchTransportList = async (page, search) => {
   const res = await fetch(
-    `http://dikshiserver/spstorewebapi/api/transport/transport?search=${search || ''}&page=${page}&pageSize=10`
+    `https://dikshi.ddns.net/spstorewebapi/api/transport/transport?search=${search || ''}&page=${page}&pageSize=10`
   );
   const json = await res.json();
   return json?.data || [];
