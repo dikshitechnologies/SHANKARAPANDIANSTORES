@@ -1015,6 +1015,12 @@ const handlePrintClick = () => {
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill No</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Date</th>
                 <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>Qty</th>
+                <th style={{ ...styles.th }}>Sales Return</th>
+                <th style={{ ...styles.th }}>Freight Charge</th>
+                <th style={{ ...styles.th }}>Service Charge</th>
+                <th style={{ ...styles.th }}>Cash</th>
+                <th style={{ ...styles.th }}>UPI Amount</th>
+                <th style={{ ...styles.th }}>Card Amount</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
                 {/* <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Time</th> */}
               </tr>
@@ -1048,6 +1054,24 @@ const handlePrintClick = () => {
                       </td>
                       <td style={getCellStyle(rowIndex, 'qty')}>
                         {row.qty}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'salesReturn')}>
+                        {row.salesReturn}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'freightCharge')}>
+                        {row.freightCharge}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'serviceCharge')}>
+                        {row.serviceCharge}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'cash')}>
+                        {row.cash}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'upiAmount')}>
+                        {row.upiAmount}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'cardAmount')}>
+                        {row.cardAmount}
                       </td>
                       <td style={getCellStyle(rowIndex, 'billAmount')}>
                         {row.billAmount}

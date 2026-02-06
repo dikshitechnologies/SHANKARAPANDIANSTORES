@@ -291,6 +291,13 @@ const SalesReturnRegister = () => {
                 <th>Sales Party</th>
                 <th>Bill No</th>
                 <th>Bill Date</th>
+                <th>Qty</th>
+                <th>Sales Return</th>
+                <th>Freight Charge</th>
+                <th>Service Charge</th>
+                <th>Cash</th>
+                <th>UPI Amount</th>
+                <th>Card Amount</th>
                 <th>Bill Amount</th>
               </tr>
             </thead>
@@ -301,6 +308,13 @@ const SalesReturnRegister = () => {
                   <td>${row.salesParty || ''}</td>
                   <td>${row.isTotal ? '' : (row.billNo || '')}</td>
                   <td>${row.isTotal ? '' : (row.billDate || '')}</td>
+                  <td>${row.qty || ''}</td>
+                  <td>${row.salesReturn || ''}</td>
+                  <td>${row.freightCharge || ''}</td>
+                  <td>${row.serviceCharge || ''}</td>
+                  <td>${row.cash || ''}</td>
+                  <td>${row.upiAmount || ''}</td>
+                  <td>${row.cardAmount || ''}</td>
                   <td>₹${row.billAmount || '0.00'}</td>
                 </tr>
               `).join('')}
@@ -863,6 +877,13 @@ const SalesReturnRegister = () => {
                 <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Sales Party</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill No.</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill Date</th>
+                <th style={{ ...styles.th }}>Qty</th>
+                <th style={{ ...styles.th }}>Sales Return</th>
+                <th style={{ ...styles.th }}>Freight Charge</th>
+                <th style={{ ...styles.th }}>Service Charge</th>
+                <th style={{ ...styles.th }}>Cash</th>
+                <th style={{ ...styles.th }}>UPI Amount</th>
+                <th style={{ ...styles.th }}>Card Amount</th>
                 <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Bill Amount</th>
               </tr>
             </thead>
@@ -884,55 +905,47 @@ const SalesReturnRegister = () => {
             width: '70px', 
             maxWidth: '70px',
             textAlign: 'center',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.no || ''}
-          </td>
+          }}>{row.no || ''}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '200px', 
             width: '200px', 
             maxWidth: '200px',
             textAlign: 'left',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.salesParty}
-          </td>
+          }}>{row.salesParty}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '120px', 
             width: '120px', 
             maxWidth: '120px',
             textAlign: 'center',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.billNo || ''}
-          </td>
+          }}>{row.billNo || ''}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '120px', 
             width: '120px', 
             maxWidth: '120px',
             textAlign: 'center',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.billDate || ''}
-          </td>
+          }}>{row.billDate || ''}</td>
+          <td style={{ ...styles.td }}>{row.qty || ''}</td>
+          <td style={{ ...styles.td }}>{row.salesReturn || ''}</td>
+          <td style={{ ...styles.td }}>{row.freightCharge || ''}</td>
+          <td style={{ ...styles.td }}>{row.serviceCharge || ''}</td>
+          <td style={{ ...styles.td }}>{row.cash || ''}</td>
+          <td style={{ ...styles.td }}>{row.upiAmount || ''}</td>
+          <td style={{ ...styles.td }}>{row.cardAmount || ''}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '140px', 
             width: '140px', 
             maxWidth: '140px',
             textAlign: 'right',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.billAmount ? `₹${row.billAmount}` : ''}
-          </td>
+          }}>{row.billAmount ? `₹${row.billAmount}` : ''}</td>
         </tr>
       ))
     ) : (
