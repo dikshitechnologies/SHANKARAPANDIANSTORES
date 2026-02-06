@@ -4660,10 +4660,10 @@ const itemsData = validItems.map(item => {
         }}
         onConfirm={handleConfirmedPrint}
         title="Print Sales Invoice"
-        message="Do you want to print it?"
-        confirmText="PRINT"
-        cancelText="Cancel"
-        type="success"
+        message="Do you want to print?"
+        confirmText="Yes"
+        cancelText="No"
+        type="default"
         showIcon={true}
         borderColor="#1B91DA"
       />

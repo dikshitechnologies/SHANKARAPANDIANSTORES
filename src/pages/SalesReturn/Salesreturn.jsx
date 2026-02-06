@@ -1921,8 +1921,8 @@ const requestData = {
         console.log('Showing print confirmation popup');
         showConfirmation({
           title: 'Print Confirmation',
-          message: 'Would you like to print the receipt?',
-          type: 'success',
+          message: 'Do you want to print?',
+          type: 'default',
           confirmText: 'Yes',
           cancelText: 'No',
           showIcon: true,
@@ -4059,7 +4059,7 @@ const handleSave = async () => {
   showConfirmation({
     title: isEditMode ? "Update Sales Return" : "Save Sales Return",
     message: isEditMode
-      ? "Do you want to update?"
+      ? "Do you want to modify?"
       : "Do you want to save?",
     type: isEditMode ? "warning" : "success",
     confirmText: "Yes",

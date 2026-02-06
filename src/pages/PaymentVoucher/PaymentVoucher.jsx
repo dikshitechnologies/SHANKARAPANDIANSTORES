@@ -1813,8 +1813,8 @@ const PaymentVoucher = () => {
           setConfirmationPopup({
             isOpen: true,
             title: 'Print Confirmation',
-            message: 'Would you like to print the voucher?',
-            type: 'success',
+            message: 'Do you want to print?',
+            type: 'default',
             confirmText: 'Yes',
             cancelText: 'No',
             action: 'printConfirmation',
