@@ -429,7 +429,7 @@ PAYMENTVOUCHER: {
   },
 
   SALES_RETURN_REGISTER: {
-    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 200) =>
+    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 20) =>
       `SalesReturnRegister/GetSalesReturnRegister?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
 
