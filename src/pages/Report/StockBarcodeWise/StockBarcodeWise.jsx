@@ -50,7 +50,6 @@ const StockBarcodeWise = () => {
 
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
-  const [fromDate, setFromDate] = useState(currentDate);
   const [toDate, setToDate] = useState(currentDate);
   const [selectedBranches, setSelectedBranches] = useState(['001']); // Default to branch 001
   const [showBranchPopup, setShowBranchPopup] = useState(false);
@@ -67,7 +66,6 @@ const StockBarcodeWise = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   // --- REFS ---
-  const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
   const searchInputRef = useRef(null);
   const searchButtonRef = useRef(null);
@@ -92,10 +90,10 @@ const StockBarcodeWise = () => {
     { code: '002', name: 'Branch 002' },
   ]);
 
-  // Focus on fromDate field when component mounts
+  // Focus on toDate field when component mounts
   useEffect(() => {
-    if (fromDateRef.current) {
-      fromDateRef.current.focus();
+    if (toDateRef.current) {
+      toDateRef.current.focus();
     }
   }, []);
 
@@ -116,10 +114,6 @@ const StockBarcodeWise = () => {
   }, [debouncedSearchTerm]);
 
   // --- HANDLERS ---
-  const handleFromDateChange = (e) => {
-    setFromDate(e.target.value);
-  };
-
   const handleToDateChange = (e) => {
     setToDate(e.target.value);
   };
@@ -187,8 +181,8 @@ const StockBarcodeWise = () => {
   };
 
   const handleSearch = async (isNewSearch = true) => {
-    if (!fromDate || !toDate || selectedBranches.length === 0) {
-      toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
+    if (!toDate || selectedBranches.length === 0) {
+      toast.warning('Please fill all fields: To Date, and select at least one branch', {
         autoClose: 2000,
       });
       return;
@@ -207,13 +201,11 @@ const StockBarcodeWise = () => {
     
     try {
       const compCode = selectedBranches[0]; // Take first selected branch
-      const apiFromDate = formatDateForAPI(fromDate);
       const apiToDate = formatDateForAPI(toDate);
       const searchTerm = debouncedSearchTerm.trim();
       
       const response = await fetch(
-        `${API_BASE}${API_ENDPOINTS.STOCK_BARCODE_WISE.GET_STOCK_BARCODE_WISE(
-          apiFromDate,
+        `${API_BASE}${API_ENDPOINTS.STOCK_BAR_CODE_WISE.GET_STOCK_BAR_CODE_WISE(
           apiToDate,
           compCode, 
           searchTerm,
@@ -289,7 +281,6 @@ const StockBarcodeWise = () => {
   const handleRefresh = () => {
     setTableLoaded(false);
     const today = formatDate(new Date());
-    setFromDate(today);
     setToDate(today);
     setSelectedBranches(['001']);
     setBranchDisplay('Branch 001');
@@ -377,8 +368,7 @@ const StockBarcodeWise = () => {
       
       while (hasMoreData) {
         const response = await fetch(
-          `${API_BASE}${API_ENDPOINTS.STOCK_BARCODE_WISE.GET_STOCK_BARCODE_WISE(
-            apiFromDate,
+          `${API_BASE}${API_ENDPOINTS.STOCK_BAR_CODE_WISE.GET_STOCK_BAR_CODE_WISE(
             apiToDate,
             compCode,
             searchTerm,
@@ -460,6 +450,7 @@ const StockBarcodeWise = () => {
                 <th>Item Name</th>
                 <th>Prefix</th>
                 <th>Qty</th>
+                <th>Unit</th>
                 <th>Rate</th>
                 <th>ACost</th>
                 <th>SRate</th>
@@ -475,6 +466,7 @@ const StockBarcodeWise = () => {
                   <td class="text-left">${row.itemName || ''}</td>
                   <td>${row.prefix || ''}</td>
                   <td class="text-right">${(parseFloat(row.qty) || 0).toLocaleString()}</td>
+                  <td class="text-right">${row.unit || ''}</td>
                   <td class="text-right">₹${formatNumber(parseFloat(row.rate) || 0)}</td>
                   <td class="text-right">₹${formatNumber(parseFloat(row.aCost) || 0)}</td>
                   <td class="text-right">₹${formatNumber(parseFloat(row.sRate) || 0)}</td>
@@ -532,7 +524,7 @@ const StockBarcodeWise = () => {
       csvContent += `Branches: ${branchDisplay}\n`;
       csvContent += `Total Records: ${allData.length}\n\n`;
       
-      csvContent += 'S.No,Item Name,Prefix,Qty,Rate,ACost,SRate,ASRate,Stock Value,AStock Value\n';
+      csvContent += 'S.No,Item Name,Prefix,Qty,Unit,Rate,ACost,SRate,ASRate,Stock Value,AStock Value\n';
       
       allData.forEach((row, index) => {
         const qty = parseFloat(row.qty) || 0;
@@ -543,7 +535,7 @@ const StockBarcodeWise = () => {
         const stockValue = parseFloat(row.stockValue) || 0;
         const aStockValue = parseFloat(row.aStockValue) || 0;
         
-        csvContent += `${index + 1},"${row.itemName || ''}",${row.prefix || ''},${qty},${rate.toFixed(2)},${aCost.toFixed(2)},${sRate.toFixed(2)},${asRate.toFixed(2)},${stockValue.toFixed(2)},${aStockValue.toFixed(2)}\n`;
+        csvContent += `${index + 1},"${row.itemName || ''}",${row.prefix || ''},${qty},${row.unit || ''},${rate.toFixed(2)},${aCost.toFixed(2)},${sRate.toFixed(2)},${asRate.toFixed(2)},${stockValue.toFixed(2)},${aStockValue.toFixed(2)}\n`;
       });
       
       csvContent += `,,Total,${totals.totalQty.toLocaleString()},,,,,,${totals.totalStockValue.toFixed(2)},${totals.totalAStockValue.toFixed(2)}\n`;
@@ -571,9 +563,6 @@ const StockBarcodeWise = () => {
       e.preventDefault();
       
       switch(currentField) {
-        case 'fromDate':
-          toDateRef.current?.focus();
-          break;
         case 'toDate':
           searchInputRef.current?.focus();
           break;
@@ -1171,30 +1160,6 @@ const StockBarcodeWise = () => {
             gap: screenSize.isMobile ? '8px' : screenSize.isTablet ? '10px' : '12px',
             flexWrap: 'wrap',
           }}>
-            {/* From Date */}
-            <div style={{
-              ...styles.formField,
-              minWidth: screenSize.isMobile ? 'calc(50% - 6px)' : 'auto',
-            }}>
-              <label style={styles.inlineLabel}>From Date:</label>
-              <input
-                type="date"
-                style={
-                  focusedField === 'fromDate'
-                    ? styles.inlineInputFocused
-                    : styles.inlineInput
-                }
-                value={fromDate}
-                onChange={handleFromDateChange}
-                ref={fromDateRef}
-                onKeyDown={(e) => {
-                  handleKeyDown(e, 'fromDate');
-                }}
-                onFocus={() => setFocusedField('fromDate')}
-                onBlur={() => setFocusedField('')}
-              />
-            </div>
-
             {/* To Date */}
             <div style={{
               ...styles.formField,
@@ -1298,6 +1263,7 @@ const StockBarcodeWise = () => {
                 <th style={{ ...styles.th, minWidth: '100px' }}>Item Name</th>
                 <th style={{ ...styles.th, minWidth: '100px' }}>Prefix</th>
                 <th style={{ ...styles.th, minWidth: '80px' }}>Qty</th>
+                <th style={{ ...styles.th, minWidth: '100px' }}>Unit</th>
                 <th style={{ ...styles.th, minWidth: '100px' }}>Rate</th>
                 <th style={{ ...styles.th, minWidth: '100px' }}>ACost</th>
                 <th style={{ ...styles.th, minWidth: '100px' }}>SRate</th>
@@ -1317,6 +1283,7 @@ const StockBarcodeWise = () => {
                       <td style={{ ...styles.td, textAlign: 'left', minWidth: '150px' }}>{row.itemName}</td>
                       <td style={styles.td}>{row.prefix}</td>
                       <td style={{ ...styles.td, textAlign: 'right' }}>{row.qty?.toLocaleString()}</td>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>{row.unit || ''}</td>
                       <td style={{ ...styles.td, textAlign: 'right' }}>{row.rate?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td style={{ ...styles.td, textAlign: 'right' }}>{row.aCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td style={{ ...styles.td, textAlign: 'right' }}>{row.sRate?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
