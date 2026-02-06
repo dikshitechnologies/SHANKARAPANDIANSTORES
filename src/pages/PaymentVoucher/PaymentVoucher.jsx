@@ -1272,7 +1272,7 @@ const PaymentVoucher = () => {
     try {
       if (allParties.length === 0) {
         setIsLoading(true);
-        const url = API_ENDPOINTS.PAYMENTVOUCHER.GETPARTYLIST(
+        const url = API_ENDPOINTS.RECEIPTVOUCHER.GETPARTYLIST(
           encodeURIComponent(''),
           1,
           20
