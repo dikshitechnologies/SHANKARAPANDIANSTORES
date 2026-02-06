@@ -34,8 +34,37 @@ const SearchIcon = ({ size = 16, color = "#1B91DA" }) => (
 
 const PaymentVoucher = () => {
   const { userData } = useAuth() || {};
-  console.log('User data in PurchaseInvoice:', userData.date);
-    // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
+  
+  // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "dd/mm/yyyy"
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const datePart = dateString.split(' ')[0]; // Get "dd-mm-yyyy"
+      return datePart.replace(/-/g, '/'); // Replace hyphens with forward slashes
+    } catch (error) {
+      console.warn('Error formatting date:', error);
+      return dateString;
+    }
+  };
+  
+  // Helper function to convert yyyy-MM-dd to dd/mm/yyyy format for display
+  const convertInputDateToDisplay = (dateString) => {
+    if (!dateString) return '';
+    try {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+      }
+      return dateString;
+    } catch (error) {
+      console.warn('Error converting date:', error);
+      return dateString;
+    }
+  };
+  
+  console.log('User data', formatDateForDisplay(userData?.date));
+  
+  // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
   const formatDateForInput = (dateString) => {
     if (!dateString) return new Date().toISOString().substring(0, 10);
     
@@ -887,19 +916,35 @@ const PaymentVoucher = () => {
       
       const safeFormatDate = (dateValue) => {
         if (!dateValue) return formatDateForInput(userData?.date);
+        
         try {
+          // If already in yyyy-MM-dd format, return as is
           if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
             return dateValue;
           }
-          const date = new Date(dateValue);
-          if (isNaN(date.getTime())) {
-            return formatDateForInput(userData?.date);
+          
+          // Try to parse dd-mm-yyyy or dd-mm-yyyy HH:MM:SS format (common from API)
+          if (typeof dateValue === 'string') {
+            const datePart = dateValue.split(' ')[0]; // Remove time part if present
+            const [day, month, year] = datePart.split('-');
+            
+            if (day && month && year && /^\d{4}$/.test(year)) {
+              // It's dd-mm-yyyy format
+              return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
           }
-          return formatDateForInput(date.toISOString().substring(0, 10));
+          
+          // Try to parse as Date object
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().substring(0, 10);
+          }
         } catch (e) {
           console.warn('Date parsing error:', e);
-          return formatDateForInput(userData?.date);
         }
+        
+        // Fallback to default date
+        return formatDateForInput(userData?.date);
       };
       
       setVoucherDetails({
@@ -1567,8 +1612,37 @@ const PaymentVoucher = () => {
 
   const formatDateToYYYYMMDD = (dateString) => {
     if (!dateString) return formatDateForInput(userData?.date);
-    const date = new Date(dateString);
-    return formatDateForInput(date.toISOString().substring(0, 10));
+    
+    // Check if it's already in yyyy-MM-dd format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    // Try to parse as dd-mm-yyyy format
+    try {
+      const datePart = dateString.split(' ')[0]; // Get just the date part
+      const [day, month, year] = datePart.split('-');
+      
+      if (day && month && year && /^\d{4}$/.test(year)) {
+        // It's dd-mm-yyyy format
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    } catch (error) {
+      console.warn('Error parsing dd-mm-yyyy format:', error);
+    }
+    
+    // Try to parse as a Date object
+    try {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().substring(0, 10);
+      }
+    } catch (error) {
+      console.warn('Error parsing date:', error);
+    }
+    
+    // Fallback to default
+    return formatDateForInput(userData?.date);
   };
 
   // Build voucher data for printing
@@ -2469,9 +2543,9 @@ const PaymentVoucher = () => {
         </tr>
       </thead>
       <tbody>
-        {console.log(`🔵 DEBUG - Rendering ${paymentItems.length} payment items:`, paymentItems)}
+        {/* {console.log(`🔵 DEBUG - Rendering ${paymentItems.length} payment items:`, paymentItems)} */}
         {paymentItems.map((item, index) => {
-          console.log(`🟢 DEBUG - Rendering row ${index}: id=${item.id}, type="${item.type}", cashBank="${item.cashBank}"`);
+          // console.log(`🟢 DEBUG - Rendering row ${index}: id=${item.id}, type="${item.type}", cashBank="${item.cashBank}"`);
           return (
           <tr key={item.id}>
             <td style={styles.td}>{item.sNo}</td>
