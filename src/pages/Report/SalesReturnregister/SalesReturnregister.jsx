@@ -61,54 +61,6 @@ const SalesReturnRegister = () => {
   const toDateRef = useRef(null);
   const searchButtonRef = useRef(null);
 
-  // Sample sales return register data
-  const sampleSalesReturnData = [
-    {
-      id: 1,
-      no: 1,
-      salesParty: 'AMIT FASHION',
-      billNo: 'SR0001',
-      billDate: '27-09-2025',
-      billAmount: '8,450.00'
-    },
-    {
-      id: 2,
-      no: 2,
-      salesParty: 'CASH A/C',
-      billNo: 'SR0002',
-      billDate: '10-12-2025',
-      billAmount: '2,250.00'
-    },
-    {
-      id: 3,
-      no: 3,
-      salesParty: 'JOHN TRADERS',
-      billNo: 'SR0003',
-      billDate: '15-12-2025',
-      billAmount: '15,800.00'
-    },
-    {
-      id: 4,
-      no: 4,
-      salesParty: 'GLOBAL FASHION',
-      billNo: 'SR0004',
-      billDate: '18-12-2025',
-      billAmount: '6,500.00'
-    },
-    {
-      id: 5,
-      no: 5,
-      salesParty: 'PREMIUM TEXTILES',
-      billNo: 'SR0005',
-      billDate: '20-12-2025',
-      billAmount: '12,750.00'
-    },
-    {
-      isTotal: true,
-      salesParty: 'Total',
-      billAmount: '45,750.00'
-    }
-  ];
 
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
@@ -159,29 +111,53 @@ const SalesReturnRegister = () => {
       const transformedData = [];
 
       if (data.data && data.data.length > 0) {
+        let totalQty = 0, totalSalesReturn = 0, totalFreight = 0, totalService = 0, totalCash = 0, totalUpi = 0, totalCard = 0, totalAmount = 0;
         data.data.forEach((item, index) => {
+          const qty = item.qty || 0;
+          const salesReturn = item.salesAmt || 0;
+          const freightCharge = item.freightAmt || 0;
+          const serviceCharge = item.serviceChargeAmt || 0;
+          const cash = item.cash || 0;
+          const upiAmount = item.upi || 0;
+          const cardAmount = item.card || 0;
+          const billAmount = item.amount || 0;
+          totalQty += qty;
+          totalSalesReturn += salesReturn;
+          totalFreight += freightCharge;
+          totalService += serviceCharge;
+          totalCash += cash;
+          totalUpi += upiAmount;
+          totalCard += cardAmount;
+          totalAmount += billAmount;
           transformedData.push({
             id: index + 1,
             no: index + 1,
             salesParty: item.name || '',
             billNo: item.invoice || '',
             billDate: item.voucherDate || '',
-            billAmount: item.amount ? item.amount.toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }) : '0.00'
+            qty: qty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            salesReturn: salesReturn.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            freightCharge: freightCharge.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            serviceCharge: serviceCharge.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            cash: cash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            upiAmount: upiAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            cardAmount: cardAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            billAmount: billAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
           });
         });
 
         // Add total row
-        const totalAmount = data.data.reduce((sum, item) => sum + (item.amount || 0), 0);
         transformedData.push({
           isTotal: true,
           salesParty: 'Total',
-          billAmount: totalAmount.toLocaleString('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })
+          qty: totalQty.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          salesReturn: totalSalesReturn.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          freightCharge: totalFreight.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          serviceCharge: totalService.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          cash: totalCash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          upiAmount: totalUpi.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          cardAmount: totalCard.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          billAmount: totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
         });
       }
 
@@ -291,6 +267,13 @@ const SalesReturnRegister = () => {
                 <th>Sales Party</th>
                 <th>Bill No</th>
                 <th>Bill Date</th>
+                <th>Qty</th>
+                <th>Sales Return</th>
+                <th>Freight Charge</th>
+                <th>Service Charge</th>
+                <th>Cash</th>
+                <th>UPI Amount</th>
+                <th>Card Amount</th>
                 <th>Bill Amount</th>
               </tr>
             </thead>
@@ -301,6 +284,13 @@ const SalesReturnRegister = () => {
                   <td>${row.salesParty || ''}</td>
                   <td>${row.isTotal ? '' : (row.billNo || '')}</td>
                   <td>${row.isTotal ? '' : (row.billDate || '')}</td>
+                  <td>${row.qty || ''}</td>
+                  <td>${row.salesReturn || ''}</td>
+                  <td>${row.freightCharge || ''}</td>
+                  <td>${row.serviceCharge || ''}</td>
+                  <td>${row.cash || ''}</td>
+                  <td>${row.upiAmount || ''}</td>
+                  <td>${row.cardAmount || ''}</td>
                   <td>₹${row.billAmount || '0.00'}</td>
                 </tr>
               `).join('')}
@@ -329,11 +319,10 @@ const SalesReturnRegister = () => {
       csvContent += `Period: ${fromDate} to ${toDate}\n`;
       csvContent += `Total Records: ${salesReturnData.filter(row => !row.isTotal).length}\n\n`;
       
-      csvContent += 'No,Sales Party,Bill No,Bill Date,Bill Amount\n';
+      csvContent += 'No,Sales Party,Bill No,Bill Date,Qty,Sales Return,Freight Charge,Service Charge,Cash,UPI Amount,Card Amount,Bill Amount\n';
       
       salesReturnData.forEach((row) => {
-        const amount = row.billAmount ? row.billAmount.toString().replace(/,/g, '') : '0';
-        csvContent += `${row.isTotal ? '' : row.no},"${row.salesParty || ''}",${row.isTotal ? '' : (row.billNo || '')},${row.isTotal ? '' : (row.billDate || '')},${amount}\n`;
+        csvContent += `${row.isTotal ? '' : row.no},"${row.salesParty || ''}",${row.isTotal ? '' : (row.billNo || '')},${row.isTotal ? '' : (row.billDate || '')},${row.qty || ''},${row.salesReturn || ''},${row.freightCharge || ''},${row.serviceCharge || ''},${row.cash || ''},${row.upiAmount || ''},${row.cardAmount || ''},${row.billAmount || ''}\n`;
       });
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -863,6 +852,13 @@ const SalesReturnRegister = () => {
                 <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Sales Party</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill No.</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill Date</th>
+                <th style={{ ...styles.th }}>Qty</th>
+                <th style={{ ...styles.th }}>Sales Return</th>
+                <th style={{ ...styles.th }}>Freight Charge</th>
+                <th style={{ ...styles.th }}>Service Charge</th>
+                <th style={{ ...styles.th }}>Cash</th>
+                <th style={{ ...styles.th }}>UPI Amount</th>
+                <th style={{ ...styles.th }}>Card Amount</th>
                 <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Bill Amount</th>
               </tr>
             </thead>
@@ -884,55 +880,47 @@ const SalesReturnRegister = () => {
             width: '70px', 
             maxWidth: '70px',
             textAlign: 'center',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.no || ''}
-          </td>
+          }}>{row.no || ''}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '200px', 
             width: '200px', 
             maxWidth: '200px',
             textAlign: 'left',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.salesParty}
-          </td>
+          }}>{row.salesParty}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '120px', 
             width: '120px', 
             maxWidth: '120px',
             textAlign: 'center',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.billNo || ''}
-          </td>
+          }}>{row.billNo || ''}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '120px', 
             width: '120px', 
             maxWidth: '120px',
             textAlign: 'center',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.billDate || ''}
-          </td>
+          }}>{row.billDate || ''}</td>
+          <td style={{ ...styles.td }}>{row.qty || ''}</td>
+          <td style={{ ...styles.td }}>{row.salesReturn || ''}</td>
+          <td style={{ ...styles.td }}>{row.freightCharge || ''}</td>
+          <td style={{ ...styles.td }}>{row.serviceCharge || ''}</td>
+          <td style={{ ...styles.td }}>{row.cash || ''}</td>
+          <td style={{ ...styles.td }}>{row.upiAmount || ''}</td>
+          <td style={{ ...styles.td }}>{row.cardAmount || ''}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '140px', 
             width: '140px', 
             maxWidth: '140px',
             textAlign: 'right',
-            // fontWeight: row.isTotal ? 'bold' : 'normal', // REMOVED
             color: row.isTotal ? '#1565c0' : '#333'
-          }}>
-            {row.billAmount ? `₹${row.billAmount}` : ''}
-          </td>
+          }}>{row.billAmount ? `₹${row.billAmount}` : ''}</td>
         </tr>
       ))
     ) : (

@@ -418,9 +418,9 @@ PAYMENTVOUCHER: {
     GET_DAY_BOOK: (compCode, fromDate, toDate) =>
       `Daybook/GetDayBook?compCode=${encodeURIComponent(compCode)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
   },
-  STOCK_BARCODE_WISE: {
-    GET_STOCK_BARCODE_WISE: (fromDate, toDate, compCode, search = '', page = 1, pageSize = 100) =>
-      `stockbarcodewise/getStock/${compCode}?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&pageNumber=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
+  STOCK_BAR_CODE_WISE: {
+    GET_STOCK_BAR_CODE_WISE: (toDate, compCode, search = '', page = 1, pageSize = 100) =>
+      `stockbarcodewise/getStock/${compCode}?toDate=${encodeURIComponent(toDate)}&pageNumber=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`,
   },
 
   DAYCLOSE: {
@@ -429,7 +429,7 @@ PAYMENTVOUCHER: {
   },
 
   SALES_RETURN_REGISTER: {
-    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 200) =>
+    GET_SALES_RETURN_REGISTER: (fromDate, toDate, compCode, pageNumber = 1, pageSize = 20) =>
       `SalesReturnRegister/GetSalesReturnRegister?fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}&compCode=${encodeURIComponent(compCode)}&pageNumber=${pageNumber}&pageSize=${pageSize}`,
   },
 

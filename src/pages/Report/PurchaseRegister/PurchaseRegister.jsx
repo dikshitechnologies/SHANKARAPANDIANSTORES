@@ -186,7 +186,6 @@ const { hasPrintPermission, checkPrintPermission } =
           subTotal += parseFloat(item.subTotal) || 0;
           lessTotal += parseFloat(item.less) || 0;
           totalQty += parseFloat(item.qty) || 0;
-          
           return {
             subTotal: item.subTotal,
             less: item.less,
@@ -195,17 +194,17 @@ const { hasPrintPermission, checkPrintPermission } =
             voucherDate: item.voucherDate,
             invoice: item.invoice,
             bill: item.bill,
+            freight: item.freight, // <-- Ensure this is mapped from backend
             amount: amountValue, // Use netAmount or amount from API
             qty: item.qty
           };
         });
         
         if (isLoadMore) {
-          // For load more, append to existing data
-          const newData = [...data, ...mappedData];
-          setData(newData);
+          // For load more, append backend data only
+          setData(prev => [...prev, ...mappedData]);
         } else {
-          // For initial load, replace data
+          // For initial load, replace data with backend data only
           setData(mappedData);
           setCurrentPage(1);
         }
@@ -411,24 +410,29 @@ const { hasPrintPermission, checkPrintPermission } =
                 <th>Voucher Date</th>
                 <th>Ref No</th>
                 <th>Bill No</th>
+                <th>Freight</th>
                 <th>Sub Total</th>
                 <th>Less</th>
-                <th>Amount</th>
                 <th>Qty</th>
+                <th>Amount</th>
               </tr>
             </thead>
             <tbody>
-              ${data.map((row, index) => `
+              ${data.length === 0 ? `
+                <tr><td colspan="10" style="text-align:center;color:#888;padding:24px;">No records found. All columns are shown below:</td></tr>
+                <tr><td>1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              ` : data.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
                   <td>${safeDisplay(row.name)}</td>
                   <td>${safeDisplay(row.voucherDate)}</td>
                   <td>${safeDisplay(row.invoice)}</td>
                   <td>${safeDisplay(row.bill)}</td>
-                  <td>₹${safeFormatNumber(row.subTotal)}</td>
-                  <td>₹${safeFormatNumber(row.less)}</td>
-                  <td>₹${safeFormatNumber(row.netAmount)}</td>
+                  <td>${safeFormatNumber(row.freight)}</td>
+                  <td>${safeFormatNumber(row.subTotal)}</td>
+                  <td>${safeFormatNumber(row.less)}</td>
                   <td>${safeDisplayNumber(row.qty)}</td>
+                  <td>${safeFormatNumber(row.netAmount)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -465,11 +469,11 @@ const { hasPrintPermission, checkPrintPermission } =
       csvContent += `Total Records: ${summary.totalRecords}\n\n`;
       
       // Headers
-      csvContent += 'No,Party Name,Voucher Date,Ref No,Bill No,Sub Total,Less,Amount,Qty\n';
-      
+      csvContent += 'No,Party Name,Voucher Date,Ref No,Bill No,Freight,Sub Total,Less,Qty,Amount\n';
+
       // Data rows
       data.forEach((row, index) => {
-        csvContent += `${index + 1},"${safeDisplay(row.name)}",${safeDisplay(row.voucherDate)},${safeDisplay(row.invoice)},${safeDisplay(row.bill)},${parseNumber(row.subTotal)},${parseNumber(row.less)},${parseNumber(row.netAmount)},${safeDisplayNumber(row.qty)}\n`;
+        csvContent += `${index + 1},"${safeDisplay(row.name)}",${safeDisplay(row.voucherDate)},${safeDisplay(row.invoice)},${safeDisplay(row.bill)},${parseNumber(row.freight)},${parseNumber(row.subTotal)},${parseNumber(row.less)},${safeDisplayNumber(row.qty)},${parseNumber(row.netAmount)}\n`;
       });
       
       // Summary
@@ -1094,13 +1098,35 @@ const { hasPrintPermission, checkPrintPermission } =
                 <th style={styles.th}>Voucher Date</th>
                 <th style={styles.th}>Ref No</th>
                 <th style={styles.th}>Bill No</th>
+                <th style={styles.th}>Freight</th>
+                <th style={styles.th}>Sub Total</th>
                 <th style={styles.th}>Less</th>
                 <th style={styles.th}>Qty</th>
                 <th style={styles.th}>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((row, index) => (
+              {data.length === 0 ? (
+                <tr>
+                  <td colSpan={10} style={{ textAlign: 'center', color: '#888', padding: '24px' }}>
+                    No records found. All columns are shown below:
+                  </td>
+                </tr>
+              ) : null}
+              {data.length === 0 ? (
+                <tr>
+                  <td>1</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              ) : data.map((row, index) => (
                 <tr 
                   key={`${row.invoice || ''}_${index}`}
                   ref={index === data.length - 1 ? lastRowRef : null}
@@ -1117,6 +1143,8 @@ const { hasPrintPermission, checkPrintPermission } =
                   <td style={styles.td}>{safeDisplay(row.voucherDate)}</td>
                   <td style={styles.td}>{safeDisplay(row.invoice)}</td>
                   <td style={styles.td}>{safeDisplay(row.bill)}</td>
+                  <td style={styles.td}>{safeFormatNumber(row.freight)}</td>
+                  <td style={styles.td}>{safeFormatNumber(row.subTotal)}</td>
                   <td style={styles.td}>{safeFormatNumber(row.less)}</td>
                   <td style={styles.td}>{safeDisplayNumber(row.qty)}</td>
                   <td style={styles.td}>{safeFormatNumber(row.netAmount)}</td>

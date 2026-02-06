@@ -232,14 +232,20 @@ const { hasPrintPermission, checkPrintPermission } =
         salesParty: item.refName || item.name || 'N/A',
         billNo: item.voucherNo || item.no || 'N/A',
         billDate: item.voucherDate || 'N/A',
-        billAmount: item.billAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
         qty: item.qty?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
-        time: item.time ? new Date(item.time).toLocaleTimeString('en-IN', { 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          second: '2-digit',
-          hour12: true 
-        }) : 'N/A'
+        salesReturn: item.salesAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        freightCharge: item.freightAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        serviceCharge: item.serviceChargeAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        cash: item.cash?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        upiAmount: item.upi?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        cardAmount: item.card?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        billAmount: (typeof item.billAmount === 'number' ? item.billAmount : 0)?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        // time: item.time ? new Date(item.time).toLocaleTimeString('en-IN', { 
+        //   hour: '2-digit', 
+        //   minute: '2-digit', 
+        //   second: '2-digit',
+        //   hour12: true 
+        // }) : 'N/A'
       }));
       
       setSalesData(mappedData);
@@ -349,8 +355,14 @@ const handlePrintClick = () => {
                 <th>Sales Party</th>
                 <th>Bill No</th>
                 <th>Bill Date</th>
-                <th>Bill Amount</th>
                 <th>Qty</th>
+                <th>Sales Return</th>
+                <th>Freight Charge</th>
+                <th>Service Charge</th>
+                <th>Cash</th>
+                <th>UPI Amount</th>
+                <th>Card Amount</th>
+                <th>Bill Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -360,8 +372,14 @@ const handlePrintClick = () => {
                   <td>${row.salesParty}</td>
                   <td>${row.billNo}</td>
                   <td>${row.billDate}</td>
-                  <td>₹${row.billAmount}</td>
                   <td>${row.qty}</td>
+                  <td>${row.salesReturn}</td>
+                  <td>${row.freightCharge}</td>
+                  <td>${row.serviceCharge}</td>
+                  <td>${row.cash}</td>
+                  <td>${row.upiAmount}</td>
+                  <td>${row.cardAmount}</td>
+                  <td>${row.billAmount}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -396,13 +414,11 @@ const handlePrintClick = () => {
       csvContent += `Total Records: ${salesData.length}\n\n`;
       
       // Headers
-      csvContent += 'No,Sales Party,Bill No,Bill Date,Bill Amount,Qty\n';
+      csvContent += 'No,Sales Party,Bill No,Bill Date,Qty,Sales Return,Freight Charge,Service Charge,Cash,UPI Amount,Card Amount,Bill Amount\n';
       
       // Data rows
       salesData.forEach((row) => {
-        const billAmount = parseFloat(row.billAmount?.replace(/,/g, '')) || 0;
-        const qty = parseFloat(row.qty) || 0;
-        csvContent += `${row.no},"${row.salesParty}",${row.billNo},${row.billDate},${billAmount},${qty}\n`;
+        csvContent += `${row.no},"${row.salesParty}",${row.billNo},${row.billDate},${row.qty},${row.salesReturn},${row.freightCharge},${row.serviceCharge},${row.cash},${row.upiAmount},${row.cardAmount},${row.billAmount}\n`;
       });
       
       // Summary
@@ -1015,8 +1031,13 @@ const handlePrintClick = () => {
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill No</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Date</th>
                 <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>Qty</th>
+                <th style={{ ...styles.th }}>Sales Return</th>
+                <th style={{ ...styles.th }}>Freight Charge</th>
+                <th style={{ ...styles.th }}>Service Charge</th>
+                <th style={{ ...styles.th }}>Cash</th>
+                <th style={{ ...styles.th }}>UPI Amount</th>
+                <th style={{ ...styles.th }}>Card Amount</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
-                {/* <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Time</th> */}
               </tr>
             </thead>
             <tbody>
@@ -1049,12 +1070,27 @@ const handlePrintClick = () => {
                       <td style={getCellStyle(rowIndex, 'qty')}>
                         {row.qty}
                       </td>
+                      <td style={getCellStyle(rowIndex, 'salesReturn')}>
+                        {row.salesReturn}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'freightCharge')}>
+                        {row.freightCharge}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'serviceCharge')}>
+                        {row.serviceCharge}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'cash')}>
+                        {row.cash}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'upiAmount')}>
+                        {row.upiAmount}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'cardAmount')}>
+                        {row.cardAmount}
+                      </td>
                       <td style={getCellStyle(rowIndex, 'billAmount')}>
                         {row.billAmount}
                       </td>
-                      {/* <td style={getCellStyle(rowIndex, 'time')}>
-                        {row.time}
-                      </td> */}
                     </tr>
                   ))
                 ) : (
@@ -1072,30 +1108,6 @@ const handlePrintClick = () => {
                   </tr>
               )}
             </tbody>
-            {tableLoaded && salesData.length > 0 && (
-              <tfoot>
-                <tr style={{ backgroundColor: '#f0f8ff', borderTop: '2px solid #1B91DA' }}>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
-                    {/* Empty for No column */}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
-                    {/* Empty for Sales Party column */}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold', color: '#1565c0' }}>
-                    Total
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
-                    {/* Empty for Bill Date column */}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold', color: '#1565c0' }}>
-                    ₹{formatNumber(totals.billAmount)}
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'center', fontWeight: 'bold', color: '#1565c0' }}>
-                    {totals.qty.toFixed(2)}
-                  </td>
-                </tr>
-              </tfoot>
-            )}
           </table>
         </div>
       </div>
@@ -1119,8 +1131,6 @@ const handlePrintClick = () => {
               {totals.qty.toFixed(2)}
             </span>
           </div>
-          {/* Removed: Total Bales */}
-          {/* Removed: Total Records */}
         </div>
         <div style={styles.buttonGroup}>
          <PrintButton 
