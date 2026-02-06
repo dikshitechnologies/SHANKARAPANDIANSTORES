@@ -1014,8 +1014,8 @@ const handlePrintClick = () => {
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Sales Party</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill No</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Date</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
                 <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>Qty</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
                 {/* <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Time</th> */}
               </tr>
             </thead>
@@ -1046,11 +1046,11 @@ const handlePrintClick = () => {
                       <td style={getCellStyle(rowIndex, 'billDate')}>
                         {row.billDate}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'billAmount')}>
-                        {row.billAmount}
-                      </td>
                       <td style={getCellStyle(rowIndex, 'qty')}>
                         {row.qty}
+                      </td>
+                      <td style={getCellStyle(rowIndex, 'billAmount')}>
+                        {row.billAmount}
                       </td>
                       {/* <td style={getCellStyle(rowIndex, 'time')}>
                         {row.time}

@@ -3,6 +3,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
+import { useAuth } from '../../../context/AuthContext';
+
 import { usePrintPermission } from '../../../hooks/usePrintPermission';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
@@ -15,7 +17,8 @@ const formatDateToDDMMYYYY = (dateString) => {
 };
 
 const DailyReport = () => {
-// --- PERMISSIONS ---
+// --- AUTH & PERMISSIONS ---
+const { userData } = useAuth();
 const { hasPrintPermission, checkPrintPermission } =
   usePrintPermission('DAILY_REPORT');
 
@@ -23,17 +26,11 @@ const { hasPrintPermission, checkPrintPermission } =
   // --- REFS ---
   const fromDateRef = useRef(null);
   const toDateRef = useRef(null);
-  const openingBalanceRef = useRef(null);
-  const closingBalanceRef = useRef(null);
   const searchButtonRef = useRef(null);
 
   // --- STATE MANAGEMENT ---
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [openingBalance, setOpeningBalance] = useState('');
-  const [closingBalance, setClosingBalance] = useState('');
-  const [openingBalanceType, setOpeningBalanceType] = useState('DR');
-  const [closingBalanceType, setClosingBalanceType] = useState('CR');
   const [showReport, setShowReport] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -149,11 +146,13 @@ const { hasPrintPermission, checkPrintPermission } =
       flex: '0 0 auto',
       backgroundColor: 'white',
       borderTop: '1px solid #e0e0e0',
-      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '14px',
+      padding: screenSize.isMobile ? '10px' : screenSize.isTablet ? '12px' : '16px',
       boxShadow: '0 -2px 4px rgba(0,0,0,0.05)',
       display: 'flex',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
+      flexDirection: 'column',
+      gap: '8px',
+      minHeight: screenSize.isMobile ? '120px' : screenSize.isTablet ? '140px' : '160px',
+      maxHeight: screenSize.isMobile ? '120px' : screenSize.isTablet ? '140px' : '160px',
     },
     footerButtonContainer: {
       display: 'flex',
@@ -397,11 +396,12 @@ const { hasPrintPermission, checkPrintPermission } =
       WebkitOverflowScrolling: 'touch',
       width: screenSize.isMobile ? 'calc(100% - 12px)' : screenSize.isTablet ? 'calc(100% - 20px)' : 'calc(100% - 32px)',
       boxSizing: 'border-box',
-      flex: 'none',
+      flex: '1 1 auto',
       display: 'flex',
       flexDirection: 'column',
-      maxHeight: screenSize.isMobile ? 'calc(100vh - 250px)' : screenSize.isTablet ? 'calc(100vh - 280px)' : 'calc(100vh - 300px)',
-      minHeight: '300px',
+      height: screenSize.isMobile ? 'calc(100vh - 280px)' : screenSize.isTablet ? 'calc(100vh - 300px)' : 'calc(100vh - 320px)',
+      maxHeight: screenSize.isMobile ? 'calc(100vh - 280px)' : screenSize.isTablet ? 'calc(100vh - 300px)' : 'calc(100vh - 320px)',
+      minHeight: '200px',
     },
     table: {
       width: 'max-content',
@@ -474,25 +474,14 @@ const { hasPrintPermission, checkPrintPermission } =
     
     setIsLoading(true);
     try {
-      // API call to fetch daily report data
-      const response = await get(API_ENDPOINTS.dailyReport, {
-        params: {
-          fromDate,
-          toDate,
-          openingBalance: openingBalance || 0,
-          closingBalance: closingBalance || 0
-        }
-      });
+      // Get company code from user data
+      const compCode = userData?.companyCode || '';
       
-      if (response.data) {
-        setReportData(response.data);
-        // Set balance types from backend if available
-        if (response.data.openingBalanceType) {
-          setOpeningBalanceType(response.data.openingBalanceType);
-        }
-        if (response.data.closingBalanceType) {
-          setClosingBalanceType(response.data.closingBalanceType);
-        }
+      // API call to fetch daily report data
+      const response = await get(API_ENDPOINTS.DAILY_REPORT.GET_DAILY_REPORT_DETAILS(fromDate, toDate, compCode, 1, 20));
+      
+      if (response) {
+        setReportData(response);
         setShowReport(true);
         toast.success('Daily report loaded successfully');
       } else {
@@ -513,8 +502,6 @@ const { hasPrintPermission, checkPrintPermission } =
     const today = new Date().toISOString().split('T')[0];
     setFromDate(today);
     setToDate(today);
-    setOpeningBalance('');
-    setClosingBalance('');
     setShowReport(false);
     setReportData(null);
   };
@@ -530,22 +517,21 @@ const { hasPrintPermission, checkPrintPermission } =
   const handleToDateKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      openingBalanceRef.current?.focus();
-    }
-  };
-
-  const handleOpeningBalanceKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      closingBalanceRef.current?.focus();
-    }
-  };
-
-  const handleClosingBalanceKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
       searchButtonRef.current?.focus();
     }
+  };
+
+  // Helper functions to calculate totals
+  const calculateSectionTotal = (data, field) => {
+    return data.reduce((sum, item) => sum + (parseFloat(item[field]) || 0), 0).toFixed(2);
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount);
   };
 
   // Format date for display
@@ -554,45 +540,476 @@ const { hasPrintPermission, checkPrintPermission } =
   };
 
   // --- PRINT & EXPORT HANDLERS ---
-const handlePrintClick = () => {
-  if (!checkPrintPermission()) return;
+  const handlePrintClick = () => {
+    if (!checkPrintPermission()) return;
 
-  if (!reportData || !showReport) {
-    toast.warning('Please search and load report data before printing');
-    return;
-  }
+    if (!reportData || !showReport) {
+      toast.warning('Please search and load report data before printing');
+      return;
+    }
 
-  setShowPrintConfirm(true);
-};
-
+    setShowPrintConfirm(true);
+  };
 
   const handlePrintConfirm = () => {
     setShowPrintConfirm(false);
-    // TODO: Implement PDF generation logic here
-    toast.success('Generating PDF...');
-    // Example: window.print() or use a PDF library
-    window.print();
+    try {
+      toast.success('Preparing report for printing...');
+      
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Daily Report - ${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1B91DA; padding-bottom: 10px; }
+            .print-title { color: #1B91DA; font-size: 24px; font-weight: bold; margin: 0; }
+            .print-date { color: #666; margin: 5px 0; }
+            .section-title { background: #f0f8ff; padding: 10px; font-weight: bold; margin: 20px 0 10px 0; border-left: 4px solid #1B91DA; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+            th { background: #1B91DA; color: white; }
+            .total-row { background: #e6f7ff; font-weight: bold; }
+            .amount { text-align: right; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">
+            <h1 class="print-title">Daily Report</h1>
+            <p class="print-date">From: ${formatDisplayDate(fromDate)} | To: ${formatDisplayDate(toDate)}</p>
+          </div>
+          ${generatePrintContent()}
+        </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+      
+    } catch (error) {
+      console.error('Print error:', error);
+      toast.error('Failed to prepare report for printing');
+    }
   };
 
- const handleExportClick = () => {
-  if (!checkPrintPermission()) return;
+  const generatePrintContent = () => {
+    if (!reportData) return '';
+    
+    let content = '';
+    
+    // Sales Entry Data
+    if (reportData.salesEntryData && reportData.salesEntryData.length > 0) {
+      content += `
+        <div class="section-title">SALES ENTRY</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.salesEntryData.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">${item.qty || 0}</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.salesEntryData, 'qty')}</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.salesEntryData, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Payment Vouchers Data
+    if (reportData.paymentData && reportData.paymentData.length > 0) {
+      content += `
+        <div class="section-title">PAYMENT VOUCHERS</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.paymentData.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.billAmount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.paymentData, 'billAmount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Receipt Vouchers Data
+    if (reportData.receiptData && reportData.receiptData.length > 0) {
+      content += `
+        <div class="section-title">RECEIPT VOUCHERS</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.receiptData.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.billAmount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.receiptData, 'billAmount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Purchase Data
+    if (reportData.purchaseData && reportData.purchaseData.length > 0) {
+      content += `
+        <div class="section-title">PURCHASE DATA</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.purchaseData.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.refName || ''}</td>
+                <td class="amount">${item.qty || 0}</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.purchaseData, 'qty')}</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.purchaseData, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Purchase Return Data
+    if (reportData.purchaseReturnData && reportData.purchaseReturnData.length > 0) {
+      content += `
+        <div class="section-title">PURCHASE RETURNS</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.purchaseReturnData.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.refName || ''}</td>
+                <td class="amount">${item.qty || 0}</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.purchaseReturnData, 'qty')}</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.purchaseReturnData, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Sales Return Data
+    if (reportData.salesReturnData && reportData.salesReturnData.length > 0) {
+      content += `
+        <div class="section-title">SALES RETURNS</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.salesReturnData.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">${item.qty || 0}</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.salesReturnData, 'qty')}</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.salesReturnData, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Scrap Procurement Data
+    if (reportData.scrapprocurement && reportData.scrapprocurement.length > 0) {
+      content += `
+        <div class="section-title">SCRAP PROCUREMENT</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.scrapprocurement.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">${item.qty || 0}</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.scrapprocurement, 'qty')}</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.scrapprocurement, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Tender Data
+    if (reportData.tenderData && reportData.tenderData.length > 0) {
+      content += `
+        <div class="section-title">TENDER DETAILS</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.tenderData.map(item => `
+              <tr>
+                <td>${item.invoiceNo || ''}</td>
+                <td>${item.upiPartyName && item.cardPartyName ? `${item.upiPartyName}, ${item.cardPartyName}` : item.upiPartyName || item.cardPartyName || 'Cash'}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.givenTotal || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.tenderData, 'givenTotal'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    return content;
+  };
 
-  if (!reportData || !showReport) {
-    toast.warning('Please search and load report data before exporting');
-    return;
-  }
+  const handleExportClick = () => {
+    if (!checkPrintPermission()) return;
 
-  setShowExportConfirm(true);
-};
+    if (!reportData || !showReport) {
+      toast.warning('Please search and load report data before exporting');
+      return;
+    }
 
+    setShowExportConfirm(true);
+  };
 
   const handleExportConfirm = () => {
     setShowExportConfirm(false);
-    // TODO: Implement Excel export logic here
-    toast.success('Exporting to Excel...');
-    // Example: Use libraries like xlsx or exceljs
-    // For now, just a placeholder
-    console.log('Export to Excel:', reportData);
+    try {
+      toast.success('Preparing Excel export...');
+      
+      // Create CSV content
+      let csvContent = generateCSVContent();
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `DailyReport_${fromDate}_to_${toDate}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Report exported successfully!');
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export report');
+    }
+  };
+
+  const generateCSVContent = () => {
+    if (!reportData) return '';
+    
+    let csvContent = '\uFEFF'; // BOM for UTF-8
+    csvContent += `Daily Report - From: ${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}\n\n`;
+    
+    // Sales Entry Data
+    if (reportData.salesEntryData && reportData.salesEntryData.length > 0) {
+      csvContent += 'SALES ENTRY\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.salesEntryData.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","${item.qty || 0}","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,${calculateSectionTotal(reportData.salesEntryData, 'qty')},${calculateSectionTotal(reportData.salesEntryData, 'amount')}\n\n`;
+    }
+    
+    // Payment Vouchers Data
+    if (reportData.paymentData && reportData.paymentData.length > 0) {
+      csvContent += 'PAYMENT VOUCHERS\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.paymentData.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","-","${item.billAmount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.paymentData, 'billAmount')}\n\n`;
+    }
+    
+    // Receipt Vouchers Data
+    if (reportData.receiptData && reportData.receiptData.length > 0) {
+      csvContent += 'RECEIPT VOUCHERS\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.receiptData.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","-","${item.billAmount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.receiptData, 'billAmount')}\n\n`;
+    }
+    
+    // Purchase Data
+    if (reportData.purchaseData && reportData.purchaseData.length > 0) {
+      csvContent += 'PURCHASE DATA\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.purchaseData.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.refName || ''}","${item.qty || 0}","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,${calculateSectionTotal(reportData.purchaseData, 'qty')},${calculateSectionTotal(reportData.purchaseData, 'amount')}\n\n`;
+    }
+    
+    // Purchase Return Data
+    if (reportData.purchaseReturnData && reportData.purchaseReturnData.length > 0) {
+      csvContent += 'PURCHASE RETURNS\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.purchaseReturnData.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.refName || ''}","${item.qty || 0}","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,${calculateSectionTotal(reportData.purchaseReturnData, 'qty')},${calculateSectionTotal(reportData.purchaseReturnData, 'amount')}\n\n`;
+    }
+    
+    // Sales Return Data
+    if (reportData.salesReturnData && reportData.salesReturnData.length > 0) {
+      csvContent += 'SALES RETURNS\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.salesReturnData.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","${item.qty || 0}","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,${calculateSectionTotal(reportData.salesReturnData, 'qty')},${calculateSectionTotal(reportData.salesReturnData, 'amount')}\n\n`;
+    }
+    
+    // Scrap Procurement Data
+    if (reportData.scrapprocurement && reportData.scrapprocurement.length > 0) {
+      csvContent += 'SCRAP PROCUREMENT\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.scrapprocurement.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","${item.qty || 0}","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,${calculateSectionTotal(reportData.scrapprocurement, 'qty')},${calculateSectionTotal(reportData.scrapprocurement, 'amount')}\n\n`;
+    }
+    
+    // Tender Data
+    if (reportData.tenderData && reportData.tenderData.length > 0) {
+      csvContent += 'TENDER DETAILS\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.tenderData.forEach(item => {
+        const partyName = item.upiPartyName && item.cardPartyName ? `${item.upiPartyName}, ${item.cardPartyName}` : item.upiPartyName || item.cardPartyName || 'Cash';
+        csvContent += `"${item.invoiceNo || ''}","${partyName}","-","${item.givenTotal || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.tenderData, 'givenTotal')}\n\n`;
+    }
+    
+    return csvContent;
   };
 
   return (
@@ -634,48 +1051,6 @@ const handlePrintClick = () => {
                   required
                 />
               </div>
-
-              {/* Opening Balance */}
-              <div style={styles.formField}>
-                <label style={styles.label}>Opening Bal:</label>
-                <div style={focusedField === 'openingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
-                  <input
-                    ref={openingBalanceRef}
-                    type="text"
-                    style={focusedField === 'openingBalance' ? styles.balanceInputFocused : styles.balanceInput}
-                    value={openingBalance}
-                    onChange={e => setOpeningBalance(e.target.value)}
-                    onKeyDown={handleOpeningBalanceKeyDown}
-                    onFocus={() => setFocusedField('openingBalance')}
-                    onBlur={() => setFocusedField('')}
-                    placeholder="0.00"
-                  />
-                  <div style={focusedField === 'openingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
-                    {openingBalanceType}
-                  </div>
-                </div>
-              </div>
-
-              {/* Closing Balance */}
-              <div style={styles.formField}>
-                <label style={styles.label}>Closing Bal:</label>
-                <div style={focusedField === 'closingBalance' ? styles.balanceInputContainerFocused : styles.balanceInputContainer}>
-                  <input
-                    ref={closingBalanceRef}
-                    type="text"
-                    style={focusedField === 'closingBalance' ? styles.balanceInputFocused : styles.balanceInput}
-                    value={closingBalance}
-                    onChange={e => setClosingBalance(e.target.value)}
-                    onKeyDown={handleClosingBalanceKeyDown}
-                    onFocus={() => setFocusedField('closingBalance')}
-                    onBlur={() => setFocusedField('')}
-                    placeholder="0.00"
-                  />
-                  <div style={focusedField === 'closingBalance' ? styles.balanceDropdownFocused : styles.balanceDropdown}>
-                    {closingBalanceType}
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* RIGHT SIDE: Buttons */}
@@ -693,134 +1068,447 @@ const handlePrintClick = () => {
       <div style={styles.tableSection}>
         {/* Main Table */}
         <div style={styles.mainTableContainer}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                {/* Left side headers - 7 columns */}
-                <th style={styles.th}>BillNo</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Gross Wt</th>
-                <th style={styles.th}>Net Wt</th>
-                <th style={styles.th}>Pure</th>
-                <th style={styles.th}>Rate Cut</th>
-                <th style={styles.th}>Amount</th>
+          {!showReport ? (
+            <div style={styles.emptyMsg}>
+             
+            </div>
+          ) : isLoading ? (
+            <div style={styles.emptyMsg}>Loading...</div>
+          ) : reportData ? (
+            <div style={{ padding: '20px' }}>
+              <h2 style={{ 
+                textAlign: 'center', 
+                marginBottom: '30px', 
+                color: '#1B91DA',
+                fontSize: TYPOGRAPHY.fontSize.xl,
+                fontWeight: TYPOGRAPHY.fontWeight.bold
+              }}>
                 
-                {/* Right side headers - 6 columns */}
-                <th style={styles.th}>BillNo</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Gross Wt</th>
-                <th style={styles.th}>Net Wt</th>
-                <th style={styles.th}>Pure</th>
-                <th style={styles.th}>Rate Cut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!showReport ? (
-                <tr>
-                  {/* <td colSpan="13" style={styles.emptyMsg}>
-                    Select date range and click "Search" to view daily report
-                  </td> */}
-                </tr>
-              ) : isLoading ? (
-                <tr>
-                  <td colSpan="13" style={styles.emptyMsg}>
-                    Loading...
-                  </td>
-                </tr>
-              ) : reportData ? (
-                <>
-                  {/* Render actual data from API response */}
-                  {reportData.transactions && reportData.transactions.length > 0 ? (
-                    reportData.transactions.map((item, index) => (
-                      <tr key={index}>
-                        <td style={styles.td}>{item.billNo || ''}</td>
-                        <td style={{...styles.td, textAlign: 'left'}}>{item.name || ''}</td>
-                        <td style={styles.td}>{item.grossWt || ''}</td>
-                        <td style={styles.td}>{item.netWt || ''}</td>
-                        <td style={styles.td}>{item.pure || ''}</td>
-                        <td style={styles.td}>{item.rateCut || ''}</td>
-                        <td style={styles.td}>{item.amount || ''}</td>
-                        
-                        <td style={styles.td}>{item.rightBillNo || ''}</td>
-                        <td style={{...styles.td, textAlign: 'left'}}>{item.rightName || ''}</td>
-                        <td style={styles.td}>{item.rightGrossWt || ''}</td>
-                        <td style={styles.td}>{item.rightNetWt || ''}</td>
-                        <td style={styles.td}>{item.rightPure || ''}</td>
-                        <td style={styles.td}>{item.rightRateCut || ''}</td>
+              </h2>
+
+              {/* Main Table with Left and Right Sections */}
+              <div style={{
+                display: 'flex',
+                gap: '20px',
+                flexDirection: screenSize.isMobile ? 'column' : 'row',
+                height: 'calc(100vh - 300px)'
+              }}>
+                
+                {/* LEFT SIDE: All Transaction Data */}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <table style={{...styles.table, width: '100%'}}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Voucher No</th>
+                        <th style={styles.th}>Party Name</th>
+                        <th style={styles.th}>Qty</th>
+                        <th style={styles.th}>Amount</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="13" style={styles.emptyMsg}>
-                        No transactions found for the selected date range
-                      </td>
-                    </tr>
-                  )}
-
-                  {/* Render totals if available */}
-                  {reportData.totals && (
-                    <tr style={styles.totalRow}>
-                      <td style={styles.td}><strong>Total</strong></td>
-                      <td style={styles.td}></td>
-                      <td style={styles.td}><strong>{reportData.totals.grossWt || ''}</strong></td>
-                      <td style={styles.td}><strong>{reportData.totals.netWt || ''}</strong></td>
-                      <td style={styles.td}><strong>{reportData.totals.pure || ''}</strong></td>
-                      <td style={styles.td}></td>
-                      <td style={styles.td}><strong>{reportData.totals.amount || ''}</strong></td>
+                    </thead>
+                    <tbody>
                       
-                      <td style={styles.td}></td>
-                      <td style={styles.td}></td>
-                      <td style={styles.td}><strong>{reportData.totals.rightGrossWt || ''}</strong></td>
-                      <td style={styles.td}><strong>{reportData.totals.rightNetWt || ''}</strong></td>
-                      <td style={styles.td}><strong>{reportData.totals.rightPure || ''}</strong></td>
-                      <td style={styles.td}><strong>{reportData.totals.rightRateCut || ''}</strong></td>
-                    </tr>
-                  )}
+                      {/* Sales Entry Section */}
+                      {reportData.salesEntryData && reportData.salesEntryData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              SALES ENTRY
+                            </td>
+                          </tr>
+                          {reportData.salesEntryData.map((item, index) => (
+                            <tr key={`sales-${index}`}>
+                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>{item.qty}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Sales Entry Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesEntryData, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
 
-                  {/* Render balance rows if available */}
-                  {reportData.balanceRows && reportData.balanceRows.map((row, index) => (
-                    <tr style={styles.totalRow} key={`balance-${index}`}>
-                      <td style={{...styles.td, textAlign: 'left'}} colSpan="7">
-                        {row.leftText || ''}
-                      </td>
-                      <td style={{...styles.td, textAlign: 'left'}} colSpan="6">
-                        {row.rightText || ''}
-                      </td>
-                    </tr>
-                  ))}
-                </>
-              ) : (
-                <tr>
-                  <td colSpan="13" style={styles.emptyMsg}>
-                    No data available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      {/* Payment Vouchers Section */}
+                      {reportData.paymentData && reportData.paymentData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              PAYMENT VOUCHERS
+                            </td>
+                          </tr>
+                          {reportData.paymentData.map((item, index) => (
+                            <tr key={`payment-${index}`}>
+                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.billAmount)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Payment Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.paymentData, 'billAmount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Receipt Vouchers Section */}
+                      {reportData.receiptData && reportData.receiptData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              RECEIPT VOUCHERS
+                            </td>
+                          </tr>
+                          {reportData.receiptData.map((item, index) => (
+                            <tr key={`receipt-${index}`}>
+                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.billAmount)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Receipt Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.receiptData, 'billAmount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Purchase Data Section */}
+                      {reportData.purchaseData && reportData.purchaseData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              PURCHASE DATA
+                            </td>
+                          </tr>
+                          {reportData.purchaseData.map((item, index) => (
+                            <tr key={`purchase-${index}`}>
+                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
+                              <td style={styles.td}>{item.qty}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Purchase Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseData, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Purchase Return Data Section */}
+                      {reportData.purchaseReturnData && reportData.purchaseReturnData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              PURCHASE RETURNS
+                            </td>
+                          </tr>
+                          {reportData.purchaseReturnData.map((item, index) => (
+                            <tr key={`purchaseReturn-${index}`}>
+                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
+                              <td style={styles.td}>{item.qty}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Purchase Return Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseReturnData, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Sales Return Data Section */}
+                      {reportData.salesReturnData && reportData.salesReturnData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              SALES RETURNS
+                            </td>
+                          </tr>
+                          {reportData.salesReturnData.map((item, index) => (
+                            <tr key={`salesReturn-${index}`}>
+                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>{item.qty}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Sales Return Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnData, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Scrap Procurement Section */}
+                      {reportData.scrapprocurement && reportData.scrapprocurement.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              SCRAP PROCUREMENT
+                            </td>
+                          </tr>
+                          {reportData.scrapprocurement.map((item, index) => (
+                            <tr key={`scrap-${index}`}>
+                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>{item.qty}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Scrap Procurement Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.scrapprocurement, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Show message if no left-side data */}
+                      {(!reportData.salesEntryData || reportData.salesEntryData.length === 0) &&
+                       (!reportData.paymentData || reportData.paymentData.length === 0) &&
+                       (!reportData.receiptData || reportData.receiptData.length === 0) &&
+                       (!reportData.purchaseData || reportData.purchaseData.length === 0) &&
+                       (!reportData.purchaseReturnData || reportData.purchaseReturnData.length === 0) &&
+                       (!reportData.salesReturnData || reportData.salesReturnData.length === 0) &&
+                       (!reportData.scrapprocurement || reportData.scrapprocurement.length === 0) && (
+                        <tr>
+                          <td colSpan={4} style={styles.emptyMsg}>No transaction data found</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* RIGHT SIDE: Tender Data Only */}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <table style={{...styles.table, width: '100%'}}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Voucher No</th>
+                        <th style={styles.th}>Party Name</th>
+                        <th style={styles.th}>Qty</th>
+                        <th style={styles.th}>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Tender Data Section */}
+                      {reportData.tenderData && reportData.tenderData.length > 0 ? (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                              TENDER DETAILS
+                            </td>
+                          </tr>
+                          {reportData.tenderData.map((item, index) => (
+                            <tr key={`tender-${index}`}>
+                              <td style={styles.td}>{item.invoiceNo}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>
+                                {item.upiPartyName && item.cardPartyName 
+                                  ? `${item.upiPartyName}, ${item.cardPartyName}`
+                                  : item.upiPartyName || item.cardPartyName || 'Cash'
+                                }
+                              </td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.givenTotal)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Tender Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.tenderData, 'givenTotal'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      ) : (
+                        <tr>
+                          <td colSpan={4} style={styles.emptyMsg}>No tender data found</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={styles.emptyMsg}>No data available</div>
+          )}
         </div>
       </div>
 
       {/* Footer Section */}
       <div style={styles.footerSection}>
-        <div style={styles.footerButtonContainer}>
-        {hasPrintPermission && (
-  <PrintButton
-    onClick={handlePrintClick}
-    disabled={!reportData || !showReport}
-    isActive={hasPrintPermission}
-  />
-)}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+        }}>
+          {/* Left side - Report info */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px',
+            color: '#666',
+            fontSize: TYPOGRAPHY.fontSize.sm,
+          }}>
+            {showReport && reportData && (
+              <>
+                <span style={{ fontWeight: TYPOGRAPHY.fontWeight.medium }}>
+                  📊 Report Period: {formatDisplayDate(fromDate)} - {formatDisplayDate(toDate)}
+                </span>
+                <span style={{ 
+                  backgroundColor: '#e8f5e8', 
+                  color: '#2e7d2e', 
+                  padding: '4px 8px', 
+                  borderRadius: '12px',
+                  fontSize: TYPOGRAPHY.fontSize.xs,
+                  fontWeight: TYPOGRAPHY.fontWeight.semibold
+                }}>
+                  Data Loaded
+                </span>
+              </>
+            )}
+          </div>
 
-{hasPrintPermission && (
-  <ExportButton
-    onClick={handleExportClick}
-    disabled={!reportData || !showReport}
-    isActive={hasPrintPermission}
-  />
-)}
+          {/* Right side - Action buttons */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center',
+          }}>
+            {/* Always show buttons, but disable when appropriate */}
+            <PrintButton
+              onClick={handlePrintClick}
+              disabled={!reportData || !showReport || !hasPrintPermission}
+              isActive={hasPrintPermission}
+              style={{
+                minWidth: '100px',
+                height: '40px',
+                borderRadius: '8px',
+                fontSize: TYPOGRAPHY.fontSize.sm,
+                fontWeight: TYPOGRAPHY.fontWeight.bold,
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                opacity: (!reportData || !showReport || !hasPrintPermission) ? 0.5 : 1,
+              }}
+            />
+            
+            <ExportButton
+              onClick={handleExportClick}
+              disabled={!reportData || !showReport || !hasPrintPermission}
+              isActive={hasPrintPermission}
+              style={{
+                minWidth: '100px',
+                height: '40px',
+                borderRadius: '8px',
+                fontSize: TYPOGRAPHY.fontSize.sm,
+                fontWeight: TYPOGRAPHY.fontWeight.bold,
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                opacity: (!reportData || !showReport || !hasPrintPermission) ? 0.5 : 1,
+              }}
+            />
 
+            {/* Refresh button - always enabled */}
+            {/* <button
+              onClick={handleRefresh}
+              style={{
+                padding: '10px 16px',
+                background: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: TYPOGRAPHY.fontSize.sm,
+                fontWeight: TYPOGRAPHY.fontWeight.bold,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                minWidth: '80px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              }}
+            >
+              🔄 Refresh
+            </button> */}
+
+            {/* Status message */}
+            {/* {!hasPrintPermission && (
+              <div style={{
+                color: '#dc3545',
+                fontSize: TYPOGRAPHY.fontSize.xs,
+                fontStyle: 'italic',
+                padding: '6px 12px',
+                backgroundColor: '#f8d7da',
+                borderRadius: '6px',
+                border: '1px solid #f5c6cb',
+              }}>
+                ⚠️ Print permission required
+              </div>
+            )} */}
+            
+            {/* {hasPrintPermission && (!showReport || !reportData) && (
+              <div style={{
+                color: '#856404',
+                fontSize: TYPOGRAPHY.fontSize.xs,
+                fontStyle: 'italic',
+                padding: '6px 12px',
+                backgroundColor: '#fff3cd',
+                borderRadius: '6px',
+                border: '1px solid #ffeaa7',
+              }}>
+                ℹ️ Search for data to enable actions
+              </div>
+            )} */}
+          </div>
         </div>
+
+        {/* Optional: Statistics bar when data is loaded */}
+        {showReport && reportData && (
+          <div style={{
+            marginTop: '12px',
+            padding: '8px 0',
+            borderTop: '1px solid #e9ecef',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '20px',
+            fontSize: TYPOGRAPHY.fontSize.xs,
+            color: '#666',
+          }}>
+            <span>📈 Sales: {reportData.salesEntryData?.length || 0} entries</span>
+            <span>💳 Tenders: {reportData.tenderData?.length || 0} entries</span>
+            <span>📋 Total Sections: {Object.keys(reportData).length}</span>
+          </div>
+        )}
       </div>
 
       {/* Print Confirmation Popup */}

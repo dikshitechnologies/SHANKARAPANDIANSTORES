@@ -1978,7 +1978,7 @@ const PaymentVoucher = () => {
       fontSize: TYPOGRAPHY.fontSize.sm,
       fontWeight: TYPOGRAPHY.fontWeight.normal,
       lineHeight: TYPOGRAPHY.lineHeight.normal,
-      padding: isMobileView ? '6px 8px' : '8px 10px',
+      padding: isMobileView ? '6px 8px' : '5px 10px',
       border: '1px solid #ddd',
       borderRadius: '4px',
       boxSizing: 'border-box',
