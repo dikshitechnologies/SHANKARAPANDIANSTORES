@@ -300,10 +300,46 @@ const Navbar = () => {
 
   const reportItems = [ 
     {
-      name: "AC/Book",
+      name: "A/C Book",
       icon: <DatabaseOutlined />,
       isGroup: true,
       children: [
+
+
+        {
+          name: "Day Book",
+          path: "/reports/day-book",
+          icon: <FileTextOutlined />,
+          permission: "DAY_BOOK",
+          printPermission: "DAY_BOOK",
+        },
+
+
+         {
+          name: "Daily Report",
+          path: "/reports/DailyReport",
+          icon: <FileTextOutlined />,
+          permission: "DAILY_REPORT",
+          printPermission: "DAILY_REPORT",
+        },
+
+
+        {
+          name: "Bill Collector Report",
+          path: "/reports/Billcollectorreport",
+          icon: <FileTextOutlined />,
+          permission: "BILL_COLLECTOR_REPORT",
+          printPermission: "BILL_COLLECTOR_REPORT",
+        },
+
+         {
+          name: "Ledger",
+          path: "/reports/ledger",
+          icon: <FileTextOutlined />,
+          permission: "LEDGER",
+          printPermission: "LEDGER",
+        },
+
         {
           name: "Account Payable",
           path: "/reports/account-payable",
@@ -318,34 +354,10 @@ const Navbar = () => {
           permission: "ACCOUNT_RECEIVABLE",
           printPermission: "ACCOUNT_RECEIVABLE",
         },
-        {
-          name: "Bill Collector Report",
-          path: "/reports/Billcollectorreport",
-          icon: <FileTextOutlined />,
-          permission: "BILL_COLLECTOR_REPORT",
-          printPermission: "BILL_COLLECTOR_REPORT",
-        },
-        {
-          name: "Day Book",
-          path: "/reports/day-book",
-          icon: <FileTextOutlined />,
-          permission: "DAY_BOOK",
-          printPermission: "DAY_BOOK",
-        },
-        {
-          name: "Daily Report",
-          path: "/reports/DailyReport",
-          icon: <FileTextOutlined />,
-          permission: "DAILY_REPORT",
-          printPermission: "DAILY_REPORT",
-        },
-        {
-          name: "Ledger",
-          path: "/reports/ledger",
-          icon: <FileTextOutlined />,
-          permission: "LEDGER",
-          printPermission: "LEDGER",
-        },
+        
+        
+       
+       
       ]
     },
     {
