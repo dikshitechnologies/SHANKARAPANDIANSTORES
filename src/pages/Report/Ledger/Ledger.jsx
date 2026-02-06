@@ -81,6 +81,13 @@ const { hasPrintPermission, checkPrintPermission } =
   const [ledgerData, setLedgerData] = useState([]);
   const [allParties, setAllParties] = useState([]);
   const [allCompanies, setAllCompanies] = useState([]);
+  const [companySearchText, setCompanySearchText] = useState('');
+
+  // Filtered companies for search popup
+  const filteredCompanies = allCompanies.filter(company =>
+    company.compName?.toLowerCase().includes(companySearchText.toLowerCase())
+  );
+
 
   // Set current date on initial load
   useEffect(() => {
@@ -144,7 +151,6 @@ const { hasPrintPermission, checkPrintPermission } =
         fetchParties(true);
       }
     }
-    
     return () => {
       if (searchDebounceRef.current) {
         clearTimeout(searchDebounceRef.current);
@@ -212,11 +218,17 @@ const { hasPrintPermission, checkPrintPermission } =
     }
   };
 
-  const handleCompanyClick = () => {
-    setTempSelectedCompany(Array.isArray(company) ? company : (company ? [company] : []));
-    setTempSelectedCompanyCode(Array.isArray(companyCode) ? companyCode : (companyCode ? [companyCode] : []));
-    setShowCompanyPopup(true);
-  };
+const handleCompanyClick = () => {
+  setCompanySearchText('');
+  setTempSelectedCompany(
+    Array.isArray(company) ? company : (company ? [company] : [])
+  );
+  setTempSelectedCompanyCode(
+    Array.isArray(companyCode) ? companyCode : (companyCode ? [companyCode] : [])
+  );
+  setShowCompanyPopup(true);
+};
+
 
   const handleCompanyKeyDown = (e) => {
     // Check if it's a printable character (letter, number, space, etc.)
@@ -295,9 +307,11 @@ const { hasPrintPermission, checkPrintPermission } =
     setShowPartyPopup(false);
   };
 
-  const handleCompanyPopupClose = () => {
-    setShowCompanyPopup(false);
-  };
+ const handleCompanyPopupClose = () => {
+  setCompanySearchText('');
+  setShowCompanyPopup(false);
+};
+
 
   const handlePartyClearSelection = () => {
     setTempSelectedParty('');
@@ -1780,6 +1794,17 @@ const handleExportConfirm = () => {
                 ×
               </button>
             </div>
+            {/* Company Search Input */}
+<div style={{ padding: '10px 15px', borderBottom: '1px solid #e0e0e0' }}>
+  <input
+    type="text"
+    placeholder="Search company..."
+    value={companySearchText}
+    onChange={(e) => setCompanySearchText(e.target.value)}
+    style={styles.searchInput}
+  />
+</div>
+
             
             <div style={styles.listContainer}>
               {/* ALL Option */}
@@ -1798,7 +1823,8 @@ const handleExportConfirm = () => {
               {allCompanies.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No companies found</div>
               ) : (
-                allCompanies.map((companyItem) => {
+              filteredCompanies.map((companyItem) => {
+
                   const isSelected = tempSelectedCompanyCode.includes(companyItem.compCode);
                   return (
                     <div 
