@@ -4,7 +4,6 @@ import "react-toastify/dist/ReactToastify.css";
 import { get } from '../../../api/apiService';
 import { API_ENDPOINTS } from '../../../api/endpoints';
 import { useAuth } from '../../../context/AuthContext';
-
 import { usePrintPermission } from '../../../hooks/usePrintPermission';
 import { PrintButton, ExportButton } from '../../../components/Buttons/ActionButtons';
 import ConfirmationPopup from '../../../components/ConfirmationPopup/ConfirmationPopup';
@@ -17,11 +16,9 @@ const formatDateToDDMMYYYY = (dateString) => {
 };
 
 const DailyReport = () => {
-// --- AUTH & PERMISSIONS ---
-const { userData } = useAuth();
-const { hasPrintPermission, checkPrintPermission } =
-  usePrintPermission('DAILY_REPORT');
-
+  // --- AUTH & PERMISSIONS ---
+  const { userData } = useAuth();
+  const { hasPrintPermission, checkPrintPermission } = usePrintPermission('DAILY_REPORT');
 
   // --- REFS ---
   const fromDateRef = useRef(null);
@@ -37,7 +34,28 @@ const { hasPrintPermission, checkPrintPermission } =
   const [reportData, setReportData] = useState(null);
   const [showPrintConfirm, setShowPrintConfirm] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
-  
+
+  // --- Company Name Popup State ---
+  const [companyName, setCompanyName] = useState('');
+  const [showCompanyPopup, setShowCompanyPopup] = useState(false);
+  const [companyList, setCompanyList] = useState([]);
+  const [companyLoading, setCompanyLoading] = useState(false);
+
+  // Fetch company list when popup opens
+  useEffect(() => {
+    if (showCompanyPopup) {
+      setCompanyLoading(true);
+      get('/CompanyCreation/GetCompanyList')
+        .then(data => {
+          setCompanyList(Array.isArray(data) ? data : []);
+        })
+        .catch(() => {
+          setCompanyList([]);
+        })
+        .finally(() => setCompanyLoading(false));
+    }
+  }, [showCompanyPopup]);
+
   // Set default dates when component mounts
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -463,7 +481,7 @@ const { hasPrintPermission, checkPrintPermission } =
     },
   };
 
-  // Handlers
+  // --- API HANDLER ---
   const handleSearch = async (e) => {
     e.preventDefault();
     
@@ -475,23 +493,58 @@ const { hasPrintPermission, checkPrintPermission } =
     setIsLoading(true);
     try {
       // Get company code from user data
-      const compCode = userData?.companyCode || '';
+      const compCode = userData?.companyCode || '001';
       
       // API call to fetch daily report data
-      const response = await get(API_ENDPOINTS.DAILY_REPORT.GET_DAILY_REPORT_DETAILS(fromDate, toDate, compCode, 1, 20));
+      const endpoint = API_ENDPOINTS.DAILY_REPORT.GET_DAILY_REPORT_DETAILS(fromDate, toDate, compCode, 1, 20);
+      console.log('Fetching from:', endpoint);
+      
+      const response = await get(endpoint);
+      console.log('API Response:', response);
       
       if (response) {
-        setReportData(response);
-        setShowReport(true);
-        toast.success('Daily report loaded successfully');
+        // The response might be the data directly or wrapped in a data property
+        const data = response.data || response;
+        
+        if (data && Object.keys(data).length > 0) {
+          // Transform the data to match your expected structure
+          const transformedData = {
+            salesEntryData: data.salesEntryData || [],
+            paymentData: data.paymentData || [],
+            receiptData: data.receiptData || [],
+            purchaseData: data.purchaseData || [],
+            purchaseReturnData: data.purchaseReturnData || [],
+            salesReturnData: data.salesReturnData || [],
+            scrapprocurement: data.scrapprocurement || [],
+            tenderData: data.tenderData || [],
+            
+            // Additional data if needed for calculations
+            salesEntrybalance: data.salesEntrybalance || [],
+            salesReturnbalance: data.salesReturnbalance || [],
+            purchasebalance: data.purchasebalance || [],
+            purchaseReturnbalance: data.purchaseReturnbalance || [],
+            scrapbalance: data.scrapbalance || [],
+            receiptcredit: data.receiptcredit || [],
+            paymnetcredit: data.paymnetcredit || []
+          };
+          
+          console.log('Transformed Data:', transformedData);
+          
+          setReportData(transformedData);
+          setShowReport(true);
+          toast.success(`Daily report loaded successfully with ${Object.keys(transformedData).filter(key => transformedData[key].length > 0).length} sections`);
+        } else {
+          setReportData(null);
+          toast.warning('No data found for the selected date range');
+        }
       } else {
         setReportData(null);
-        toast.error('No data found for the selected date range');
+        toast.error('Empty response from server');
       }
       
     } catch (error) {
-      toast.error('Failed to load daily report');
       console.error('Error fetching daily report:', error);
+      toast.error(`Failed to load daily report: ${error.message}`);
       setReportData(null);
     } finally {
       setIsLoading(false);
@@ -523,15 +576,17 @@ const { hasPrintPermission, checkPrintPermission } =
 
   // Helper functions to calculate totals
   const calculateSectionTotal = (data, field) => {
+    if (!data || !Array.isArray(data)) return '0.00';
     return data.reduce((sum, item) => sum + (parseFloat(item[field]) || 0), 0).toFixed(2);
   };
 
   const formatCurrency = (amount) => {
+    const numAmount = parseFloat(amount) || 0;
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(numAmount);
   };
 
   // Format date for display
@@ -584,6 +639,7 @@ const { hasPrintPermission, checkPrintPermission } =
           <div class="print-header">
             <h1 class="print-title">Daily Report</h1>
             <p class="print-date">From: ${formatDisplayDate(fromDate)} | To: ${formatDisplayDate(toDate)}</p>
+            <p class="print-date">Company: ${userData?.companyCode || '001'}</p>
           </div>
           ${generatePrintContent()}
         </body>
@@ -910,7 +966,8 @@ const { hasPrintPermission, checkPrintPermission } =
     if (!reportData) return '';
     
     let csvContent = '\uFEFF'; // BOM for UTF-8
-    csvContent += `Daily Report - From: ${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}\n\n`;
+    csvContent += `Daily Report - From: ${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}\n`;
+    csvContent += `Company: ${userData?.companyCode || '001'}\n\n`;
     
     // Sales Entry Data
     if (reportData.salesEntryData && reportData.salesEntryData.length > 0) {
@@ -1020,6 +1077,8 @@ const { hasPrintPermission, checkPrintPermission } =
           <div style={styles.filterRow}>
             {/* LEFT SIDE: Search fields */}
             <div style={styles.leftSide}>
+              {/* Company Name Input with Popup */}
+              
               {/* From Date */}
               <div style={styles.formField}>
                 <label style={styles.label}>From Date:</label>
@@ -1035,7 +1094,6 @@ const { hasPrintPermission, checkPrintPermission } =
                   required
                 />
               </div>
-
               {/* To Date */}
               <div style={styles.formField}>
                 <label style={styles.label}>To Date:</label>
@@ -1051,8 +1109,21 @@ const { hasPrintPermission, checkPrintPermission } =
                   required
                 />
               </div>
+              <div style={styles.formField}>
+                <label style={styles.label}>Company Name:</label>
+                <input
+                  type="text"
+                  style={focusedField === 'companyName' ? styles.inputFocused : styles.input}
+                  value={companyName}
+                  onClick={() => setShowCompanyPopup(true)}
+                  onFocus={() => setFocusedField('companyName')}
+                  onBlur={() => setFocusedField('')}
+                  placeholder="Select Company"
+                  readOnly
+                  required
+                />
+              </div>
             </div>
-
             {/* RIGHT SIDE: Buttons */}
             <div style={styles.rightSide}>
               <button ref={searchButtonRef} type="submit" style={styles.button} disabled={isLoading}>
@@ -1062,6 +1133,43 @@ const { hasPrintPermission, checkPrintPermission } =
             </div>
           </div>
         </form>
+        {/* Company Popup */}
+        {showCompanyPopup && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.2)', zIndex: 9999 }}>
+            <div style={{ maxWidth: 420, margin: '10% auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 16px rgba(0,0,0,0.2)', padding: 0, position: 'relative', overflow: 'hidden' }}>
+              {/* Blue Header */}
+              <div style={{ background: '#1976d2', color: '#fff', fontWeight: 600, fontSize: 18, padding: '16px 24px', position: 'relative' }}>
+                Select Companies
+                <button style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: 22, color: '#fff', cursor: 'pointer' }} onClick={() => setShowCompanyPopup(false)}>×</button>
+              </div>
+              {/* List */}
+              <div style={{ maxHeight: 320, overflowY: 'auto', padding: '24px' }}>
+                {companyLoading ? (
+                  <div>Loading...</div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                      <input type="checkbox" checked={companyName === 'ALL'} onChange={() => setCompanyName('ALL')} style={{ marginRight: 8 }} />
+                      <span style={{ fontWeight: 500 }}>ALL</span>
+                    </div>
+                    {companyList.map((c, idx) => (
+                      <div key={c.fcompcode} style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                        <input type="checkbox" checked={companyName === c.fcompname} onChange={() => setCompanyName(c.fcompname)} style={{ marginRight: 8 }} />
+                        <span style={{ fontWeight: 500 }}>{c.fcompname}</span>
+                        <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>Code: {c.fcompcode}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+              {/* Footer Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #eee', padding: '12px 24px', background: '#f9f9f9' }}>
+                <button style={{ marginRight: 8, background: '#fff', border: '1px solid #d32f2f', color: '#d32f2f', borderRadius: 4, padding: '6px 24px', fontWeight: 500, cursor: 'pointer' }} onClick={() => setCompanyName('')}>Clear</button>
+                <button style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 24px', fontWeight: 500, cursor: 'pointer' }} onClick={() => setShowCompanyPopup(false)}>OK</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table Section */}
@@ -1070,10 +1178,10 @@ const { hasPrintPermission, checkPrintPermission } =
         <div style={styles.mainTableContainer}>
           {!showReport ? (
             <div style={styles.emptyMsg}>
-             
+              <p>Select date range and click Search to view daily report</p>
             </div>
           ) : isLoading ? (
-            <div style={styles.emptyMsg}>Loading...</div>
+            <div style={styles.emptyMsg}>Loading report data...</div>
           ) : reportData ? (
             <div style={{ padding: '20px' }}>
               <h2 style={{ 
@@ -1083,7 +1191,7 @@ const { hasPrintPermission, checkPrintPermission } =
                 fontSize: TYPOGRAPHY.fontSize.xl,
                 fontWeight: TYPOGRAPHY.fontWeight.bold
               }}>
-                
+                Daily Report: {formatDisplayDate(fromDate)} to {formatDisplayDate(toDate)}
               </h2>
 
               {/* Main Table with Left and Right Sections */}
@@ -1117,10 +1225,10 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.salesEntryData.map((item, index) => (
                             <tr key={`sales-${index}`}>
-                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                              <td style={styles.td}>{item.qty || 0}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1142,10 +1250,10 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.paymentData.map((item, index) => (
                             <tr key={`payment-${index}`}>
-                              <td style={styles.td}>{item.voucherNo}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName}</td>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
                               <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.billAmount)}</td>
+                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1167,10 +1275,10 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.receiptData.map((item, index) => (
                             <tr key={`receipt-${index}`}>
-                              <td style={styles.td}>{item.voucherNo}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName}</td>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
                               <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.billAmount)}</td>
+                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1192,10 +1300,10 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.purchaseData.map((item, index) => (
                             <tr key={`purchase-${index}`}>
-                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={styles.td}>{item.qty}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                              <td style={styles.td}>{item.qty || 0}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1217,10 +1325,10 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.purchaseReturnData.map((item, index) => (
                             <tr key={`purchaseReturn-${index}`}>
-                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={styles.td}>{item.qty}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                              <td style={styles.td}>{item.qty || 0}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1242,10 +1350,10 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.salesReturnData.map((item, index) => (
                             <tr key={`salesReturn-${index}`}>
-                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                              <td style={styles.td}>{item.qty || 0}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1267,10 +1375,10 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.scrapprocurement.map((item, index) => (
                             <tr key={`scrap-${index}`}>
-                              <td style={styles.td}>{item.voucherNo}</td>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount)}</td>
+                              <td style={styles.td}>{item.qty || 0}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1320,7 +1428,7 @@ const { hasPrintPermission, checkPrintPermission } =
                           </tr>
                           {reportData.tenderData.map((item, index) => (
                             <tr key={`tender-${index}`}>
-                              <td style={styles.td}>{item.invoiceNo}</td>
+                              <td style={styles.td}>{item.invoiceNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>
                                 {item.upiPartyName && item.cardPartyName 
                                   ? `${item.upiPartyName}, ${item.cardPartyName}`
@@ -1328,7 +1436,7 @@ const { hasPrintPermission, checkPrintPermission } =
                                 }
                               </td>
                               <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.givenTotal)}</td>
+                              <td style={styles.td}>{formatCurrency(item.givenTotal || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
@@ -1427,68 +1535,6 @@ const { hasPrintPermission, checkPrintPermission } =
                 opacity: (!reportData || !showReport || !hasPrintPermission) ? 0.5 : 1,
               }}
             />
-
-            {/* Refresh button - always enabled */}
-            {/* <button
-              onClick={handleRefresh}
-              style={{
-                padding: '10px 16px',
-                background: 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: TYPOGRAPHY.fontSize.sm,
-                fontWeight: TYPOGRAPHY.fontWeight.bold,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                minWidth: '80px',
-                height: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-1px)';
-                e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-              }}
-            >
-              🔄 Refresh
-            </button> */}
-
-            {/* Status message */}
-            {/* {!hasPrintPermission && (
-              <div style={{
-                color: '#dc3545',
-                fontSize: TYPOGRAPHY.fontSize.xs,
-                fontStyle: 'italic',
-                padding: '6px 12px',
-                backgroundColor: '#f8d7da',
-                borderRadius: '6px',
-                border: '1px solid #f5c6cb',
-              }}>
-                ⚠️ Print permission required
-              </div>
-            )} */}
-            
-            {/* {hasPrintPermission && (!showReport || !reportData) && (
-              <div style={{
-                color: '#856404',
-                fontSize: TYPOGRAPHY.fontSize.xs,
-                fontStyle: 'italic',
-                padding: '6px 12px',
-                backgroundColor: '#fff3cd',
-                borderRadius: '6px',
-                border: '1px solid #ffeaa7',
-              }}>
-                ℹ️ Search for data to enable actions
-              </div>
-            )} */}
           </div>
         </div>
 
@@ -1506,7 +1552,7 @@ const { hasPrintPermission, checkPrintPermission } =
           }}>
             <span>📈 Sales: {reportData.salesEntryData?.length || 0} entries</span>
             <span>💳 Tenders: {reportData.tenderData?.length || 0} entries</span>
-            <span>📋 Total Sections: {Object.keys(reportData).length}</span>
+            <span>📋 Total Sections: {Object.keys(reportData).filter(key => reportData[key].length > 0).length}</span>
           </div>
         )}
       </div>
