@@ -290,12 +290,12 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "SCRAP_PROCUREMENT",
     },
-    {
-      name: "Tag Print",
-      path: "/transactions/Tag-Print",
-      icon: <DollarOutlined />,
-      permission: "TAG_PRINT",
-    },
+    // {
+    //   name: "Tag Print",
+    //   path: "/transactions/Tag-Print",
+    //   icon: <DollarOutlined />,
+    //   permission: "TAG_PRINT",
+    // },
   ];
 
   const reportItems = [ 
