@@ -110,6 +110,18 @@ const ScrapPurchase  = () => {
   const tableContainerRef = useRef(null);
   const observerRef = useRef(null);
 
+  const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return '';
+  const date = parseDate(dateStr);
+  if (!date) return dateStr;
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+
   // Event handlers
   const handleFromDateChange = (e) => {
     setFromDate(e.target.value);
@@ -390,7 +402,8 @@ const handlePrintConfirm = () => {
                 <tr>
                   <td>${index + 1}</td>
                   <td>${row.name || ''}</td>
-                  <td>${row.voucherDate || ''}</td>
+              <td>${formatDateForDisplay(row.voucherDate)}</td>
+
                   <td>${row.invoice || ''}</td>
                   <td>${row.bill || ''}</td>
                   <td>₹${formatNumber(row.amount)}</td>
@@ -433,7 +446,8 @@ const handlePrintConfirm = () => {
       
       // Data rows
       data.forEach((row, index) => {
-        csvContent += `${index + 1},"${row.name || ''}",${row.voucherDate || ''},${row.invoice || ''},${row.bill || ''},${parseNumber(row.amount)},${parseNumber(row.qty)}\n`;
+        csvContent += `${index + 1},"${row.name || ''}",${formatDateForDisplay(row.voucherDate)}
+,${row.invoice || ''},${row.bill || ''},${parseNumber(row.amount)},${parseNumber(row.qty)}\n`;
       });
       
       // Summary
@@ -1078,7 +1092,8 @@ const handlePrintConfirm = () => {
                       <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
                       <td style={{...styles.td, minWidth: '120px'}}>{row.name || ''}</td>
                       <td style={styles.td}>{row.invoice || ''}</td>
-                      <td style={styles.td}>{row.voucherDate || ''}</td>
+                 <td style={styles.td}>{formatDateForDisplay(row.voucherDate)}</td>
+
                       <td style={styles.td}>{row.salesman || ''}</td>
                       <td style={styles.td}>{row.qty || ''}</td>
                       <td style={styles.td}>{row.amount ? formatNumber(row.amount) : '0.00'}</td>

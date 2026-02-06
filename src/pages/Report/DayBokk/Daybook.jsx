@@ -1401,6 +1401,7 @@ const DayBook = () => {
           justifyContent: 'center',
           width: '100%',
         }}>
+          
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Total Receipts</span>
             <span style={styles.balanceValue}>
@@ -1413,19 +1414,22 @@ const DayBook = () => {
               ₹{totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
+          <div style={styles.buttonGroup}>
+  <PrintButton 
+    onClick={handlePrintClick}
+    isActive={hasPrintPermission}
+    disabled={!hasPrintPermission || dayBookData.length === 0}
+  />
+  <ExportButton 
+    onClick={handleExportClick}
+    isActive={hasPrintPermission}
+    disabled={!hasPrintPermission || dayBookData.length === 0}
+  />
+</div>
+
         </div>
-        <div style={styles.buttonGroup}>
-          <PrintButton 
-            onClick={handlePrintClick}
-            isActive={hasPrintPermission}
-            disabled={!hasPrintPermission || dayBookData.length === 0}
-          />
-          <ExportButton 
-            onClick={handleExportClick}
-            isActive={hasPrintPermission}
-            disabled={!hasPrintPermission || dayBookData.length === 0}
-          />
-        </div>
+        
+       
       </div>
 
       {/* Print Confirmation Popup */}

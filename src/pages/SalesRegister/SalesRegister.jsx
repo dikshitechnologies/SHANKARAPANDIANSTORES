@@ -27,6 +27,32 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Display date as DD/MM/YYYY (safe for API + UI)
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return '';
+
+  const parts = dateStr.split(/[-/]/);
+  let date;
+
+  // YYYY-MM-DD
+  if (parts.length === 3 && parts[0].length === 4) {
+    date = new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  // DD-MM-YYYY or DD/MM/YYYY
+  else if (parts.length === 3) {
+    date = new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+
+  if (!date || isNaN(date)) return dateStr;
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
+
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (date) => {
   const d = new Date(date);
@@ -371,7 +397,8 @@ const handlePrintClick = () => {
                   <td>${row.no}</td>
                   <td>${row.salesParty}</td>
                   <td>${row.billNo}</td>
-                  <td>${row.billDate}</td>
+              <td>${formatDateForDisplay(row.billDate)}</td>
+
                   <td>${row.qty}</td>
                   <td>${row.salesReturn}</td>
                   <td>${row.freightCharge}</td>
@@ -418,7 +445,8 @@ const handlePrintClick = () => {
       
       // Data rows
       salesData.forEach((row) => {
-        csvContent += `${row.no},"${row.salesParty}",${row.billNo},${row.billDate},${row.qty},${row.salesReturn},${row.freightCharge},${row.serviceCharge},${row.cash},${row.upiAmount},${row.cardAmount},${row.billAmount}\n`;
+        csvContent += `${row.no},"${row.salesParty}",${row.billNo},${formatDateForDisplay(row.billDate)}
+,${row.qty},${row.salesReturn},${row.freightCharge},${row.serviceCharge},${row.cash},${row.upiAmount},${row.cardAmount},${row.billAmount}\n`;
       });
       
       // Summary
@@ -1064,9 +1092,10 @@ const handlePrintClick = () => {
                       <td style={getCellStyle(rowIndex, 'billNo')}>
                         {row.billNo}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'billDate')}>
-                        {row.billDate}
-                      </td>
+                    <td style={getCellStyle(rowIndex, 'billDate')}>
+  {formatDateForDisplay(row.billDate)}
+</td>
+
                       <td style={getCellStyle(rowIndex, 'qty')}>
                         {row.qty}
                       </td>
@@ -1131,8 +1160,7 @@ const handlePrintClick = () => {
               {totals.qty.toFixed(2)}
             </span>
           </div>
-        </div>
-        <div style={styles.buttonGroup}>
+            <div style={styles.buttonGroup}>
          <PrintButton 
   onClick={handlePrintClick}
   isActive={hasPrintPermission}
@@ -1146,6 +1174,8 @@ const handlePrintClick = () => {
 />
 
         </div>
+        </div>
+      
       </div>
 
       {/* Print Confirmation Popup */}

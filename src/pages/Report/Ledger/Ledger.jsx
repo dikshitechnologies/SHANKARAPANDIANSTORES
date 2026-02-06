@@ -81,6 +81,13 @@ const { hasPrintPermission, checkPrintPermission } =
   const [ledgerData, setLedgerData] = useState([]);
   const [allParties, setAllParties] = useState([]);
   const [allCompanies, setAllCompanies] = useState([]);
+  const [companySearchText, setCompanySearchText] = useState('');
+
+  // Filtered companies for search popup
+  const filteredCompanies = allCompanies.filter(company =>
+    company.compName?.toLowerCase().includes(companySearchText.toLowerCase())
+  );
+
 
   // Set current date on initial load
   useEffect(() => {
@@ -144,7 +151,6 @@ const { hasPrintPermission, checkPrintPermission } =
         fetchParties(true);
       }
     }
-    
     return () => {
       if (searchDebounceRef.current) {
         clearTimeout(searchDebounceRef.current);
@@ -177,6 +183,16 @@ const { hasPrintPermission, checkPrintPermission } =
       setIsLoading(false);
     }
   };
+
+  const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
@@ -212,11 +228,17 @@ const { hasPrintPermission, checkPrintPermission } =
     }
   };
 
-  const handleCompanyClick = () => {
-    setTempSelectedCompany(Array.isArray(company) ? company : (company ? [company] : []));
-    setTempSelectedCompanyCode(Array.isArray(companyCode) ? companyCode : (companyCode ? [companyCode] : []));
-    setShowCompanyPopup(true);
-  };
+const handleCompanyClick = () => {
+  setCompanySearchText('');
+  setTempSelectedCompany(
+    Array.isArray(company) ? company : (company ? [company] : [])
+  );
+  setTempSelectedCompanyCode(
+    Array.isArray(companyCode) ? companyCode : (companyCode ? [companyCode] : [])
+  );
+  setShowCompanyPopup(true);
+};
+
 
   const handleCompanyKeyDown = (e) => {
     // Check if it's a printable character (letter, number, space, etc.)
@@ -295,9 +317,11 @@ const { hasPrintPermission, checkPrintPermission } =
     setShowPartyPopup(false);
   };
 
-  const handleCompanyPopupClose = () => {
-    setShowCompanyPopup(false);
-  };
+ const handleCompanyPopupClose = () => {
+  setCompanySearchText('');
+  setShowCompanyPopup(false);
+};
+
 
   const handlePartyClearSelection = () => {
     setTempSelectedParty('');
@@ -505,7 +529,8 @@ const handleExportConfirm = () => {
               ${ledgerData.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td>${row.date || ''}</td>
+                 <td>${formatDateDDMMYYYY(row.date)}</td>
+
                   <td class="text-left">${row.name || ''}</td>
                   <td>${row.voucherNo || ''}</td>
                   <td>${row.type || ''}</td>
@@ -552,7 +577,8 @@ const handleExportConfirm = () => {
       
       ledgerData.forEach((row, index) => {
         const amount = parseFloat(row.amount) || 0;
-        csvContent += `${index + 1},${row.date || ''},"${row.name || ''}",${row.voucherNo || ''},${row.type || ''},${row.crDr || ''},${row.billNo || ''},${row.billet || ''},${amount.toFixed(2)}\n`;
+        csvContent += `${index + 1},${formatDateDDMMYYYY(row.date)}
+,"${row.name || ''}",${row.voucherNo || ''},${row.type || ''},${row.crDr || ''},${row.billNo || ''},${row.billet || ''},${amount.toFixed(2)}\n`;
       });
       
       csvContent += `\n\n`;
@@ -1585,7 +1611,8 @@ const handleExportConfirm = () => {
                   ledgerData.map((row, index) => (
                     <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff' }}>
                       <td style={{ ...styles.td, minWidth: '50px', width: '50px', maxWidth: '50px' }}>{index + 1}</td>
-                      <td style={styles.td}>{row.date}</td>
+                <td style={styles.td}>{formatDateDDMMYYYY(row.date)}</td>
+
                       <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
                       <td style={styles.td}>{row.voucherNo}</td>
                       <td style={styles.td}>{row.type}</td>
@@ -1638,8 +1665,7 @@ const handleExportConfirm = () => {
               ₹{parseFloat((closingBalance.credit || 0) - (closingBalance.debit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-        </div>
-        <div style={styles.buttonGroup}>
+                <div style={styles.buttonGroup}>
          <PrintButton 
   onClick={handlePrintClick}
   isActive={hasPrintPermission}
@@ -1653,6 +1679,8 @@ const handleExportConfirm = () => {
 />
 
         </div>
+        </div>
+  
       </div>
 
       {/* Print Confirmation Popup */}
@@ -1730,14 +1758,10 @@ const handleExportConfirm = () => {
                         <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
                           {isSelected && <div style={styles.checkmark}>✓</div>}
                         </div>
-                        <div style={styles.listTextContainer}>
-                          <span style={styles.listText}>{partyItem.fAcname}</span>
-                          <span style={styles.listSubtext}>
-                            Code: {partyItem.fCode}
-                            {partyItem.fCity && ` • ${partyItem.fCity}`}
-                            {partyItem.fPhone && ` • ${partyItem.fPhone}`}
-                          </span>
-                        </div>
+                       <div style={styles.listTextContainer}>
+  <span style={styles.listText}>{partyItem.fAcname}</span>
+</div>
+
                       </div>
                     );
                   })}
@@ -1784,6 +1808,17 @@ const handleExportConfirm = () => {
                 ×
               </button>
             </div>
+            {/* Company Search Input */}
+<div style={{ padding: '10px 15px', borderBottom: '1px solid #e0e0e0' }}>
+  <input
+    type="text"
+    placeholder="Search company..."
+    value={companySearchText}
+    onChange={(e) => setCompanySearchText(e.target.value)}
+    style={styles.searchInput}
+  />
+</div>
+
             
             <div style={styles.listContainer}>
               {/* ALL Option */}
@@ -1802,7 +1837,8 @@ const handleExportConfirm = () => {
               {allCompanies.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No companies found</div>
               ) : (
-                allCompanies.map((companyItem) => {
+              filteredCompanies.map((companyItem) => {
+
                   const isSelected = tempSelectedCompanyCode.includes(companyItem.compCode);
                   return (
                     <div 
@@ -1813,10 +1849,10 @@ const handleExportConfirm = () => {
                       <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
                         {isSelected && <div style={styles.checkmark}>✓</div>}
                       </div>
-                      <div style={styles.listTextContainer}>
-                        <span style={styles.listText}>{companyItem.compName}</span>
-                        <span style={styles.listSubtext}>Code: {companyItem.compCode}</span>
-                      </div>
+                     <div style={styles.listTextContainer}>
+  <span style={styles.listText}>{companyItem.compName}</span>
+</div>
+
                     </div>
                   );
                 })

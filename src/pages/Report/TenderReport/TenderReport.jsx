@@ -185,12 +185,12 @@ const { hasPrintPermission, checkPrintPermission } =
   };
 
   const handleSearch = async (isNewSearch = true) => {
-    if (!fromDate || !toDate || selectedBranches.length === 0) {
-      toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
-        autoClose: 2000,
-      });
-      return;
-    }
+    // if (!fromDate || !toDate || selectedBranches.length === 0) {
+    //   toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
+    //     autoClose: 2000,
+    //   });
+    //   return;
+    // }
     
     const currentPage = isNewSearch ? 1 : pageNo;
     
@@ -1279,7 +1279,7 @@ const { hasPrintPermission, checkPrintPermission } =
               ...styles.formField,
               minWidth: screenSize.isMobile ? '100%' : '180px',
             }}>
-              <label style={styles.inlineLabel}>Branch:</label>
+              <label style={styles.inlineLabel}>Company:</label>
               <div
                 style={
                   focusedField === 'branch'
@@ -1514,8 +1514,7 @@ const { hasPrintPermission, checkPrintPermission } =
                 ₹{totalUpi.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
-          </div>
-          <div style={styles.buttonGroup}>
+               <div style={styles.buttonGroup}>
            <PrintButton 
   onClick={handlePrintClick}
   isActive={hasPrintPermission}
@@ -1529,6 +1528,8 @@ const { hasPrintPermission, checkPrintPermission } =
 />
 
           </div>
+          </div>
+       
         </div>
       )}
 

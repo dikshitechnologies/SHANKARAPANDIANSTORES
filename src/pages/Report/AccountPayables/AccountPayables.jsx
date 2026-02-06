@@ -1424,8 +1424,7 @@ const handlePrintClick = () => {
               ₹{totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-        </div>
-        <div style={styles.buttonGroup}>
+           <div style={styles.buttonGroup}>
           <PrintButton 
   onClick={handlePrintClick}
   isActive={hasPrintPermission}
@@ -1438,6 +1437,8 @@ const handlePrintClick = () => {
   disabled={!hasPrintPermission || payablesData.length === 0}
 />
         </div>
+        </div>
+       
       </div>
 
       {/* Print Confirmation Popup */}

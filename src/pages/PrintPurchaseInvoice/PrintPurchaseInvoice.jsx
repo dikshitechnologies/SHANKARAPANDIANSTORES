@@ -66,7 +66,7 @@ export const generatePurchaseInvoicePDF = async ({
     const validItems = items.filter(item => item.name && item.name.trim() !== '');
     
     if (validItems.length === 0) {
-      throw new Error('No items to print');
+      // throw new Error('No items to print');
     }
     
     const doc = new jsPDF({

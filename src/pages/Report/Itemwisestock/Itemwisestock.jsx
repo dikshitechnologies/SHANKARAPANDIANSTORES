@@ -37,9 +37,8 @@ const formatDate = (date) => {
 
 const AccountPayables = () => {
   // --- PERMISSIONS ---
-const { hasPrintPermission, checkPrintPermission } =
-  usePrintPermission('ITEM_WISE_STOCK');
-
+  const { hasPrintPermission, checkPrintPermission } =
+    usePrintPermission('ITEM_WISE_STOCK');
 
   // --- STATE MANAGEMENT ---
   const currentDate = formatDate(new Date());
@@ -340,7 +339,9 @@ const { hasPrintPermission, checkPrintPermission } =
     try {
       // Fetch data for each selected company and item
       const allResults = [];
-
+      const seenKeys = new Set(); // Track unique combinations to avoid duplicates
+      let resultIndex = 1;
+      
       for (const compCode of selectedCompanyNames) {
         const apiUrl = `${API_BASE}${API_ENDPOINTS.ITEMWISE_STOCK.GET_ITEM_STOCK_BY_DATE(
           selectedItem.fItemcode,
@@ -356,18 +357,29 @@ const { hasPrintPermission, checkPrintPermission } =
 
         const responseData = await response.json();
         
-        // Map API response fields to table fields
+        // Map API response fields to table fields and filter duplicates
         if (Array.isArray(responseData)) {
-          const mappedData = responseData.map((item, index) => ({
-            no: index + 1,
-            fItemName: item.itemName || '',
-            date: item.fDate ? new Date(item.fDate).toISOString().substring(0, 10) : '',
-            opgQty: item.opgqty || 0,
-            purchaseQty: item.purchaseQty || 0,
-            salesQty: item.salesQty || 0,
-            balanceQty: item.balanceQty || 0,
-          }));
-          allResults.push(...mappedData);
+          responseData.forEach((item) => {
+            const dateStr = item.fDate
+  ? item.fDate.split('T')[0].split('-').reverse().join('/')
+  : '';     
+            const uniqueKey = `${item.itemName || ''}_${dateStr}`;
+            
+            // Check if this combination already exists
+            if (!seenKeys.has(uniqueKey)) {
+              seenKeys.add(uniqueKey);
+              
+              allResults.push({
+                no: resultIndex++,
+                fItemName: item.itemName || '',
+                date: dateStr,
+                opgQty: item.opgqty || 0,
+                purchaseQty: item.purchaseQty || 0,
+                salesQty: item.salesQty || 0,
+                balanceQty: item.balanceQty || 0,
+              });
+            }
+          });
         }
       }
 
@@ -407,6 +419,8 @@ const { hasPrintPermission, checkPrintPermission } =
     setTempSelectedCompanies([]);
     setSelectAll(false);
     setPayablesData([]);
+    setSelectedCompanyNames([]);
+    setSelectAllCompanies(false);
   };
 
   const handlePrintClick = () => {
@@ -421,45 +435,42 @@ const { hasPrintPermission, checkPrintPermission } =
     setShowPrintConfirm(true);
   };
 
- const handleExportClick = () => {
-  // 🔒 SAME PERMISSION AS PRINT
-  if (!hasPrintPermission) {
-    toast.error('You do not have permission to export this report', {
-      autoClose: 3000,
-    });
-    return;
-  }
+  const handleExportClick = () => {
+    // 🔒 SAME PERMISSION AS PRINT
+    if (!hasPrintPermission) {
+      toast.error('You do not have permission to export this report', {
+        autoClose: 3000,
+      });
+      return;
+    }
 
-  if (payablesData.length === 0) {
-    toast.warning('No data available to export');
-    return;
-  }
+    if (payablesData.length === 0) {
+      toast.warning('No data available to export');
+      return;
+    }
 
-  setShowExportConfirm(true);
-};
+    setShowExportConfirm(true);
+  };
 
+  const handlePrintConfirm = () => {
+    if (!hasPrintPermission) {
+      setShowPrintConfirm(false);
+      return;
+    }
 
- const handlePrintConfirm = () => {
-  if (!hasPrintPermission) {
     setShowPrintConfirm(false);
-    return;
-  }
+    generatePDF();
+  };
 
-  setShowPrintConfirm(false);
-  generatePDF();
-};
+  const handleExportConfirm = () => {
+    if (!hasPrintPermission) {
+      setShowExportConfirm(false);
+      return;
+    }
 
-
- const handleExportConfirm = () => {
-  if (!hasPrintPermission) {
     setShowExportConfirm(false);
-    return;
-  }
-
-  setShowExportConfirm(false);
-  exportToExcel();
-};
-
+    exportToExcel();
+  };
 
   const generatePDF = () => {
     try {
@@ -1410,8 +1421,8 @@ const { hasPrintPermission, checkPrintPermission } =
             borderTop: '2px solid #1B91DA'
           } : {})
         }}>
-          <td style={{ ...styles.td, minWidth: '40px', width: '40px', maxWidth: '40px' }}>{index + 1}</td>
-          <td style={styles.td}>{row.fItemName || ''}</td>
+          <td style={{ ...styles.td, minWidth: '40px', width: '40px', maxWidth: '40px' }}>{row.no || index + 1}</td>
+          <td style={{...styles.td, textAlign: 'left'}}>{row.fItemName || ''}</td>
           <td style={styles.td}>{row.date || ''}</td>
           <td style={styles.td}>{row.opgQty || ''}</td>
           <td style={styles.td}>{row.purchaseQty || ''}</td>
@@ -1421,14 +1432,16 @@ const { hasPrintPermission, checkPrintPermission } =
       ))
     ) : (
       <tr>
-        
+        <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          No data found
+        </td>
       </tr>
     )
   ) : (
     <tr>
-      {/* <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+      <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
         Use the Search button to load data
-      </td> */}
+      </td>
     </tr>
   )}
 </tbody>
@@ -1441,7 +1454,6 @@ const { hasPrintPermission, checkPrintPermission } =
         <div style={{
           ...styles.balanceContainer,
           justifyContent: 'center',
-          width: '100%',
         }}>
           <div style={styles.balanceItem}>
             <span style={styles.balanceLabel}>Total Items</span>
@@ -1452,16 +1464,16 @@ const { hasPrintPermission, checkPrintPermission } =
         </div>
         <div style={styles.buttonGroup}>
           <PrintButton 
-  onClick={handlePrintClick}
-  isActive={hasPrintPermission}
-  disabled={!hasPrintPermission || payablesData.length === 0}
-/>
+            onClick={handlePrintClick}
+            isActive={hasPrintPermission}
+            disabled={!hasPrintPermission || payablesData.length === 0}
+          />
 
-<ExportButton 
-  onClick={handleExportClick}
-  isActive={hasPrintPermission}
-  disabled={!hasPrintPermission || payablesData.length === 0}
-/>
+          <ExportButton 
+            onClick={handleExportClick}
+            isActive={hasPrintPermission}
+            disabled={!hasPrintPermission || payablesData.length === 0}
+          />
 
         </div>
       </div>
