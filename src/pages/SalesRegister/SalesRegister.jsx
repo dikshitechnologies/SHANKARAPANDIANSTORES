@@ -232,14 +232,20 @@ const { hasPrintPermission, checkPrintPermission } =
         salesParty: item.refName || item.name || 'N/A',
         billNo: item.voucherNo || item.no || 'N/A',
         billDate: item.voucherDate || 'N/A',
-        billAmount: item.billAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
         qty: item.qty?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
-        time: item.time ? new Date(item.time).toLocaleTimeString('en-IN', { 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          second: '2-digit',
-          hour12: true 
-        }) : 'N/A'
+        salesReturn: item.salesAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        freightCharge: item.freightAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        serviceCharge: item.serviceChargeAmt?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        cash: item.cash?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        upiAmount: item.upi?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        cardAmount: item.card?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        billAmount: (typeof item.billAmount === 'number' ? item.billAmount : 0)?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00',
+        // time: item.time ? new Date(item.time).toLocaleTimeString('en-IN', { 
+        //   hour: '2-digit', 
+        //   minute: '2-digit', 
+        //   second: '2-digit',
+        //   hour12: true 
+        // }) : 'N/A'
       }));
       
       setSalesData(mappedData);
