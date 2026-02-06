@@ -1094,10 +1094,9 @@ const { hasPrintPermission, checkPrintPermission } =
                 <th style={styles.th}>Voucher Date</th>
                 <th style={styles.th}>Ref No</th>
                 <th style={styles.th}>Bill No</th>
-                <th style={styles.th}>Sub Total</th>
                 <th style={styles.th}>Less</th>
-                <th style={styles.th}>Amount</th>
                 <th style={styles.th}>Qty</th>
+                <th style={styles.th}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1116,12 +1115,11 @@ const { hasPrintPermission, checkPrintPermission } =
                   <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
                   <td style={{...styles.td, minWidth: '120px'}}>{safeDisplay(row.name)}</td>
                   <td style={styles.td}>{safeDisplay(row.voucherDate)}</td>
-                  <td style={styles.td}>{safeDisplay(row.invoice)}</td>                      
+                  <td style={styles.td}>{safeDisplay(row.invoice)}</td>
                   <td style={styles.td}>{safeDisplay(row.bill)}</td>
-                  <td style={styles.td}>{safeFormatNumber(row.subTotal)}</td>
                   <td style={styles.td}>{safeFormatNumber(row.less)}</td>
-                  <td style={styles.td}>{safeFormatNumber(row.netAmount)}</td>
                   <td style={styles.td}>{safeDisplayNumber(row.qty)}</td>
+                  <td style={styles.td}>{safeFormatNumber(row.netAmount)}</td>
                 </tr>
               ))}
             </tbody>
