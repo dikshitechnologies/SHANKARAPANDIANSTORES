@@ -1385,8 +1385,7 @@ closeButton: {
               ₹{totalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-        </div>
-        <div style={styles.buttonGroup}>
+                <div style={styles.buttonGroup}>
         <PrintButton 
   onClick={handlePrintClick}
   isActive={hasPrintPermission}
@@ -1400,6 +1399,8 @@ closeButton: {
 />
 
         </div>
+        </div>
+  
       </div>
 
       {/* Print Confirmation Popup */}
