@@ -62,6 +62,18 @@ const parseNumber = (str) => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return '';
+  const date = parseDate(dateStr);
+  if (!date) return dateStr;
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+
 // Add these helper functions for safe display
 const safeFormatNumber = (value) => {
   if (value === undefined || value === null) return '0.00';
@@ -425,7 +437,8 @@ const { hasPrintPermission, checkPrintPermission } =
                 <tr>
                   <td>${index + 1}</td>
                   <td>${safeDisplay(row.name)}</td>
-                  <td>${safeDisplay(row.voucherDate)}</td>
+                 <td>${formatDateForDisplay(row.voucherDate)}</td>
+
                   <td>${safeDisplay(row.invoice)}</td>
                   <td>${safeDisplay(row.bill)}</td>
                   <td>${safeFormatNumber(row.freight)}</td>
@@ -473,7 +486,8 @@ const { hasPrintPermission, checkPrintPermission } =
 
       // Data rows
       data.forEach((row, index) => {
-        csvContent += `${index + 1},"${safeDisplay(row.name)}",${safeDisplay(row.voucherDate)},${safeDisplay(row.invoice)},${safeDisplay(row.bill)},${parseNumber(row.freight)},${parseNumber(row.subTotal)},${parseNumber(row.less)},${safeDisplayNumber(row.qty)},${parseNumber(row.netAmount)}\n`;
+        csvContent += `${index + 1},"${safeDisplay(row.name)}",${formatDateForDisplay(row.voucherDate)}
+,${safeDisplay(row.invoice)},${safeDisplay(row.bill)},${parseNumber(row.freight)},${parseNumber(row.subTotal)},${parseNumber(row.less)},${safeDisplayNumber(row.qty)},${parseNumber(row.netAmount)}\n`;
       });
       
       // Summary
@@ -1140,7 +1154,8 @@ const { hasPrintPermission, checkPrintPermission } =
                 >
                   <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
                   <td style={{...styles.td, minWidth: '120px'}}>{safeDisplay(row.name)}</td>
-                  <td style={styles.td}>{safeDisplay(row.voucherDate)}</td>
+                <td style={styles.td}>{formatDateForDisplay(row.voucherDate)}</td>
+
                   <td style={styles.td}>{safeDisplay(row.invoice)}</td>
                   <td style={styles.td}>{safeDisplay(row.bill)}</td>
                   <td style={styles.td}>{safeFormatNumber(row.freight)}</td>
