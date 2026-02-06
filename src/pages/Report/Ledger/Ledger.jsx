@@ -1652,8 +1652,7 @@ const handleExportConfirm = () => {
               ₹{parseFloat((closingBalance.credit || 0) - (closingBalance.debit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
-        </div>
-        <div style={styles.buttonGroup}>
+                <div style={styles.buttonGroup}>
          <PrintButton 
   onClick={handlePrintClick}
   isActive={hasPrintPermission}
@@ -1667,6 +1666,8 @@ const handleExportConfirm = () => {
 />
 
         </div>
+        </div>
+  
       </div>
 
       {/* Print Confirmation Popup */}
