@@ -1595,7 +1595,6 @@ const { hasPrintPermission, checkPrintPermission } =
                 ×
               </button>
             </div>
-            
             {/* Search Bar */}
             <div style={styles.searchContainer}>
               <input
@@ -1606,7 +1605,6 @@ const { hasPrintPermission, checkPrintPermission } =
                 style={styles.searchInput}
               />
             </div>
-            
             <div style={styles.companyList}>
               {loadingItems ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
@@ -1629,9 +1627,7 @@ const { hasPrintPermission, checkPrintPermission } =
                         <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
                           {isSelected && <div style={styles.checkmark}>✓</div>}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <span style={styles.companyText}>{item.fItemName}</span>
-                        </div>
+                        <span style={styles.companyText}>{item.fItemName}</span>
                       </div>
                     );
                   })
@@ -1641,9 +1637,14 @@ const { hasPrintPermission, checkPrintPermission } =
                 </div>
               )}
             </div>
-            
             <div style={styles.popupActions}>
               <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.clearButton}}
+                  onClick={handleItemPopupClose}
+                >
+                  Cancel
+                </button>
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handleItemPopupClose}
@@ -1664,7 +1665,7 @@ const { hasPrintPermission, checkPrintPermission } =
             onClick={(e) => e.stopPropagation()}
           >
             <div style={styles.popupHeader}>
-              Select Company
+              Select Companies
               <button 
                 style={styles.closeButton}
                 onClick={handleCompanyNamePopupClose}
@@ -1672,7 +1673,6 @@ const { hasPrintPermission, checkPrintPermission } =
                 ×
               </button>
             </div>
-            
             {/* Search Bar */}
             <div style={styles.searchContainer}>
               <input
@@ -1683,7 +1683,6 @@ const { hasPrintPermission, checkPrintPermission } =
                 style={styles.searchInput}
               />
             </div>
-            
             <div style={styles.companyList}>
               {loadingCompanies ? (
                 <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
@@ -1691,7 +1690,7 @@ const { hasPrintPermission, checkPrintPermission } =
                 </div>
               ) : companyList.length > 0 ? (
                 <>
-                  {/* All Checkbox */}
+                  {/* ALL option */}
                   <div 
                     style={selectAllCompanies ? styles.selectedCompanyItem : styles.companyItem}
                     onClick={handleSelectAllCompanies}
@@ -1699,12 +1698,9 @@ const { hasPrintPermission, checkPrintPermission } =
                     <div style={selectAllCompanies ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
                       {selectAllCompanies && <div style={styles.checkmark}>✓</div>}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <span style={{...styles.companyText, fontWeight: 'bold'}}>All Companies</span>
-                    </div>
+                    <span style={styles.companyText}>ALL</span>
                   </div>
-                  
-                  {/* Individual Companies */}
+                  {/* Individual companies */}
                   {companyList
                     .filter(company => 
                       (company.fcompname || '').toLowerCase().includes(companyNameSearchTerm.toLowerCase()) ||
@@ -1721,9 +1717,7 @@ const { hasPrintPermission, checkPrintPermission } =
                           <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
                             {isSelected && <div style={styles.checkmark}>✓</div>}
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <span style={styles.companyText}>{company.fcompname}</span>
-                          </div>
+                          <span style={styles.companyText}>{company.fcompname}</span>
                         </div>
                       );
                     })
@@ -1735,9 +1729,14 @@ const { hasPrintPermission, checkPrintPermission } =
                 </div>
               )}
             </div>
-            
             <div style={styles.popupActions}>
               <div style={styles.popupButtons}>
+                <button 
+                  style={{...styles.popupButton, ...styles.clearButton}}
+                  onClick={handleClearSelection}
+                >
+                  Cancel
+                </button>
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
                   onClick={handleCompanyNamePopupOk}
