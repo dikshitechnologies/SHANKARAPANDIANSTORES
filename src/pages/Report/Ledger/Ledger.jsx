@@ -1730,14 +1730,10 @@ const handleExportConfirm = () => {
                         <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
                           {isSelected && <div style={styles.checkmark}>✓</div>}
                         </div>
-                        <div style={styles.listTextContainer}>
-                          <span style={styles.listText}>{partyItem.fAcname}</span>
-                          <span style={styles.listSubtext}>
-                            Code: {partyItem.fCode}
-                            {partyItem.fCity && ` • ${partyItem.fCity}`}
-                            {partyItem.fPhone && ` • ${partyItem.fPhone}`}
-                          </span>
-                        </div>
+                       <div style={styles.listTextContainer}>
+  <span style={styles.listText}>{partyItem.fAcname}</span>
+</div>
+
                       </div>
                     );
                   })}
@@ -1813,10 +1809,10 @@ const handleExportConfirm = () => {
                       <div style={isSelected ? styles.selectedListCheckbox : styles.listCheckbox}>
                         {isSelected && <div style={styles.checkmark}>✓</div>}
                       </div>
-                      <div style={styles.listTextContainer}>
-                        <span style={styles.listText}>{companyItem.compName}</span>
-                        <span style={styles.listSubtext}>Code: {companyItem.compCode}</span>
-                      </div>
+                     <div style={styles.listTextContainer}>
+  <span style={styles.listText}>{companyItem.compName}</span>
+</div>
+
                     </div>
                   );
                 })
