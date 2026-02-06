@@ -1641,9 +1641,12 @@ const { hasPrintPermission, checkPrintPermission } =
               <div style={styles.popupButtons}>
                 <button 
                   style={{...styles.popupButton, ...styles.clearButton}}
-                  onClick={handleItemPopupClose}
+                  onClick={() => {
+                    setSelectedItem(null);
+                    setItemSearchTerm('');
+                  }}
                 >
-                  Cancel
+                  Clear
                 </button>
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
@@ -1733,9 +1736,12 @@ const { hasPrintPermission, checkPrintPermission } =
               <div style={styles.popupButtons}>
                 <button 
                   style={{...styles.popupButton, ...styles.clearButton}}
-                  onClick={handleClearSelection}
+                  onClick={() => {
+                    if (setSelectedCompanyNames) setSelectedCompanyNames([]);
+                    if (setCompanyNameSearchTerm) setCompanyNameSearchTerm('');
+                  }}
                 >
-                  Cancel
+                  Clear
                 </button>
                 <button 
                   style={{...styles.popupButton, ...styles.okButton}}
