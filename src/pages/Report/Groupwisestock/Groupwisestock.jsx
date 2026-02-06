@@ -1258,7 +1258,20 @@ const handleExportClick = () => {
             gap: screenSize.isMobile ? '8px' : '15px',
             flexDirection: screenSize.isMobile ? 'column' : 'row'
           }}>
-            
+            <button 
+              onClick={viewLevel === 'bills' ? handleBackToItems : handleBackToGroups}
+              style={styles.backButton}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#1B91DA';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0f0f0';
+                e.currentTarget.style.color = '#1B91DA';
+              }}
+            >
+              ← Back
+            </button>            
           </div>
         )}
         
