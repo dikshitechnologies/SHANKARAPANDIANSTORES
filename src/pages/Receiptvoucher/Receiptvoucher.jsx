@@ -1719,8 +1719,8 @@ const ReceiptVoucher = () => {
     setConfirmationPopup({
       isOpen: true,
       title: 'Print Voucher',
-      message: 'Are you sure you want to print this voucher?',
-      type: 'info',
+      message: 'Do you want to print?',
+      type: 'default',
       confirmText: 'Yes',
       cancelText: 'No',
       action: 'print',
@@ -1990,8 +1990,8 @@ const ReceiptVoucher = () => {
         setConfirmationPopup({
           isOpen: true,
           title: 'Print Voucher',
-          message: 'Do you want to print it?',
-          type: 'success',
+          message: 'Do you want to print?',
+          type: 'default',
           confirmText: 'Yes',
           cancelText: 'No',
           action: 'printConfirmation',
@@ -3308,6 +3308,7 @@ const ReceiptVoucher = () => {
         type={confirmationPopup.type}
         confirmText={confirmationPopup.isLoading ? 'Processing...' : confirmationPopup.confirmText}
         showLoading={confirmationPopup.isLoading}
+        cancelText={confirmationPopup.cancelText}
         disableBackdropClose={confirmationPopup.isLoading}
       />
 
