@@ -1029,7 +1029,7 @@ const { hasPrintPermission, checkPrintPermission } =
     },
     popupContent: {
       backgroundColor: 'white',
-      borderRadius: '8px',
+      borderRadius: '6px',
       width: '90%',
       maxWidth: '500px',
       maxHeight: '80vh',
@@ -1111,14 +1111,15 @@ const { hasPrintPermission, checkPrintPermission } =
       borderRadius: '4px',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
-      backgroundColor: '#f0f8ff',
-      border: '1px solid #1B91DA',
+      backgroundColor: '#eaf6ff',
+      border: '1.5px solid #1B91DA',
+      color: '#1B91DA',
     },
     branchCheckbox: {
       width: '18px',
       height: '18px',
-      border: '2px solid #ddd',
-      borderRadius: '50%',
+      border: '2px solid #1B91DA',
+      borderRadius: '4px', // square
       marginRight: '12px',
       display: 'flex',
       alignItems: 'center',
@@ -1131,7 +1132,7 @@ const { hasPrintPermission, checkPrintPermission } =
       width: '18px',
       height: '18px',
       border: '2px solid #1B91DA',
-      borderRadius: '50%',
+      borderRadius: '4px', // square
       marginRight: '12px',
       display: 'flex',
       alignItems: 'center',
@@ -1140,10 +1141,9 @@ const { hasPrintPermission, checkPrintPermission } =
       backgroundColor: '#1B91DA',
     },
     checkmark: {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      backgroundColor: 'white',
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '12px',
     },
     branchText: {
       color: '#333',
@@ -1602,7 +1602,7 @@ const { hasPrintPermission, checkPrintPermission } =
                     onClick={() => handleBranchSelect(branch.compCode)}
                   >
                     <div style={isSelected ? styles.selectedBranchCheckbox : styles.branchCheckbox}>
-                      {isSelected && <div style={styles.checkmark}></div>}
+                      {isSelected && <div style={styles.checkmark}>✓</div>}
                     </div>
                     <span style={styles.branchText}>{branch.compName}</span>
                   </div>
