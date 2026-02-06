@@ -419,7 +419,7 @@ const { hasPrintPermission, checkPrintPermission } =
             </thead>
             <tbody>
               ${data.length === 0 ? `
-                <tr><td colspan="10" style="text-align:center;color:#888;padding:24px;">No records found. All columns are shown below:</td></tr>
+                <tr><td colspan="10" style="text-align:center;color:#888;padding:24px;"></td></tr>
                 <tr><td>1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
               ` : data.map((row, index) => `
                 <tr>
@@ -1109,7 +1109,7 @@ const { hasPrintPermission, checkPrintPermission } =
               {data.length === 0 ? (
                 <tr>
                   <td colSpan={10} style={{ textAlign: 'center', color: '#888', padding: '24px' }}>
-                    No records found. All columns are shown below:
+                 
                   </td>
                 </tr>
               ) : null}
