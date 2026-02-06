@@ -29,7 +29,7 @@ const Home = () => {
   const quickActions = [
     {
       title: "Sales Invoice",
-      description: "Create new sales invoices and manage existing records.",
+      // description: "Create new sales invoices and manage existing records.",
       path: "/sales-invoice",
       color: "from-blue-500 to-cyan-500",
       icon: "📋",
@@ -37,23 +37,23 @@ const Home = () => {
     },
     {
       title: "Purchase Invoice",
-      description: "Record purchases and track supplier transactions.",
+      // description: "Record purchases and track supplier transactions.",
       path: "/transactions/purchase-invoice",
       color: "from-emerald-500 to-teal-500",
       icon: "📦",
       image: "https://images.unsplash.com/photo-1604594849809-dfedbc827105?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
     },
     {
-      title: "Scrap Rate Fixing",
-      description: "Update scrap rates and view historical pricing.",
-      path: "/mastersScrapRateFix/",
+      title: "Sales Return",
+      // description: "Update scrap rates and view historical pricing.",
+      path: "/transactions/sales-return",
       color: "from-amber-500 to-orange-500",
       icon: "⚖️",
       image: "https://images.unsplash.com/photo-1554224154-22dec7ec8818?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80"
     },
     {
       title: "Bill Collector",
-      description: "Manage bill collection and customer payment tracking.",
+      // description: "Manage bill collection and customer payment tracking.",
       path: "/transactions/bill-collector",
       color: "from-violet-500 to-purple-500",
       icon: "💰",
@@ -365,6 +365,14 @@ const Home = () => {
           box-shadow: 0 12px 24px rgba(102, 126, 234, 0.3);
         }
 
+        .header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+
        
 
         .floating-1 {
@@ -398,6 +406,18 @@ const Home = () => {
           color: #6b7280;
           margin-bottom: 16px;
         }
+
+
+        @media (max-width: 768px) {
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .date-display {
+    margin-top: 12px;
+  }
+}
 
         /* Responsive */
         @media (max-width: 1024px) {
@@ -469,35 +489,38 @@ const Home = () => {
         <div className="floating-element floating floating-2" />
 
         {/* Header Section */}
-        <div className="header-section">
-          <motion.h1 
-            className="welcome-title"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-          >
-            Welcome to <span className="store-name">Sankarapandian Store</span>
-          </motion.h1>
-          
-          <motion.p 
-            className="subtitle"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            Professional Inventory & Billing Management System
-          </motion.p>
-          
-          <motion.div 
-            className="date-display"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            whileHover={{ scale: 1.05 }}
-          >
-            📅 {currentDate}
-          </motion.div>
-        </div>
+   <div className="header-section">
+  <div className="header-top">
+    <motion.h1 
+      className="welcome-title"
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 0.1 }}
+    >
+      Welcome to <span className="store-name">Sankarapandian Store</span>
+    </motion.h1>
+
+    <motion.div 
+      className="date-display"
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 0.3 }}
+      whileHover={{ scale: 1.05 }}
+    >
+      📅 {currentDate}
+    </motion.div>
+  </div>
+
+  <motion.p 
+    className="subtitle"
+    initial={{ y: 20, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ delay: 0.2 }}
+  >
+    Professional Inventory & Billing Management System
+  </motion.p>
+</div>
+
 
   
 
