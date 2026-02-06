@@ -955,6 +955,20 @@ const SalesReturnRegister = () => {
               ₹{formatNumber(totalBillAmount)}
             </span>
           </div>
+            <div style={styles.buttonGroup}>
+          <PrintButton 
+  onClick={handlePrintClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || salesReturnData.length === 0}
+/>
+
+<ExportButton 
+  onClick={handleExportClick}
+  isActive={hasPrintPermission}
+  disabled={!hasPrintPermission || salesReturnData.length === 0}
+/>
+
+        </div>
           {tableLoaded && salesReturnData.length > 0 && (
             <>
               {/* <div style={styles.balanceItem}>
@@ -972,20 +986,7 @@ const SalesReturnRegister = () => {
             </>
           )}
         </div>
-        <div style={styles.buttonGroup}>
-          <PrintButton 
-  onClick={handlePrintClick}
-  isActive={hasPrintPermission}
-  disabled={!hasPrintPermission || salesReturnData.length === 0}
-/>
-
-<ExportButton 
-  onClick={handleExportClick}
-  isActive={hasPrintPermission}
-  disabled={!hasPrintPermission || salesReturnData.length === 0}
-/>
-
-        </div>
+      
       </div>
 
       {/* Print Confirmation Popup */}
