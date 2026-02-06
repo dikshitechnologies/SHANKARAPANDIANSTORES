@@ -1272,7 +1272,7 @@ const PaymentVoucher = () => {
     try {
       if (allParties.length === 0) {
         setIsLoading(true);
-        const url = API_ENDPOINTS.PAYMENTVOUCHER.GETPARTYLIST(
+        const url = API_ENDPOINTS.RECEIPTVOUCHER.GETPARTYLIST(
           encodeURIComponent(''),
           1,
           20
@@ -1313,8 +1313,7 @@ const PaymentVoucher = () => {
         await fetchPendingBills(partyCode);
         
         try {
-          const balanceUrl = API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode);
-          const balanceResponse = await apiService.getSilent(balanceUrl);
+          const balanceResponse = await apiService.get(API_ENDPOINTS.RECEIPTVOUCHER.GET_PARTY_BALANCE(partyCode));
           console.log('Party Balance Response:', balanceResponse);
           
           if (balanceResponse) {
