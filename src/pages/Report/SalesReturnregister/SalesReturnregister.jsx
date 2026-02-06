@@ -26,6 +26,32 @@ const SearchIcon = ({ size = 16, color = " #1B91DA" }) => (
   </svg>
 );
 
+// Display date as DD/MM/YYYY (safe for UI only)
+const formatDateForDisplay = (dateStr) => {
+  if (!dateStr) return '';
+
+  const parts = dateStr.split(/[-/]/);
+  let date;
+
+  // YYYY-MM-DD
+  if (parts.length === 3 && parts[0].length === 4) {
+    date = new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+  // DD-MM-YYYY or DD/MM/YYYY
+  else if (parts.length === 3) {
+    date = new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+
+  if (!date || isNaN(date)) return dateStr;
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
+
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (date) => {
   const d = new Date(date);
@@ -283,7 +309,8 @@ const SalesReturnRegister = () => {
                   <td>${row.isTotal ? '' : row.no}</td>
                   <td>${row.salesParty || ''}</td>
                   <td>${row.isTotal ? '' : (row.billNo || '')}</td>
-                  <td>${row.isTotal ? '' : (row.billDate || '')}</td>
+              <td>${row.isTotal ? '' : formatDateForDisplay(row.billDate)}</td>
+
                   <td>${row.qty || ''}</td>
                   <td>${row.salesReturn || ''}</td>
                   <td>${row.freightCharge || ''}</td>
@@ -322,7 +349,8 @@ const SalesReturnRegister = () => {
       csvContent += 'No,Sales Party,Bill No,Bill Date,Qty,Sales Return,Freight Charge,Service Charge,Cash,UPI Amount,Card Amount,Bill Amount\n';
       
       salesReturnData.forEach((row) => {
-        csvContent += `${row.isTotal ? '' : row.no},"${row.salesParty || ''}",${row.isTotal ? '' : (row.billNo || '')},${row.isTotal ? '' : (row.billDate || '')},${row.qty || ''},${row.salesReturn || ''},${row.freightCharge || ''},${row.serviceCharge || ''},${row.cash || ''},${row.upiAmount || ''},${row.cardAmount || ''},${row.billAmount || ''}\n`;
+        csvContent += `${row.isTotal ? '' : row.no},"${row.salesParty || ''}",${row.isTotal ? '' : (row.billNo || '')},${row.isTotal ? '' : formatDateForDisplay(row.billDate)}
+,${row.qty || ''},${row.salesReturn || ''},${row.freightCharge || ''},${row.serviceCharge || ''},${row.cash || ''},${row.upiAmount || ''},${row.cardAmount || ''},${row.billAmount || ''}\n`;
       });
       
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -898,14 +926,10 @@ const SalesReturnRegister = () => {
             textAlign: 'center',
             color: row.isTotal ? '#1565c0' : '#333'
           }}>{row.billNo || ''}</td>
-          <td style={{ 
-            ...styles.td, 
-            minWidth: '120px', 
-            width: '120px', 
-            maxWidth: '120px',
-            textAlign: 'center',
-            color: row.isTotal ? '#1565c0' : '#333'
-          }}>{row.billDate || ''}</td>
+      <td style={{ ...styles.td, minWidth: '120px' }}>
+  {row.isTotal ? '' : formatDateForDisplay(row.billDate)}
+</td>
+
           <td style={{ ...styles.td }}>{row.qty || ''}</td>
           <td style={{ ...styles.td }}>{row.salesReturn || ''}</td>
           <td style={{ ...styles.td }}>{row.freightCharge || ''}</td>
