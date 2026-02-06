@@ -104,19 +104,8 @@ const DayBook = () => {
         }
       } catch (error) {
         console.error('Error fetching branches:', error);
-        // Fallback to sample data if API fails
-        setAllBranches([
-          {compCode: 'ALL', compName: 'ALL'},
-          {compCode: '001', compName: 'DIKSHI DEMO'},
-          {compCode: '002', compName: 'DIKSH'},
-          {compCode: '003', compName: 'DIKSHI TECH'},
-          {compCode: '004', compName: 'DIKSHIWEBSITE'},
-          {compCode: '005', compName: 'DIKSHIWBCOMDOT'},
-          {compCode: '006', compName: 'SAKTHI'},
-          {compCode: '007', compName: 'JUST AK THINGS'},
-          {compCode: '008', compName: 'PRIVANKA'}
-        ]);
-        setDefaultCompCode('001');
+        setAllBranches([{compCode: 'ALL', compName: 'ALL'}]);
+        setDefaultCompCode('ALL');
       }
     };
     fetchBranches();
