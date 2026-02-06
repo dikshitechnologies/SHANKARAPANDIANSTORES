@@ -248,68 +248,48 @@ const DayBook = () => {
     
     try {
       // Use compCode from selected branches or default to defaultCompCode
-      const compCode = selectedBranches.includes('ALL') ? defaultCompCode : selectedBranches[0];
-      
+      let compCode = defaultCompCode;
+      if (!selectedBranches.includes('ALL') && selectedBranches.length > 0) {
+        // Find the selected company code from allBranches
+        const selectedComp = allBranches.find(b => b.compName === branchDisplay);
+        if (selectedComp && selectedComp.compCode) {
+          compCode = selectedComp.compCode;
+        } else {
+          compCode = selectedBranches[0];
+        }
+      }
       const apiFromDate = formatDateForAPI(fromDate);
       const apiToDate = formatDateForAPI(toDate);
-      
       const response = await fetch(`${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, apiFromDate, apiToDate)}`);
-      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const data = await response.json();
-      
-      // Transform API response to match component's expected format
-      const transformedData = [];
-      
-      // Add opening balance if exists
-      if (data.openingDebit > 0 || data.openingCredit > 0) {
-        transformedData.push({
+      // Map API response directly to table
+      const transformedData = (data.entries || []).map(entry => ({
+        accName: entry.accName || "",
+        receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "",
+        payments: entry.credit > 0 ? entry.credit.toFixed(2) : "",
+        isTotal: entry.accName === "Total"
+      }));
+      // Optionally add opening/closing balances if present
+      if (data.openingCredit > 0 || data.openingDebit > 0) {
+        transformedData.unshift({
           accName: "Opening Balance",
           receipts: data.openingDebit > 0 ? data.openingDebit.toFixed(2) : "",
           payments: data.openingCredit > 0 ? data.openingCredit.toFixed(2) : "",
         });
       }
-      
-      // Add entries
-      if (data.entries && data.entries.length > 0) {
-        data.entries.forEach(entry => {
-          transformedData.push({
-            accName: entry.accName || entry.description || "",
-            receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "",
-            payments: entry.credit > 0 ? entry.credit.toFixed(2) : "",
-          });
-        });
-      }
-      
-      // Add total row
-      transformedData.push({
-        accName: "Total",
-        receipts: data.totalDebit.toFixed(2),
-        payments: data.totalCredit.toFixed(2),
-        isTotal: true
-      });
-      
-      // Add closing balance if exists and not selecting ALL
-      if (!selectedBranches.includes('ALL') && (data.closingDebit > 0 || data.closingCredit > 0)) {
+      if (data.closingCredit > 0 || data.closingDebit > 0) {
         transformedData.push({
           accName: "Closing Balance",
           receipts: data.closingDebit > 0 ? data.closingDebit.toFixed(2) : "",
           payments: data.closingCredit > 0 ? data.closingCredit.toFixed(2) : "",
         });
       }
-      
-      // Check if no records found
-      const hasOpeningBalance = data.openingDebit > 0 || data.openingCredit > 0;
-      const hasEntries = data.entries && data.entries.length > 0;
-      const hasClosingBalance = !selectedBranches.includes('ALL') && (data.closingDebit > 0 || data.closingCredit > 0);
-      
-      if (!hasOpeningBalance && !hasEntries && !hasClosingBalance) {
+      if (transformedData.length === 0) {
         toast.info('No records found for the selected date range');
       }
-      
       setDayBookData(transformedData);
       setApiTotals({
         totalDebit: data.totalDebit || 0,
@@ -320,7 +300,6 @@ const DayBook = () => {
         closingCredit: data.closingCredit || 0
       });
       setTableLoaded(true);
-      
     } catch (error) {
       console.error('Error fetching daybook data:', error);
       toast.error('Failed to load daybook data. Please try again.');
