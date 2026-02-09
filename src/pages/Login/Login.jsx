@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import axiosInstance from '../../api/axiosInstance';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import styles from './Login.module.css';
+import logo from '../../assets/logo.jpeg';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -103,7 +104,8 @@ const Login = () => {
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
         <div className={styles.loginHeader}>
-          <h1 className={styles.title}>Sankara Pandian Stores</h1>
+          <img src={logo} alt="R Sankarapandian Stores Logo" className={styles.logo} />
+          <h1 className={styles.title}>R Sankarapandian Stores</h1>
           <p className={styles.subtitle}>Sign in to your account</p>
         </div>
 
