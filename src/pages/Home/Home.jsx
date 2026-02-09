@@ -497,7 +497,7 @@ const Home = () => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.1 }}
     >
-      Welcome to <span className="store-name">Sankarapandian Store</span>
+      Welcome to <span className="store-name">R Sankarapandian Stores</span>
     </motion.h1>
 
     <motion.div 

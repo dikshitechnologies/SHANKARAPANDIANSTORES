@@ -569,8 +569,8 @@ const Navbar = () => {
         <div className={styles["nav-container"]}>
           {/* Left: Logo */}
           <Link to="/" className={styles["nav-logo"]} onClick={closeMobileMenu}>
-            <span className={styles["logo-text"]}>Sankarapandian</span>
-            <span className={styles["logo-subtext"]}>Store</span>
+            <span className={styles["logo-text"]}>R Sankarapandian</span>
+            <span className={styles["logo-subtext"]}>Stores</span>
           </Link>
           {!isMobile && (
             <div className={styles["nav-screen-title"]}>

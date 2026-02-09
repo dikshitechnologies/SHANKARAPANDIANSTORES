@@ -4547,10 +4547,10 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         }}
         title="Select Item"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
-        displayFieldKeys={['name','barcode']}
-        headerNames={['Name','Barcode']}
-        searchFields={['name',' barcode']}
-        columnWidths={{ name: '50%',barcode : '50%' }}
+        displayFieldKeys={['name']}
+        headerNames={['Name']}
+        searchFields={['name']}
+        columnWidths={{ name: '50%' }}
         searchPlaceholder="Search by name or barcode..."
         initialSearch={itemSearchTerm}
         onSelect={handleItemCodeSelection}
