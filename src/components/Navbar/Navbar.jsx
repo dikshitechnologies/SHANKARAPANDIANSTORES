@@ -204,12 +204,12 @@ const Navbar = () => {
     { name: 'Tax Creation', path: '/masters/Tax-Creation', icon: <BuildOutlined />, permission: 'TAX_CREATION' },
 
      
-    {
-      name: "DayClose",
-      path: "/masters/DayClose",
-      icon: <BuildOutlined />,
-      permission: "DayClose",
-    },
+    // {
+    //   name: "DayClose",
+    //   path: "/masters/DayClose",
+    //   icon: <BuildOutlined />,
+    //   permission: "DayClose",
+    // },
   ];
 
   const transactionItems = [
