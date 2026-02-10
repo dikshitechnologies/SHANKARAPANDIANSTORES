@@ -290,6 +290,12 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "SCRAP_PROCUREMENT",
     },
+     {
+          name: "Bill Print",
+          path: "/transactions/bill-print",
+          icon: <MoneyCollectOutlined />,
+          permission: "BILL_PRINT",
+        },
     // {
     //   name: "Tag Print",
     //   path: "/transactions/Tag-Print",
