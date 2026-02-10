@@ -10,6 +10,7 @@ import { usePermissions } from "../../hooks/usePermissions";
 import { PERMISSION_CODES } from "../../constants/permissions";
 import PopupListSelector from "../Listpopup/PopupListSelector";
 import PrintInvoice from "../../pages/PrintInvoice/PrintInvoice";
+import { generateTenderA4PDF } from "../../pages/PrintTaxInvoice/PrintTaxInvoice";
 import js from "@eslint/js";
 const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
@@ -55,6 +56,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const printInvoiceRef = useRef(null);
   const [printBillData, setPrintBillData] = useState(null);
   const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
+  const [printType, setPrintType] = useState("thermal"); // "thermal" or "a4"
 
   const [denominations, setDenominations] = useState({
     500: { available: 0, collect: "", issue: "", closing: 0 },
@@ -1267,12 +1269,13 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           r1: Number(denominations[1].issue) || 0,
         },
       };
-
+  console.log(JSON.stringify(payload));
+ 
       const response = await apiService.post(
         "BillCollector/InsertTender",
         payload,
       );
-      console.log(JSON.stringify(payload));
+    
       if (response) {
         setConfirmSaveOpen(false);
 
@@ -1487,9 +1490,14 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   };
 
   const handlePrintConfirm = () => {
-    // Trigger the print function
-    if (printInvoiceRef.current) {
-      printInvoiceRef.current.print();
+    // Trigger the appropriate print function based on print type
+    if (printType === "thermal") {
+      if (printInvoiceRef.current) {
+        printInvoiceRef.current.print();
+      }
+    } else if (printType === "a4") {
+      // Use A4 print function
+      generateTenderA4PDF({ billData: printBillData });
     }
     setPrintConfirmationOpen(false);
     onClose();
@@ -2376,14 +2384,56 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
 
           {/* Bottom Action Buttons */}
           <div className={styles.footer}>
-            <ActionButtons1
-              ref={saveButtonRef}
-              onClear={handleClear}
-              onSave={handleSave}
-              onPrint={handlePrint}
-              activeButton={activeFooterAction}
-              onButtonClick={(type) => setActiveFooterAction(type)}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px', width: '100%' }}>
+              {/* Action Buttons */}
+              <div style={{ flex: 1 }}>
+                <ActionButtons1
+                  ref={saveButtonRef}
+                  onClear={handleClear}
+                  onSave={handleSave}
+                  onPrint={handlePrint}
+                  activeButton={activeFooterAction}
+                  onButtonClick={(type) => setActiveFooterAction(type)}
+                />
+              </div>
+              
+              {/* Print Type Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>Print:</span>
+                <button
+                  onClick={() => setPrintType("thermal")}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    backgroundColor: printType === "thermal" ? '#4CAF50' : '#fff',
+                    color: printType === "thermal" ? '#fff' : '#333',
+                    fontWeight: printType === "thermal" ? '600' : '400',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Thermal
+                </button>
+                <button
+                  onClick={() => setPrintType("a4")}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    backgroundColor: printType === "a4" ? '#4CAF50' : '#fff',
+                    color: printType === "a4" ? '#fff' : '#333',
+                    fontWeight: printType === "a4" ? '600' : '400',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  A4
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
