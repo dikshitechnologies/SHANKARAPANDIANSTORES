@@ -2372,99 +2372,132 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   }, []);
 
   // Update the handleTableKeyDown function
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    // Handle / key for item code search popup
-    if (e.key === '/') {
-      e.preventDefault();
-      // handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
-      return;
+ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Handle / key for item code search popup
+  if (e.key === '/') {
+    e.preventDefault();
+    return;
+  }
+
+  // Get current item's UOM
+  const currentItem = items[currentRowIndex];
+  const currentUom = (currentItem?.uom || '').toLowerCase();
+  
+  // Define which fields to skip based on UOM
+  const shouldSkipWeightFields = ['pcs', 'unit', 'each', 'piece', 'units', 'pc'].includes(currentUom);
+  
+  // Fields in the visual order
+  const fields = [
+    'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+    'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+    'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
+  ];
+
+  // Get next field with weight field skipping logic
+  const getNextField = (currentFieldIndex) => {
+    if (shouldSkipWeightFields && currentField === 'qty') {
+      // When moving from qty and UOM is pcs, skip to prate
+      return 'prate';
     }
+    
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      return fields[currentFieldIndex + 1];
+    }
+    return currentField;
+  };
 
-    // Fields in the visual order
-    const fields = [
-      'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-      'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
-      'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
-    ];
+  // Get previous field with weight field skipping logic
+  const getPrevField = (currentFieldIndex) => {
+    if (shouldSkipWeightFields && currentField === 'prate') {
+      // When moving back from prate and UOM is pcs, go back to qty
+      return 'qty';
+    }
+    
+    if (currentFieldIndex > 0) {
+      return fields[currentFieldIndex - 1];
+    }
+    return currentField;
+  };
 
-    const currentFieldIndex = fields.indexOf(currentField);
+  const currentFieldIndex = fields.indexOf(currentField);
 
-    // Handle Right arrow - move to next field in the same row
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        
-        const nextInput = document.querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
-           select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-        );
-        if (nextInput) {
-          nextInput.focus();
-          if (nextInput.tagName === 'INPUT') {
-            nextInput.select();
-          }
+  // Handle Right arrow - move to next field in the same row
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    const nextField = getNextField(currentFieldIndex);
+    
+    if (nextField !== currentField) {
+      const nextInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+      );
+      if (nextInput) {
+        nextInput.focus();
+        if (nextInput.tagName === 'INPUT') {
+          nextInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-    // Handle Left arrow - move to previous field in the same row
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      if (currentFieldIndex > 0) {
-        const prevField = fields[currentFieldIndex - 1];
-        const prevInput = document.querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${prevField}"], 
-           select[data-row="${currentRowIndex}"][data-field="${prevField}"]`
-        );
-        if (prevInput) {
-          prevInput.focus();
-          if (prevInput.tagName === 'INPUT') {
-            prevInput.select();
-          }
+  // Handle Left arrow - move to previous field in the same row
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const prevField = getPrevField(currentFieldIndex);
+    
+    if (prevField !== currentField) {
+      const prevInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${prevField}"], 
+         select[data-row="${currentRowIndex}"][data-field="${prevField}"]`
+      );
+      if (prevInput) {
+        prevInput.focus();
+        if (prevInput.tagName === 'INPUT') {
+          prevInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-    // Handle Up arrow - move to the same field in the row above
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (currentRowIndex > 0) {
-        const prevRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], 
-           select[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
-        );
-        if (prevRowInput) {
-          prevRowInput.focus();
-          if (prevRowInput.tagName === 'INPUT') {
-            prevRowInput.select();
-          }
+  // Handle Up arrow - move to the same field in the row above
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (currentRowIndex > 0) {
+      const prevRowInput = document.querySelector(
+        `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], 
+         select[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+      );
+      if (prevRowInput) {
+        prevRowInput.focus();
+        if (prevRowInput.tagName === 'INPUT') {
+          prevRowInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-    // Handle Down arrow - move to the same field in the row below
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (currentRowIndex < items.length - 1) {
-        const nextRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], 
-           select[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
-        );
-        if (nextRowInput) {
-          nextRowInput.focus();
-          if (nextRowInput.tagName === 'INPUT') {
-            nextRowInput.select();
-          }
+  // Handle Down arrow - move to the same field in the row below
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (currentRowIndex < items.length - 1) {
+      const nextRowInput = document.querySelector(
+        `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], 
+         select[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
+      );
+      if (nextRowInput) {
+        nextRowInput.focus();
+        if (nextRowInput.tagName === 'INPUT') {
+          nextRowInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-   if (e.key === 'Enter') {
+  if (e.key === 'Enter') {
     e.preventDefault();
     e.stopPropagation();
 
@@ -2503,9 +2536,21 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       return;
     }
 
-    // 👉 CASE 3: Normal fields → move RIGHT
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
+    // 👉 CASE 3: Special handling for qty when UOM is pcs
+    if (shouldSkipWeightFields && currentField === 'qty') {
+      const prateInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="prate"]`
+      );
+      if (prateInput) {
+        prateInput.focus();
+        prateInput.select();
+      }
+      return;
+    }
+
+    // 👉 CASE 4: Normal fields → move to next field
+    const nextField = getNextField(currentFieldIndex);
+    if (nextField !== currentField) {
       const nextInput = document.querySelector(
         `input[data-row="${currentRowIndex}"][data-field="${nextField}"],
          select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
@@ -2517,7 +2562,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       }
     }
   }
-  };
+};
 
   const handleClear = () => {
     showConfirmation({
