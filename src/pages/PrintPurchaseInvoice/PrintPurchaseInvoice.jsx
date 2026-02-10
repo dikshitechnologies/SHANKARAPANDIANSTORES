@@ -112,7 +112,7 @@ doc.setFontSize(11);
 const storeNameY = yPos + imgHeight + 7;
 
 doc.text(
-  'Sankarapandian Stores',
+  'R Sankarapandian Stores',
    leftColumnWidth / 2,
   storeNameY,
   { align: 'center' }
@@ -242,12 +242,12 @@ yPos = invoiceTitleY + 8;
     doc.setFontSize(9);
     
     // Table column widths for landscape (total 277mm)
-    const colWidths = [10, 25, 55, 15, 15, 15, 15, 15, 15, 15, 20, 20, 15, 15, 15];
+    const colWidths = [10, 25, 55, 15, 15, 15, 15, 15, 15, 20, 20, 15, 15, 15];
 
     const headers = [
-      'S.No', 'Barcode', 'Particulars', 'UOM', 'Stock', 'HSN',
+      'S.No', 'Barcode', 'Particulars', 'UOM', 'HSN',
       'Qty', 'OvrWt', 'PRate', 'Tax%', 'ACost',
-      'SRate', 'MRP', 'NTCost', 'Total'
+      'Asrate', 'MRP', 'Wrate', 'Total'
     ];
     
     let xPos = marginLeft;
@@ -335,48 +335,44 @@ yPos = invoiceTitleY + 8;
       doc.text(item.uom || '', xPos + (colWidths[3] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[3];
       
-      // Stock (col 4)
-      doc.text(formatCurrency(item.stock || 0), xPos + (colWidths[4] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // HSN (col 4)
+      doc.text(item.hsn || '', xPos + (colWidths[4] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[4];
       
-      // HSN (col 5)
-      doc.text(item.hsn || '', xPos + (colWidths[5] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // Qty (col 5)
+      doc.text(formatCurrency(item.qty || 0), xPos + (colWidths[5] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[5];
       
-      // Qty (col 6)
-      doc.text(formatCurrency(item.qty || 0), xPos + (colWidths[6] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // OvrWt (col 6)
+      doc.text(formatCurrency(item.ovrwt || 0), xPos + (colWidths[6] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[6];
       
-      // OvrWt (col 7)
-      doc.text(formatCurrency(item.ovrwt || 0), xPos + (colWidths[7] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // PRate (col 7)
+      doc.text(formatCurrency(item.prate || 0), xPos + (colWidths[7] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[7];
       
-      // PRate (col 8)
-      doc.text(formatCurrency(item.prate || 0), xPos + (colWidths[8] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // Tax% (col 8)
+      doc.text(`${item.intax || 0}%`, xPos + (colWidths[8] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[8];
       
-      // Tax% (col 9)
-      doc.text(`${item.intax || 0}%`, xPos + (colWidths[9] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // ACost (col 9)
+      doc.text(formatCurrency(item.acost || 0), xPos + (colWidths[9] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[9];
       
-      // ACost (col 10)
-      doc.text(formatCurrency(item.acost || 0), xPos + (colWidths[10] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // asrate (col 10)
+      doc.text(formatCurrency(item.asRate || 0), xPos + (colWidths[10] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[10];
       
-      // SRate (col 11)
-      doc.text(formatCurrency(item.sRate || 0), xPos + (colWidths[11] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // MRP (col 11)
+      doc.text(formatCurrency(item.mrp || 0), xPos + (colWidths[11] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[11];
       
-      // MRP (col 12)
-      doc.text(formatCurrency(item.mrp || 0), xPos + (colWidths[12] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // wrate (col 12)
+      doc.text(formatCurrency(item.wsRate || 0), xPos + (colWidths[12] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[12];
       
-      // NTCost (col 13)
-      doc.text(formatCurrency(item.ntCost || 0), xPos + (colWidths[13] / 2), yPos + rowHeight / 2, { align: 'center' });
-      xPos += colWidths[13];
-      
-      // Total (col 14)
-      doc.text(formatCurrency(item.amt || 0), xPos + (colWidths[14] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // Total (col 13)
+      doc.text(formatCurrency(item.amt || 0), xPos + (colWidths[13] / 2), yPos + rowHeight / 2, { align: 'center' });
       
       yPos += rowHeight;
     });
