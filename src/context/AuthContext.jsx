@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
       role: data.role,
       companyCode: data.fCompCode,
       companyName: data.fCompName,
-      userCode: data.fUcode || '', // fUcode may not exist for Admin
+      userCode: data.fUcode || '', 
       images: data.images || '',
       date: (() => {
       const now = new Date();
