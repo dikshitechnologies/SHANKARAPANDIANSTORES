@@ -2465,7 +2465,7 @@ const clearFormData = async () => {
           <th style={{ ...styles.th, textAlign: 'right' }}>UOM</th> {/* RIGHT ALIGN */}
           <th style={{ ...styles.th, textAlign: 'right' }}>TAX (%)</th> {/* RIGHT ALIGN */}
           <th style={{ ...styles.th, textAlign: 'right' }}>SRate</th> {/* RIGHT ALIGN */}
-          <th style={{ ...styles.th, textAlign: 'right' }}>Qty</th> {/* RIGHT ALIGN */}
+          <th style={{ ...styles.th, textAlign: 'right' }}>Qty/Wt</th> {/* RIGHT ALIGN */}
           <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th> {/* RIGHT ALIGN */}
           <th style={styles.th}>Action</th>
         </tr>

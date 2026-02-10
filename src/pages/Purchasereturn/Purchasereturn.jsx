@@ -1682,6 +1682,48 @@ if (e.key === 'Enter') {
   }
   return true;
 };
+
+
+const getPurchaseStockDetailsByBarcode = async (barcode) => {
+  if (!barcode || barcode.trim() === '') return null;
+
+  try {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getPurchaseStockDetailsByBarcode(barcode.trim())
+    );
+
+    console.log("Barcode API FULL response:", response.data);
+
+    // ✅ HANDLE REAL BACKEND RESPONSE
+    const item =
+      response?.data?.items?.[0] ||     // ✅ MOST IMPORTANT
+      response?.data?.data?.[0] ||
+      response?.data?.[0] ||
+      null;
+
+    if (!item) return null;
+
+    return {
+      barcode: item.barcode || barcode,
+      itemcode: item.itemcode || item.fItemcode || '',
+      fItemName: item.fItemName || item.itemName || '',
+      fstock: item.fstock || item.stock || 0,
+      rate: item.rate || 0,
+      mrp: item.mrp || 0,
+      fUnit: item.fUnit || item.uom || '',
+      fHSN: item.fHSN || item.hsn || '',
+      inTax: item.inTax || item.tax || 0,
+      wRate: item.wRate || 0,
+      rRate: item.rRate || 0,
+      
+      amount:  0,
+      success: true
+    };
+  } catch (err) {
+    console.error("Barcode API failed:", err);
+    return null;
+  }
+};
   const handleSave = () => {
     try {
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
@@ -3035,7 +3077,7 @@ const [savedBillDetailsForPrint, setSavedBillDetailsForPrint] = useState({});
                 style={focusedField === `barcode-${item.id}` ? styles.editableInputFocused : styles.editableInput}
                 value={item.barcode}
                 data-row={index}
-                readOnly
+                
                 data-field="barcode"
                 onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                 onKeyDown={(e) => handleTableKeyDown(e, index, 'barcode')}

@@ -37,7 +37,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
       <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>Scrap Bill Receipt</title>
+        <title></title>
         <style>
           @page {
             size: 80mm auto;
@@ -230,9 +230,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
     return (
       <div>
-        <div className="scrap-title">
-          <h3>SCRAP BILL</h3>
-        </div>
+        
         <div className="cust-name">
           <h6>Salesman: {billData.salesmanName || ' '}</h6>
         </div>
@@ -278,7 +276,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
             <tr>
               <th style={{ width: "30mm", textAlign: "left", fontWeight: "bold", fontSize: "11pt" }}>Particulars</th>
               <th style={{ width: "13mm", textAlign: "right", fontWeight: "bold", fontSize: "11pt" }}>Rate</th>
-              <th style={{ width: "13mm", textAlign: "right", fontWeight: "bold", fontSize: "11pt" }}>Qty</th>
+              <th style={{ width: "13mm", textAlign: "right", fontWeight: "bold", fontSize: "11pt" }}>Qty/Wt</th>
               <th style={{ width: "18mm", textAlign: "right", fontWeight: "bold", fontSize: "11pt" }}>Amount</th>
             </tr>
           </thead>
@@ -334,9 +332,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
     return (
       <div>
-        <div className="scrap-title">
-          <h3>SALES RETURN</h3>
-        </div>
+        
         <div className="cust-name">
           <h6>Salesman: {billData.salesmanName || ' '}</h6>
         </div>
@@ -411,9 +407,7 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
 
     return (
       <div>
-        <div className="scrap-title">
-          <h3>SALES INVOICE</h3>
-        </div>
+       
         <div className="cust-name">
           <h6>Salesman: {billData.salesmanName || ' '}</h6>
         </div>
@@ -503,13 +497,13 @@ const PrintReceipt = forwardRef(({ billData, mode = "scrap_bill" }, ref) => {
               }}
             />
           </div>
-          <div className="company-name">R.SANKARAPANDIAN STORE</div>
-          <div className="company-address">
+          <div className="company-name">R.SANKARAPANDIAN STORES</div>
+          {/* <div className="company-address">
             51/179, HARIHARAN BAZAAR STREET<br />
             PONNERI - 601204
           </div>
           <div className="contact">Customer Care: 044-27973611 / 72007 79217</div>
-          <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
+          <div className="gst-number">GST No: 33ECCPR7067N1ZL</div> */}
         </div>
 
         {/* Dynamic Content */}

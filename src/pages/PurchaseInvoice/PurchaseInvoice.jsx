@@ -787,7 +787,9 @@ const PurchaseInvoice = () => {
       wsRate: '',
       amt: '',
       min: '',
-      max: ''
+      max: '',
+      parentCode: '',
+      parentName: ''
     }
   ]);
 
@@ -1162,7 +1164,8 @@ const PurchaseInvoice = () => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: ''
       }]);
       
       // Clear header fields
@@ -1271,7 +1274,8 @@ const PurchaseInvoice = () => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: ''
       }]);
       
       // Clear header fields
@@ -1391,6 +1395,8 @@ const PurchaseInvoice = () => {
         max: item.maxQty || '',
         min: item.minQty || '',
         type: item.type || '',
+        parentCode: item.parentcode || '',
+        parentName: item.parentItemName || '',
       })) : [];
       
       return items;
@@ -1504,7 +1510,9 @@ const PurchaseInvoice = () => {
             wsRate: item.wRate || '',
             amt: item.amount || '',
             min: '',
-            max: ''
+            max: '',
+            parentCode: item.parentCode || '',
+            parentName: item.parentName || ''
           }));
           
           console.log('Formatted items:', formattedItems);
@@ -1540,7 +1548,9 @@ const PurchaseInvoice = () => {
             wsRate: '',
             amt: '',
             min: '',
-            max: ''
+            max: '',
+            parentCode: '',
+            parentName: ''
           }]);
         }
 
@@ -1582,7 +1592,9 @@ const PurchaseInvoice = () => {
           wsRate: '',
           amt: '',
           min: '',
-          max: ''
+          max: '',
+          parentCode: '',
+          parentName: ''
         };
         
         // Add new row to items
@@ -1709,7 +1721,9 @@ const PurchaseInvoice = () => {
               ntCost: '',
               wsPercent: '',
               wsRate: '',
-              amt: ''
+              amt: '',
+              parentCode: selectedItem.parentCode || '',
+              parentName: selectedItem.parentName || ''
             };
             return calculateItem(updatedItem);
           }
@@ -1753,7 +1767,9 @@ const PurchaseInvoice = () => {
               wsRate: '',
               amt: '',
               min: '',
-              max: ''
+              max: '',
+              parentCode: selectedItem.parentCode || '',
+              parentName: selectedItem.parentName || ''
             };
             return calculateItem(updatedItem);
           }
@@ -1853,7 +1869,9 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: item.fparent || groupCode || '',
+        parentName: selectedItem.fItemName || ''
       };
     });
     
@@ -2171,7 +2189,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: '',
+        parentName: ''
       };
 
       // 🔑 Focus AFTER state update
@@ -2727,6 +2747,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
             letProfPer: toNumber(it.letProfPer),
             ntCost: toNumber(it.ntCost),
             wsPer: toNumber(it.wsPercent),
+            parentCode: it.parentCode || '',
+            parentName: it.parentName || ''
           })),
       };
       
@@ -2857,7 +2879,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
               wsRate: '',
               amt: '',
               min: '',
-              max: ''
+              max: '',
+              parentCode: '',
+              parentName: ''
             }
           ]);
         },
@@ -3948,7 +3972,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                   }}
                   onFocus={() => setFocusedField(`name-${item.id}`)}
                   onBlur={() => setFocusedField('')}
-                  title="Click to select item from list"
+                  title={item.name}
                 />
                 <button
                   type="button"
