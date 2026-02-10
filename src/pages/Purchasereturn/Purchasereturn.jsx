@@ -41,7 +41,7 @@ const calculateTotals = (items = []) => {
 
 const PurchaseReturn = () => {
     const { userData } = useAuth() || {};
-    console.log('User data in PurchaseInvoice:', userData.date);
+    // console.log('User data in PurchaseInvoice:', userData.date);
     // Helper function to format date from "dd-mm-yyyy HH:MM:SS" to "yyyy-MM-dd"
   const formatDateForInput = (dateString) => {
     if (!dateString) return new Date().toISOString().substring(0, 10);
@@ -389,7 +389,24 @@ const handleBlur = () => {
       setIsLoading(false);
     }
   };
-
+ const fetchNextBillNo = async () => {
+    try {
+      setIsLoading(true);
+      const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
+      const endpoint = API_ENDPOINTS.PURCHASE_RETURN.GET_BILL_NO(compCode);
+      const response = await axiosInstance.get(endpoint);
+      console.log('Next bill number response:', response);
+      const nextCode = response?.data?.billno ?? response?.billNo;
+      if (nextCode) {
+        setBillDetails(prev => ({ ...prev, purNo: nextCode }));
+      }
+    } catch (err) {
+      console.warn('Failed to fetch next bill number:', err);
+      setBillDetails(prev => ({ ...prev, purNo: '' }));
+    } finally {
+      setIsLoading(false);
+    }
+ }
   // COMPLETE NEW FORM FUNCTION
   const createNewForm = async () => {
     try {
@@ -470,6 +487,7 @@ const handleBlur = () => {
       
       // Then fetch next invoice number
       await fetchNextInvNo();
+      await fetchNextBillNo();
       
       // Force a state update
      setTimeout(() => {
@@ -564,6 +582,7 @@ const handleBlur = () => {
       
       // Then fetch next invoice number
       await fetchNextInvNo();
+        await fetchNextBillNo();
       
       // Force a state update
       setTimeout(() => {
@@ -1158,6 +1177,7 @@ const handleBlur = () => {
   // Fetch next invoice number and auto barcode on mount
   useEffect(() => {
     fetchNextInvNo();
+    fetchNextBillNo();
     fetchAutoBarcode();
   }, [userData]);
 
