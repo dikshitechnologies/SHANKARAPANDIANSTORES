@@ -202,6 +202,7 @@ export const API_ENDPOINTS = {
 
   PURCHASE_RETURN: {
     GET_PURCHASE_RETURNS: (compCode) => `PurchaseReturn/GetPurchaseReturnVoucher/${compCode}`,
+    GET_BILL_NO: (compCode) => `PurchaseReturn/GetPurchaseReturnBillno/${compCode}`,
     GET_BILL_NUMBERS: (compCode, page = 1, pageSize = 20) => `PurchaseReturn/BillNumbers/${compCode}/${page}/${pageSize}`,
     GET_PURCHASE_RETURN_DETAILS: (voucherNo) => `PurchaseReturn/GetPurchaseReturnDetails/${voucherNo}`,
     GET_PURCHASE_BILL_LIST: (compCode, pageNo = 1, pageSize = 20) => `PurchaseReturn/GetPurchaseBillList?compCode=${compCode}&pageNo=${pageNo}&pageSize=${pageSize}`,

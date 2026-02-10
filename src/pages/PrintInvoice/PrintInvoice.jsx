@@ -425,7 +425,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               }}
             />
           </div>
-          <div className="company-name">R.SANKARAPANDIAN STORE</div>
+          <div className="company-name">R.SANKARAPANDIAN STORES</div>
           <div className="company-address">
             51/179, HARIHARAN BAZAAR STREET<br />
             PONNERI - 601204

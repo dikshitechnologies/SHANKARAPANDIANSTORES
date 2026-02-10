@@ -40,6 +40,7 @@ const DailyReport = () => {
   const [showCompanyPopup, setShowCompanyPopup] = useState(false);
   const [companyList, setCompanyList] = useState([]);
   const [companyLoading, setCompanyLoading] = useState(false);
+  const [companySearchTerm, setCompanySearchTerm] = useState('');
 
   // Fetch company list when popup opens
   useEffect(() => {
@@ -169,8 +170,9 @@ const DailyReport = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
-      minHeight: screenSize.isMobile ? '120px' : screenSize.isTablet ? '140px' : '160px',
-      maxHeight: screenSize.isMobile ? '120px' : screenSize.isTablet ? '140px' : '160px',
+      minHeight: screenSize.isMobile ? '180px' : screenSize.isTablet ? '200px' : '170px',
+      maxHeight: 'none',
+      
     },
     footerButtonContainer: {
       display: 'flex',
@@ -479,6 +481,157 @@ const DailyReport = () => {
       alignItems: 'center',
       gap: '10px',
     },
+    // Company Popup Styles
+    popupOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      backdropFilter: 'blur(2px)',
+    },
+    popupContent: {
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      width: screenSize.isMobile ? '90%' : screenSize.isTablet ? '500px' : '550px',
+      maxWidth: '90vw',
+      maxHeight: '80vh',
+      display: 'flex',
+      flexDirection: 'column',
+      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+      overflow: 'hidden',
+    },
+    popupHeader: {
+      backgroundColor: '#1976d2',
+      color: 'white',
+      padding: screenSize.isMobile ? '16px' : '20px 24px',
+      fontSize: TYPOGRAPHY.fontSize.lg,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    closeButton: {
+      background: 'none',
+      border: 'none',
+      color: 'white',
+      fontSize: '28px',
+      cursor: 'pointer',
+      padding: '0',
+      lineHeight: '1',
+      transition: 'transform 0.2s ease',
+    },
+    searchContainer: {
+      padding: screenSize.isMobile ? '12px' : '16px 24px',
+      borderBottom: '1px solid #e0e0e0',
+    },
+    searchInput: {
+      width: '100%',
+      padding: screenSize.isMobile ? '8px 12px' : '10px 14px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      outline: 'none',
+      boxSizing: 'border-box',
+      transition: 'border-color 0.2s ease',
+    },
+    companyList: {
+      flex: 1,
+      overflowY: 'auto',
+      padding: screenSize.isMobile ? '12px' : '16px 24px',
+      minHeight: '200px',
+      maxHeight: '400px',
+    },
+    companyItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: screenSize.isMobile ? '10px 8px' : '12px 10px',
+      cursor: 'pointer',
+      borderRadius: '6px',
+      marginBottom: '6px',
+      transition: 'all 0.2s ease',
+      backgroundColor: 'transparent',
+    },
+    selectedCompanyItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: screenSize.isMobile ? '10px 8px' : '12px 10px',
+      cursor: 'pointer',
+      borderRadius: '6px',
+      marginBottom: '6px',
+      transition: 'all 0.2s ease',
+      backgroundColor: '#e3f2fd',
+    },
+    companyCheckbox: {
+      width: '20px',
+      height: '20px',
+      border: '2px solid #bbb',
+      borderRadius: '4px',
+      marginRight: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      transition: 'all 0.2s ease',
+    },
+    selectedCompanyCheckbox: {
+      width: '20px',
+      height: '20px',
+      border: '2px solid #1976d2',
+      borderRadius: '4px',
+      marginRight: '12px',
+      backgroundColor: '#1976d2',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      transition: 'all 0.2s ease',
+    },
+    checkmark: {
+      color: 'white',
+      fontSize: '14px',
+      fontWeight: 'bold',
+    },
+    companyText: {
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.medium,
+      color: '#333',
+      flex: 1,
+    },
+    popupActions: {
+      borderTop: '1px solid #e0e0e0',
+      padding: screenSize.isMobile ? '12px' : '16px 24px',
+      backgroundColor: '#f9f9f9',
+    },
+    popupButtons: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '12px',
+    },
+    popupButton: {
+      padding: screenSize.isMobile ? '8px 20px' : '10px 28px',
+      fontSize: TYPOGRAPHY.fontSize.sm,
+      fontWeight: TYPOGRAPHY.fontWeight.bold,
+      borderRadius: '6px',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      border: 'none',
+    },
+    clearButton: {
+      backgroundColor: 'white',
+      color: '#d32f2f',
+      border: '2px solid #d32f2f',
+    },
+    okButton: {
+      backgroundColor: '#1976d2',
+      color: 'white',
+      border: 'none',
+    },
   };
 
   // --- API HANDLER ---
@@ -525,7 +678,11 @@ const DailyReport = () => {
             purchaseReturnbalance: data.purchaseReturnbalance || [],
             scrapbalance: data.scrapbalance || [],
             receiptcredit: data.receiptcredit || [],
-            paymnetcredit: data.paymnetcredit || []
+            paymnetcredit: data.paymnetcredit || [],
+            
+            // Balance data
+            openingBalance: data.openingBalance || null,
+            closingBalance: data.closingBalance || null
           };
           
           console.log('Transformed Data:', transformedData);
@@ -662,6 +819,23 @@ const DailyReport = () => {
     if (!reportData) return '';
     
     let content = '';
+    
+    // Opening Balance
+    if (reportData.openingBalance) {
+      content += `
+        <div class="section-title" style="background-color: #e8f5e9; color: #2e7d32;">OPENING BALANCE</div>
+        <table>
+          <tbody>
+            <tr>
+              <td colspan="2" style="text-align: left;"><strong>Opening Balance</strong></td>
+              <td colspan="2" class="amount" style="color: ${reportData.openingBalance.type === 'DR' ? '#d32f2f' : '#1976d2'};">
+                <strong>${formatCurrency(reportData.openingBalance.amount || 0)} ${reportData.openingBalance.type || 'DR'}</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
     
     // Sales Entry Data
     if (reportData.salesEntryData && reportData.salesEntryData.length > 0) {
@@ -887,10 +1061,10 @@ const DailyReport = () => {
       `;
     }
     
-    // Tender Data
-    if (reportData.tenderData && reportData.tenderData.length > 0) {
+    // Sales Entry Balance
+    if (reportData.salesEntrybalance && reportData.salesEntrybalance.length > 0) {
       content += `
-        <div class="section-title">TENDER DETAILS</div>
+        <div class="section-title">SALES ENTRY BALANCE</div>
         <table>
           <thead>
             <tr>
@@ -901,18 +1075,293 @@ const DailyReport = () => {
             </tr>
           </thead>
           <tbody>
-            ${reportData.tenderData.map(item => `
+            ${reportData.salesEntrybalance.map(item => `
               <tr>
-                <td>${item.invoiceNo || ''}</td>
-                <td>${item.upiPartyName && item.cardPartyName ? `${item.upiPartyName}, ${item.cardPartyName}` : item.upiPartyName || item.cardPartyName || 'Cash'}</td>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
                 <td class="amount">-</td>
-                <td class="amount">${formatCurrency(item.givenTotal || 0)}</td>
+                <td class="amount">${formatCurrency(item.cashAmt || item.amount || 0)}</td>
               </tr>
             `).join('')}
             <tr class="total-row">
               <td colspan="2"><strong>Total</strong></td>
               <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.salesEntrybalance, 'cashAmt') || calculateSectionTotal(reportData.salesEntrybalance, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Sales Return Balance
+    if (reportData.salesReturnbalance && reportData.salesReturnbalance.length > 0) {
+      content += `
+        <div class="section-title">SALES RETURN BALANCE</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.salesReturnbalance.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.salesReturnbalance, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Purchase Balance
+    if (reportData.purchasebalance && reportData.purchasebalance.length > 0) {
+      content += `
+        <div class="section-title">PURCHASE BALANCE</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.purchasebalance.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.refName || ''}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.purchasebalance, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Purchase Return Balance
+    if (reportData.purchaseReturnbalance && reportData.purchaseReturnbalance.length > 0) {
+      content += `
+        <div class="section-title">PURCHASE RETURN BALANCE</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.purchaseReturnbalance.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.refName || ''}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.purchaseReturnbalance, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Scrap Balance
+    if (reportData.scrapbalance && reportData.scrapbalance.length > 0) {
+      content += `
+        <div class="section-title">SCRAP BALANCE</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.scrapbalance.map(item => `
+              <tr>
+                <td>${item.voucherNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">${item.qty || '-'}</td>
+                <td class="amount">${formatCurrency(item.amount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.scrapbalance, 'amount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Payment Credit
+    if (reportData.paymnetcredit && reportData.paymnetcredit.length > 0) {
+      content += `
+        <div class="section-title">PAYMENT CREDIT</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.paymnetcredit.map(item => `
+              <tr>
+                <td>${item.vouchNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.debitAMt || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.paymnetcredit, 'debitAMt'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Receipt Credit
+    if (reportData.receiptcredit && reportData.receiptcredit.length > 0) {
+      content += `
+        <div class="section-title">RECEIPT CREDIT</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Voucher No</th>
+              <th>Party Name</th>
+              <th>Qty</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.receiptcredit.map(item => `
+              <tr>
+                <td>${item.vouchNo || ''}</td>
+                <td>${item.partyName || ''}</td>
+                <td class="amount">-</td>
+                <td class="amount">${formatCurrency(item.creditAmount || 0)}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td colspan="2"><strong>Total</strong></td>
+              <td class="amount"><strong>-</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.receiptcredit, 'creditAmount'))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Tender Data (Full Details with 15 columns)
+    if (reportData.tenderData && reportData.tenderData.length > 0) {
+      content += `
+        <div class="section-title" style="background-color: #fff9c4;">TENDER DETAILS</div>
+        <table style="font-size: 10px;">
+          <thead>
+            <tr>
+              <th>Invoice No</th>
+              <th>Total Given</th>
+              <th>UPI Amount</th>
+              <th>UPI Party</th>
+              <th>Card Amount</th>
+              <th>Card Party</th>
+              <th>₹500</th>
+              <th>₹200</th>
+              <th>₹100</th>
+              <th>₹50</th>
+              <th>₹20</th>
+              <th>₹10</th>
+              <th>₹5</th>
+              <th>₹2</th>
+              <th>₹1</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.tenderData.map(item => `
+              <tr>
+                <td>${item.invoiceNo || 'N/A'}</td>
+                <td class="amount" style="font-weight: bold;">${formatCurrency(item.givenTotal || 0)}</td>
+                <td class="amount">${formatCurrency(item.upiAmount || 0)}</td>
+                <td>${item.upiPartyName || '-'}</td>
+                <td class="amount">${formatCurrency(item.cardAmount || 0)}</td>
+                <td>${item.cardPartyName || '-'}</td>
+                <td class="amount">${item.r500 || 0}</td>
+                <td class="amount">${item.r200 || 0}</td>
+                <td class="amount">${item.r100 || 0}</td>
+                <td class="amount">${item.r50 || 0}</td>
+                <td class="amount">${item.r20 || 0}</td>
+                <td class="amount">${item.r10 || 0}</td>
+                <td class="amount">${item.r5 || 0}</td>
+                <td class="amount">${item.r2 || 0}</td>
+                <td class="amount">${item.r1 || 0}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td><strong>Total</strong></td>
               <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.tenderData, 'givenTotal'))}</strong></td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.tenderData, 'upiAmount'))}</strong></td>
+              <td>-</td>
+              <td class="amount"><strong>${formatCurrency(calculateSectionTotal(reportData.tenderData, 'cardAmount'))}</strong></td>
+              <td>-</td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r500')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r200')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r100')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r50')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r20')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r10')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r5')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r2')}</strong></td>
+              <td class="amount"><strong>${calculateSectionTotal(reportData.tenderData, 'r1')}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    }
+    
+    // Closing Balance
+    if (reportData.closingBalance) {
+      content += `
+        <div class="section-title" style="background-color: #fff3e0; color: #e65100;">CLOSING BALANCE</div>
+        <table>
+          <tbody>
+            <tr>
+              <td colspan="2" style="text-align: left;"><strong>Closing Balance</strong></td>
+              <td colspan="2" class="amount" style="color: ${reportData.closingBalance.type === 'DR' ? '#d32f2f' : '#1976d2'};">
+                <strong>${formatCurrency(reportData.closingBalance.amount || 0)} ${reportData.closingBalance.type || 'CR'}</strong>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -968,6 +1417,12 @@ const DailyReport = () => {
     let csvContent = '\uFEFF'; // BOM for UTF-8
     csvContent += `Daily Report - From: ${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}\n`;
     csvContent += `Company: ${userData?.companyCode || '001'}\n\n`;
+    
+    // Opening Balance
+    if (reportData.openingBalance) {
+      csvContent += 'OPENING BALANCE\n';
+      csvContent += `Opening Balance,${reportData.openingBalance.amount || 0},${reportData.openingBalance.type || 'DR'}\n\n`;
+    }
     
     // Sales Entry Data
     if (reportData.salesEntryData && reportData.salesEntryData.length > 0) {
@@ -1053,17 +1508,106 @@ const DailyReport = () => {
       csvContent += `Total,,${calculateSectionTotal(reportData.scrapprocurement, 'qty')},${calculateSectionTotal(reportData.scrapprocurement, 'amount')}\n\n`;
     }
     
-    // Tender Data
-    if (reportData.tenderData && reportData.tenderData.length > 0) {
-      csvContent += 'TENDER DETAILS\n';
+    // Sales Entry Balance
+    if (reportData.salesEntrybalance && reportData.salesEntrybalance.length > 0) {
+      csvContent += 'SALES ENTRY BALANCE\n';
       csvContent += 'Voucher No,Party Name,Qty,Amount\n';
       
-      reportData.tenderData.forEach(item => {
-        const partyName = item.upiPartyName && item.cardPartyName ? `${item.upiPartyName}, ${item.cardPartyName}` : item.upiPartyName || item.cardPartyName || 'Cash';
-        csvContent += `"${item.invoiceNo || ''}","${partyName}","-","${item.givenTotal || 0}"\n`;
+      reportData.salesEntrybalance.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","-","${item.cashAmt || item.amount || 0}"\n`;
       });
       
-      csvContent += `Total,,-,${calculateSectionTotal(reportData.tenderData, 'givenTotal')}\n\n`;
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.salesEntrybalance, 'cashAmt') || calculateSectionTotal(reportData.salesEntrybalance, 'amount')}\n\n`;
+    }
+    
+    // Sales Return Balance
+    if (reportData.salesReturnbalance && reportData.salesReturnbalance.length > 0) {
+      csvContent += 'SALES RETURN BALANCE\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.salesReturnbalance.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","-","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.salesReturnbalance, 'amount')}\n\n`;
+    }
+    
+    // Purchase Balance
+    if (reportData.purchasebalance && reportData.purchasebalance.length > 0) {
+      csvContent += 'PURCHASE BALANCE\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.purchasebalance.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.refName || ''}","-","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.purchasebalance, 'amount')}\n\n`;
+    }
+    
+    // Purchase Return Balance
+    if (reportData.purchaseReturnbalance && reportData.purchaseReturnbalance.length > 0) {
+      csvContent += 'PURCHASE RETURN BALANCE\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.purchaseReturnbalance.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.refName || ''}","-","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.purchaseReturnbalance, 'amount')}\n\n`;
+    }
+    
+    // Scrap Balance
+    if (reportData.scrapbalance && reportData.scrapbalance.length > 0) {
+      csvContent += 'SCRAP BALANCE\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.scrapbalance.forEach(item => {
+        csvContent += `"${item.voucherNo || ''}","${item.partyName || ''}","${item.qty || '-'}","${item.amount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.scrapbalance, 'amount')}\n\n`;
+    }
+    
+    // Payment Credit
+    if (reportData.paymnetcredit && reportData.paymnetcredit.length > 0) {
+      csvContent += 'PAYMENT CREDIT\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.paymnetcredit.forEach(item => {
+        csvContent += `"${item.vouchNo || ''}","${item.partyName || ''}","-","${item.debitAMt || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.paymnetcredit, 'debitAMt')}\n\n`;
+    }
+    
+    // Receipt Credit
+    if (reportData.receiptcredit && reportData.receiptcredit.length > 0) {
+      csvContent += 'RECEIPT CREDIT\n';
+      csvContent += 'Voucher No,Party Name,Qty,Amount\n';
+      
+      reportData.receiptcredit.forEach(item => {
+        csvContent += `"${item.vouchNo || ''}","${item.partyName || ''}","-","${item.creditAmount || 0}"\n`;
+      });
+      
+      csvContent += `Total,,-,${calculateSectionTotal(reportData.receiptcredit, 'creditAmount')}\n\n`;
+    }
+    
+    // Tender Data (Full Details with 15 columns)
+    if (reportData.tenderData && reportData.tenderData.length > 0) {
+      csvContent += 'TENDER DETAILS\n';
+      csvContent += 'Invoice No,Total Given,UPI Amount,UPI Party,Card Amount,Card Party,₹500,₹200,₹100,₹50,₹20,₹10,₹5,₹2,₹1\n';
+      
+      reportData.tenderData.forEach(item => {
+        csvContent += `"${item.invoiceNo || ''}","${item.givenTotal || 0}","${item.upiAmount || 0}","${item.upiPartyName || '-'}","${item.cardAmount || 0}","${item.cardPartyName || '-'}","${item.r500 || 0}","${item.r200 || 0}","${item.r100 || 0}","${item.r50 || 0}","${item.r20 || 0}","${item.r10 || 0}","${item.r5 || 0}","${item.r2 || 0}","${item.r1 || 0}"\n`;
+      });
+      
+      csvContent += `Total,${calculateSectionTotal(reportData.tenderData, 'givenTotal')},${calculateSectionTotal(reportData.tenderData, 'upiAmount')},-,${calculateSectionTotal(reportData.tenderData, 'cardAmount')},-,${calculateSectionTotal(reportData.tenderData, 'r500')},${calculateSectionTotal(reportData.tenderData, 'r200')},${calculateSectionTotal(reportData.tenderData, 'r100')},${calculateSectionTotal(reportData.tenderData, 'r50')},${calculateSectionTotal(reportData.tenderData, 'r20')},${calculateSectionTotal(reportData.tenderData, 'r10')},${calculateSectionTotal(reportData.tenderData, 'r5')},${calculateSectionTotal(reportData.tenderData, 'r2')},${calculateSectionTotal(reportData.tenderData, 'r1')}\n\n`;
+    }
+    
+    // Closing Balance
+    if (reportData.closingBalance) {
+      csvContent += 'CLOSING BALANCE\n';
+      csvContent += `Closing Balance,${reportData.closingBalance.amount || 0},${reportData.closingBalance.type || 'CR'}\n\n`;
     }
     
     return csvContent;
@@ -1109,7 +1653,7 @@ const DailyReport = () => {
                   required
                 />
               </div>
-              <div style={styles.formField}>
+              <div style={{...styles.formField, flex: screenSize.isMobile || screenSize.isTablet ? '1 1 100%' : '1 1 auto', minWidth: screenSize.isMobile || screenSize.isTablet ? '100%' : '250px'}}>
                 <label style={styles.label}>Company Name:</label>
                 <input
                   type="text"
@@ -1131,43 +1675,157 @@ const DailyReport = () => {
               </button>
               <button type="button" style={styles.buttonSecondary} onClick={handleRefresh}>Refresh</button>
             </div>
+
+          
           </div>
-        </form>
-        {/* Company Popup */}
-        {showCompanyPopup && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.2)', zIndex: 9999 }}>
-            <div style={{ maxWidth: 420, margin: '10% auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 16px rgba(0,0,0,0.2)', padding: 0, position: 'relative', overflow: 'hidden' }}>
-              {/* Blue Header */}
-              <div style={{ background: '#1976d2', color: '#fff', fontWeight: 600, fontSize: 18, padding: '16px 24px', position: 'relative' }}>
-                Select Companies
-                <button style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', fontSize: 22, color: '#fff', cursor: 'pointer' }} onClick={() => setShowCompanyPopup(false)}>×</button>
+          {showCompanyPopup && (
+          <div style={styles.popupOverlay} onClick={() => setShowCompanyPopup(false)}>
+            <div style={styles.popupContent} onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div style={styles.popupHeader}>
+                Select Company
+                <button 
+                  style={styles.closeButton}
+                  onClick={() => setShowCompanyPopup(false)}
+                  onMouseEnter={(e) => e.target.style.transform = 'rotate(90deg)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'rotate(0deg)'}
+                >
+                  ×
+                </button>
               </div>
-              {/* List */}
-              <div style={{ maxHeight: 320, overflowY: 'auto', padding: '24px' }}>
+              
+              {/* Search Bar */}
+              <div style={styles.searchContainer}>
+                <input
+                  type="text"
+                  placeholder="Search companies..."
+                  value={companySearchTerm}
+                  onChange={(e) => setCompanySearchTerm(e.target.value)}
+                  style={styles.searchInput}
+                  onFocus={(e) => e.target.style.borderColor = '#1976d2'}
+                  onBlur={(e) => e.target.style.borderColor = '#ddd'}
+                />
+              </div>
+              
+              {/* Company List */}
+              <div style={styles.companyList}>
                 {companyLoading ? (
-                  <div>Loading...</div>
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Loading...</div>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-                      <input type="checkbox" checked={companyName === 'ALL'} onChange={() => setCompanyName('ALL')} style={{ marginRight: 8 }} />
-                      <span style={{ fontWeight: 500 }}>ALL</span>
-                    </div>
-                    {companyList.map((c, idx) => (
-                      <div key={c.fcompcode} style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-                        <input type="checkbox" checked={companyName === c.fcompname} onChange={() => setCompanyName(c.fcompname)} style={{ marginRight: 8 }} />
-                        <span style={{ fontWeight: 500 }}>{c.fcompname}</span>
-                        <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>Code: {c.fcompcode}</span>
+                    {/* ALL option */}
+                    <div 
+                      style={companyName === 'ALL' ? styles.selectedCompanyItem : styles.companyItem}
+                      onClick={() => setCompanyName('ALL')}
+                      onMouseEnter={(e) => {
+                        if (companyName !== 'ALL') {
+                          e.currentTarget.style.backgroundColor = '#f5f5f5';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (companyName !== 'ALL') {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                    >
+                      <div style={companyName === 'ALL' ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                        {companyName === 'ALL' && <div style={styles.checkmark}>✓</div>}
                       </div>
-                    ))}
+                      <span style={styles.companyText}>ALL</span>
+                    </div>
+                    
+                    {/* Individual companies */}
+                    {companyList
+                      .filter(company => 
+                        company.fcompname.toLowerCase().includes(companySearchTerm.toLowerCase())
+                      )
+                      .map((company) => {
+                      const isSelected = companyName === company.fcompname;
+                      return (
+                        <div 
+                          key={company.fcompcode} 
+                          style={isSelected ? styles.selectedCompanyItem : styles.companyItem}
+                          onClick={() => setCompanyName(company.fcompname)}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.backgroundColor = '#f5f5f5';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
+                          }}
+                        >
+                          <div style={isSelected ? styles.selectedCompanyCheckbox : styles.companyCheckbox}>
+                            {isSelected && <div style={styles.checkmark}>✓</div>}
+                          </div>
+                          <span style={styles.companyText}>{company.fcompname}</span>
+                          <span style={{ color: '#888', fontSize: '13px', marginLeft: '8px' }}>Code: {company.fcompcode}</span>
+                        </div>
+                      );
+                    })}
                   </>
                 )}
               </div>
-              {/* Footer Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #eee', padding: '12px 24px', background: '#f9f9f9' }}>
-                <button style={{ marginRight: 8, background: '#fff', border: '1px solid #d32f2f', color: '#d32f2f', borderRadius: 4, padding: '6px 24px', fontWeight: 500, cursor: 'pointer' }} onClick={() => setCompanyName('')}>Clear</button>
-                <button style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 24px', fontWeight: 500, cursor: 'pointer' }} onClick={() => setShowCompanyPopup(false)}>OK</button>
+              
+              {/* Footer Actions */}
+              <div style={styles.popupActions}>
+                <div style={styles.popupButtons}>
+                  <button 
+                    style={{...styles.popupButton, ...styles.clearButton}}
+                    onClick={() => setCompanyName('')}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#ffebee'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                  >
+                    Clear
+                  </button>
+                  <button 
+                    style={{...styles.popupButton, ...styles.okButton}}
+                    onClick={() => setShowCompanyPopup(false)}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#1565c0'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = '#1976d2'}
+                  >
+                    OK
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
+        )}
+
+        </form>
+        {/* Company Popup */}
+
+
+        
+        {/* Opening Balance Section */}
+        {showReport && reportData && reportData.openingBalance && (
+          <div style={{
+            backgroundColor: '#e8f5e9',
+            padding: '10px',
+            borderRadius: '8px',
+            marginTop: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',           
+            maxWidth: '400px'
+          }}>
+            <span style={{
+              fontSize: TYPOGRAPHY.fontSize.lg,
+              fontWeight: TYPOGRAPHY.fontWeight.bold,
+              color: '#2e7d32',
+              textAlign: 'left'
+            }}>
+              Opening Balance
+            </span>
+            <span style={{
+              fontSize: TYPOGRAPHY.fontSize.xl,
+              fontWeight: TYPOGRAPHY.fontWeight.bold,
+              color: reportData.openingBalance.type === 'DR' ? '#d32f2f' : '#1976d2'
+            }}>
+              {formatCurrency(reportData.openingBalance.amount || 0)} {reportData.openingBalance.type || 'DR'}
+            </span>
           </div>
         )}
       </div>
@@ -1191,7 +1849,7 @@ const DailyReport = () => {
                 fontSize: TYPOGRAPHY.fontSize.xl,
                 fontWeight: TYPOGRAPHY.fontWeight.bold
               }}>
-                Daily Report: {formatDisplayDate(fromDate)} to {formatDisplayDate(toDate)}
+             
               </h2>
 
               {/* Main Table with Left and Right Sections */}
@@ -1199,10 +1857,11 @@ const DailyReport = () => {
                 display: 'flex',
                 gap: '20px',
                 flexDirection: screenSize.isMobile ? 'column' : 'row',
-                height: 'calc(100vh - 300px)'
+                maxHeight: 'calc(100vh - 450px)',
+                minHeight: '400px'
               }}>
                 
-                {/* LEFT SIDE: All Transaction Data */}
+                {/* LEFT SIDE: Transaction Data */}
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   <table style={{...styles.table, width: '100%'}}>
                     <thead>
@@ -1219,7 +1878,7 @@ const DailyReport = () => {
                       {reportData.salesEntryData && reportData.salesEntryData.length > 0 && (
                         <>
                           <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e3f2fd'}}>
                               SALES ENTRY
                             </td>
                           </tr>
@@ -1240,51 +1899,26 @@ const DailyReport = () => {
                         </>
                       )}
 
-                      {/* Payment Vouchers Section */}
-                      {reportData.paymentData && reportData.paymentData.length > 0 && (
+                      {/* Sales Return Data Section */}
+                      {reportData.salesReturnData && reportData.salesReturnData.length > 0 && (
                         <>
                           <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
-                              PAYMENT VOUCHERS
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fff3e0'}}>
+                              SALES RETURNS
                             </td>
                           </tr>
-                          {reportData.paymentData.map((item, index) => (
-                            <tr key={`payment-${index}`}>
+                          {reportData.salesReturnData.map((item, index) => (
+                            <tr key={`salesReturn-${index}`}>
                               <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
+                              <td style={styles.td}>{item.qty || 0}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Payment Total</strong></td>
+                            <td style={styles.td} colSpan={3}><strong>Sales Return Total</strong></td>
                             <td style={styles.td}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.paymentData, 'billAmount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
-
-                      {/* Receipt Vouchers Section */}
-                      {reportData.receiptData && reportData.receiptData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
-                              RECEIPT VOUCHERS
-                            </td>
-                          </tr>
-                          {reportData.receiptData.map((item, index) => (
-                            <tr key={`receipt-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Receipt Total</strong></td>
-                            <td style={styles.td}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.receiptData, 'billAmount'))}</strong>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnData, 'amount'))}</strong>
                             </td>
                           </tr>
                         </>
@@ -1294,7 +1928,7 @@ const DailyReport = () => {
                       {reportData.purchaseData && reportData.purchaseData.length > 0 && (
                         <>
                           <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e8f5e9'}}>
                               PURCHASE DATA
                             </td>
                           </tr>
@@ -1319,7 +1953,7 @@ const DailyReport = () => {
                       {reportData.purchaseReturnData && reportData.purchaseReturnData.length > 0 && (
                         <>
                           <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fce4ec'}}>
                               PURCHASE RETURNS
                             </td>
                           </tr>
@@ -1340,36 +1974,11 @@ const DailyReport = () => {
                         </>
                       )}
 
-                      {/* Sales Return Data Section */}
-                      {reportData.salesReturnData && reportData.salesReturnData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
-                              SALES RETURNS
-                            </td>
-                          </tr>
-                          {reportData.salesReturnData.map((item, index) => (
-                            <tr key={`salesReturn-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty || 0}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Sales Return Total</strong></td>
-                            <td style={styles.td}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnData, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
-
                       {/* Scrap Procurement Section */}
                       {reportData.scrapprocurement && reportData.scrapprocurement.length > 0 && (
                         <>
                           <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#f3e5f5'}}>
                               SCRAP PROCUREMENT
                             </td>
                           </tr>
@@ -1385,6 +1994,56 @@ const DailyReport = () => {
                             <td style={styles.td} colSpan={3}><strong>Scrap Procurement Total</strong></td>
                             <td style={styles.td}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.scrapprocurement, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Payment Vouchers Section */}
+                      {reportData.paymentData && reportData.paymentData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#ffebee'}}>
+                              PAYMENT VOUCHERS
+                            </td>
+                          </tr>
+                          {reportData.paymentData.map((item, index) => (
+                            <tr key={`payment-${index}`}>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Payment Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.paymentData, 'billAmount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Receipt Vouchers Section */}
+                      {reportData.receiptData && reportData.receiptData.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e0f2f1'}}>
+                              RECEIPT VOUCHERS
+                            </td>
+                          </tr>
+                          {reportData.receiptData.map((item, index) => (
+                            <tr key={`receipt-${index}`}>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Receipt Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.receiptData, 'billAmount'))}</strong>
                             </td>
                           </tr>
                         </>
@@ -1406,7 +2065,7 @@ const DailyReport = () => {
                   </table>
                 </div>
 
-                {/* RIGHT SIDE: Tender Data Only */}
+                {/* RIGHT SIDE: Balance & Credit Data */}
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                   <table style={{...styles.table, width: '100%'}}>
                     <thead>
@@ -1418,43 +2077,322 @@ const DailyReport = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Tender Data Section */}
-                      {reportData.tenderData && reportData.tenderData.length > 0 ? (
+                      
+                      {/* Sales Entry Balance Section */}
+                      {reportData.salesEntrybalance && reportData.salesEntrybalance.length > 0 && (
                         <>
                           <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg}}>
-                              TENDER DETAILS
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e3f2fd'}}>
+                              SALES ENTRY BALANCE
                             </td>
                           </tr>
-                          {reportData.tenderData.map((item, index) => (
-                            <tr key={`tender-${index}`}>
-                              <td style={styles.td}>{item.invoiceNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>
-                                {item.upiPartyName && item.cardPartyName 
-                                  ? `${item.upiPartyName}, ${item.cardPartyName}`
-                                  : item.upiPartyName || item.cardPartyName || 'Cash'
-                                }
-                              </td>
+                          {reportData.salesEntrybalance.map((item, index) => (
+                            <tr key={`salesBalance-${index}`}>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
                               <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.givenTotal || 0)}</td>
+                              <td style={styles.td}>{formatCurrency(item.cashAmt || item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Tender Total</strong></td>
+                            <td style={styles.td} colSpan={3}><strong>Sales Balance Total</strong></td>
                             <td style={styles.td}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.tenderData, 'givenTotal'))}</strong>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesEntrybalance, 'cashAmt') || calculateSectionTotal(reportData.salesEntrybalance, 'amount'))}</strong>
                             </td>
                           </tr>
                         </>
-                      ) : (
+                      )}
+
+                      {/* Sales Return Balance Section */}
+                      {reportData.salesReturnbalance && reportData.salesReturnbalance.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fff3e0'}}>
+                              SALES RETURN BALANCE
+                            </td>
+                          </tr>
+                          {reportData.salesReturnbalance.map((item, index) => (
+                            <tr key={`salesReturnBalance-${index}`}>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Sales Return Balance Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnbalance, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Purchase Balance Section */}
+                      {reportData.purchasebalance && reportData.purchasebalance.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e8f5e9'}}>
+                              PURCHASE BALANCE
+                            </td>
+                          </tr>
+                          {reportData.purchasebalance.map((item, index) => (
+                            <tr key={`purchaseBalance-${index}`}>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Purchase Balance Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchasebalance, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Purchase Return Balance Section */}
+                      {reportData.purchaseReturnbalance && reportData.purchaseReturnbalance.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fce4ec'}}>
+                              PURCHASE RETURN BALANCE
+                            </td>
+                          </tr>
+                          {reportData.purchaseReturnbalance.map((item, index) => (
+                            <tr key={`purchaseReturnBalance-${index}`}>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Purchase Return Balance Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseReturnbalance, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Scrap Balance Section */}
+                      {reportData.scrapbalance && reportData.scrapbalance.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#f3e5f5'}}>
+                              SCRAP BALANCE
+                            </td>
+                          </tr>
+                          {reportData.scrapbalance.map((item, index) => (
+                            <tr key={`scrapBalance-${index}`}>
+                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>{item.qty || '-'}</td>
+                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Scrap Balance Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.scrapbalance, 'amount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Payment Credit Section */}
+                      {reportData.paymnetcredit && reportData.paymnetcredit.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#ffebee'}}>
+                              PAYMENT CREDIT
+                            </td>
+                          </tr>
+                          {reportData.paymnetcredit.map((item, index) => (
+                            <tr key={`paymentCredit-${index}`}>
+                              <td style={styles.td}>{item.vouchNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.debitAMt || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Payment Credit Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.paymnetcredit, 'debitAMt'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Receipt Credit Section */}
+                      {reportData.receiptcredit && reportData.receiptcredit.length > 0 && (
+                        <>
+                          <tr>
+                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e0f2f1'}}>
+                              RECEIPT CREDIT
+                            </td>
+                          </tr>
+                          {reportData.receiptcredit.map((item, index) => (
+                            <tr key={`receiptCredit-${index}`}>
+                              <td style={styles.td}>{item.vouchNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
+                              <td style={styles.td}>-</td>
+                              <td style={styles.td}>{formatCurrency(item.creditAmount || 0)}</td>
+                            </tr>
+                          ))}
+                          <tr style={styles.totalRow}>
+                            <td style={styles.td} colSpan={3}><strong>Receipt Credit Total</strong></td>
+                            <td style={styles.td}>
+                              <strong>{formatCurrency(calculateSectionTotal(reportData.receiptcredit, 'creditAmount'))}</strong>
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* Show message if no right-side data */}
+                      {(!reportData.salesEntrybalance || reportData.salesEntrybalance.length === 0) &&
+                       (!reportData.salesReturnbalance || reportData.salesReturnbalance.length === 0) &&
+                       (!reportData.purchasebalance || reportData.purchasebalance.length === 0) &&
+                       (!reportData.purchaseReturnbalance || reportData.purchaseReturnbalance.length === 0) &&
+                       (!reportData.scrapbalance || reportData.scrapbalance.length === 0) &&
+                       (!reportData.paymnetcredit || reportData.paymnetcredit.length === 0) &&
+                       (!reportData.receiptcredit || reportData.receiptcredit.length === 0) && (
                         <tr>
-                          <td colSpan={4} style={styles.emptyMsg}>No tender data found</td>
+                          <td colSpan={4} style={styles.emptyMsg}>No balance/credit data found</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               </div>
+
+              {/* TENDER DATA - Full Width Section */}
+              {reportData.tenderData && reportData.tenderData.length > 0 && (
+                <div style={{ marginTop: '20px' }}>
+                  <div style={{
+                    backgroundColor: '#fff9c4',
+                    padding: '12px',
+                    fontWeight: 'bold',
+                    fontSize: TYPOGRAPHY.fontSize.lg,
+                    borderRadius: '8px 8px 0 0',
+                    textAlign: 'center',
+                    color: '#333'
+                  }}>
+                    TENDER DETAILS
+                  </div>
+                  <table style={{...styles.table, width: '100%'}}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Invoice No</th>
+                        <th style={styles.th}>Total Given</th>
+                        <th style={styles.th}>UPI Amount</th>
+                        <th style={styles.th}>UPI Party</th>
+                        <th style={styles.th}>Card Amount</th>
+                        <th style={styles.th}>Card Party</th>
+                        <th style={styles.th}>₹500</th>
+                        <th style={styles.th}>₹200</th>
+                        <th style={styles.th}>₹100</th>
+                        <th style={styles.th}>₹50</th>
+                        <th style={styles.th}>₹20</th>
+                        <th style={styles.th}>₹10</th>
+                        <th style={styles.th}>₹5</th>
+                        <th style={styles.th}>₹2</th>
+                        <th style={styles.th}>₹1</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.tenderData.map((item, index) => (
+                        <tr key={`tender-${index}`}>
+                          <td style={styles.td}>{item.invoiceNo || 'N/A'}</td>
+                          <td style={{...styles.td, fontWeight: 'bold', color: '#1B91DA'}}>
+                            {formatCurrency(item.givenTotal || 0)}
+                          </td>
+                          <td style={styles.td}>{formatCurrency(item.upiAmount || 0)}</td>
+                          <td style={{...styles.td, textAlign: 'left'}}>
+                            {item.upiPartyName || '-'}
+                          </td>
+                          <td style={styles.td}>{formatCurrency(item.cardAmount || 0)}</td>
+                          <td style={{...styles.td, textAlign: 'left'}}>
+                            {item.cardPartyName || '-'}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r500 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r500 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r200 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r200 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r100 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r100 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r50 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r50 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r20 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r20 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r10 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r10 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r5 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r5 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r2 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r2 || 0}
+                          </td>
+                          <td style={{...styles.td, backgroundColor: item.r1 !== 0 ? '#e8f5e9' : 'transparent'}}>
+                            {item.r1 || 0}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr style={styles.totalRow}>
+                        <td style={styles.td}><strong>Total</strong></td>
+                        <td style={styles.td}>
+                          <strong>{formatCurrency(calculateSectionTotal(reportData.tenderData, 'givenTotal'))}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{formatCurrency(calculateSectionTotal(reportData.tenderData, 'upiAmount'))}</strong>
+                        </td>
+                        <td style={styles.td}>-</td>
+                        <td style={styles.td}>
+                          <strong>{formatCurrency(calculateSectionTotal(reportData.tenderData, 'cardAmount'))}</strong>
+                        </td>
+                        <td style={styles.td}>-</td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r500')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r200')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r100')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r50')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r20')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r10')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r5')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r2')}</strong>
+                        </td>
+                        <td style={styles.td}>
+                          <strong>{calculateSectionTotal(reportData.tenderData, 'r1')}</strong>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           ) : (
             <div style={styles.emptyMsg}>No data available</div>
@@ -1466,34 +2404,41 @@ const DailyReport = () => {
       <div style={styles.footerSection}>
         <div style={{
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
+          alignItems: 'center',
           width: '100%',
+          gap: '20px'
         }}>
-          {/* Left side - Report info */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '15px',
-            color: '#666',
-            fontSize: TYPOGRAPHY.fontSize.sm,
-          }}>
-            {showReport && reportData && (
-              <>
-                <span style={{ fontWeight: TYPOGRAPHY.fontWeight.medium }}>
-                  📊 Report Period: {formatDisplayDate(fromDate)} - {formatDisplayDate(toDate)}
-                </span>
-                <span style={{ 
-                  backgroundColor: '#e8f5e8', 
-                  color: '#2e7d2e', 
-                  padding: '4px 8px', 
-                  borderRadius: '12px',
-                  fontSize: TYPOGRAPHY.fontSize.xs,
-                  fontWeight: TYPOGRAPHY.fontWeight.semibold
+          {/* Left side - Closing Balance */}
+          <div style={{ flex: '0 0 auto' }}>
+            {showReport && reportData && reportData.closingBalance && (
+              <div style={{
+                backgroundColor: '#fff3e0',
+                padding: '12px 10px',
+                borderRadius: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+               
+                maxWidth: '400px',
+                minWidth: '300px'
+              }}>
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.base,
+                  fontWeight: TYPOGRAPHY.fontWeight.bold,
+                  color: '#e65100',
+                  textAlign: 'left'
                 }}>
-                  Data Loaded
+                  Closing Balance
                 </span>
-              </>
+                <span style={{
+                  fontSize: TYPOGRAPHY.fontSize.lg,
+                  fontWeight: TYPOGRAPHY.fontWeight.bold,
+                  color: reportData.closingBalance.type === 'DR' ? '#d32f2f' : '#1976d2'
+                }}>
+                  {formatCurrency(reportData.closingBalance.amount || 0)} {reportData.closingBalance.type || 'CR'}
+                </span>
+              </div>
             )}
           </div>
 
@@ -1502,8 +2447,8 @@ const DailyReport = () => {
             display: 'flex',
             gap: '12px',
             alignItems: 'center',
+            flex: '0 0 auto'
           }}>
-            {/* Always show buttons, but disable when appropriate */}
             <PrintButton
               onClick={handlePrintClick}
               disabled={!reportData || !showReport || !hasPrintPermission}
@@ -1537,24 +2482,6 @@ const DailyReport = () => {
             />
           </div>
         </div>
-
-        {/* Optional: Statistics bar when data is loaded */}
-        {showReport && reportData && (
-          <div style={{
-            marginTop: '12px',
-            padding: '8px 0',
-            borderTop: '1px solid #e9ecef',
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '20px',
-            fontSize: TYPOGRAPHY.fontSize.xs,
-            color: '#666',
-          }}>
-            <span>📈 Sales: {reportData.salesEntryData?.length || 0} entries</span>
-            <span>💳 Tenders: {reportData.tenderData?.length || 0} entries</span>
-            <span>📋 Total Sections: {Object.keys(reportData).filter(key => reportData[key].length > 0).length}</span>
-          </div>
-        )}
       </div>
 
       {/* Print Confirmation Popup */}

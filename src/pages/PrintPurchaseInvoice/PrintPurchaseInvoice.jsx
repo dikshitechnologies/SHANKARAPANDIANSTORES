@@ -112,7 +112,7 @@ doc.setFontSize(11);
 const storeNameY = yPos + imgHeight + 7;
 
 doc.text(
-  'Sankarapandian Stores',
+  'R Sankarapandian Stores',
    leftColumnWidth / 2,
   storeNameY,
   { align: 'center' }
@@ -242,12 +242,12 @@ yPos = invoiceTitleY + 8;
     doc.setFontSize(9);
     
     // Table column widths for landscape (total 277mm)
-    const colWidths = [10, 25, 55, 15, 15, 15, 15, 15, 15, 15, 20, 20, 15, 15, 15];
+    const colWidths = [10, 25, 60, 15, 15, 15, 15, 15, 15, 20, 20, 15, 15, 15];
 
     const headers = [
-      'S.No', 'Barcode', 'Particulars', 'UOM', 'Stock', 'HSN',
+      'S.No', 'Barcode', 'Particulars', 'UOM', 'HSN',
       'Qty', 'OvrWt', 'PRate', 'Tax%', 'ACost',
-      'SRate', 'MRP', 'NTCost', 'Total'
+      'Asrate', 'MRP', 'Wrate', 'Total'
     ];
     
     let xPos = marginLeft;
@@ -335,48 +335,44 @@ yPos = invoiceTitleY + 8;
       doc.text(item.uom || '', xPos + (colWidths[3] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[3];
       
-      // Stock (col 4)
-      doc.text(formatCurrency(item.stock || 0), xPos + (colWidths[4] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // HSN (col 4)
+      doc.text(item.hsn || '', xPos + (colWidths[4] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[4];
       
-      // HSN (col 5)
-      doc.text(item.hsn || '', xPos + (colWidths[5] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // Qty (col 5)
+      doc.text(formatCurrency(item.qty || 0), xPos + (colWidths[5] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[5];
       
-      // Qty (col 6)
-      doc.text(formatCurrency(item.qty || 0), xPos + (colWidths[6] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // OvrWt (col 6)
+      doc.text(formatCurrency(item.ovrwt || 0), xPos + (colWidths[6] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[6];
       
-      // OvrWt (col 7)
-      doc.text(formatCurrency(item.ovrwt || 0), xPos + (colWidths[7] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // PRate (col 7)
+      doc.text(formatCurrency(item.prate || 0), xPos + (colWidths[7] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[7];
       
-      // PRate (col 8)
-      doc.text(formatCurrency(item.prate || 0), xPos + (colWidths[8] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // Tax% (col 8)
+      doc.text(`${item.intax || 0}%`, xPos + (colWidths[8] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[8];
       
-      // Tax% (col 9)
-      doc.text(`${item.intax || 0}%`, xPos + (colWidths[9] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // ACost (col 9)
+      doc.text(formatCurrency(item.acost || 0), xPos + (colWidths[9] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[9];
       
-      // ACost (col 10)
-      doc.text(formatCurrency(item.acost || 0), xPos + (colWidths[10] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // asrate (col 10)
+      doc.text(formatCurrency(item.asRate || 0), xPos + (colWidths[10] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[10];
       
-      // SRate (col 11)
-      doc.text(formatCurrency(item.sRate || 0), xPos + (colWidths[11] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // MRP (col 11)
+      doc.text(formatCurrency(item.mrp || 0), xPos + (colWidths[11] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[11];
       
-      // MRP (col 12)
-      doc.text(formatCurrency(item.mrp || 0), xPos + (colWidths[12] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // wrate (col 12)
+      doc.text(formatCurrency(item.wsRate || 0), xPos + (colWidths[12] / 2), yPos + rowHeight / 2, { align: 'center' });
       xPos += colWidths[12];
       
-      // NTCost (col 13)
-      doc.text(formatCurrency(item.ntCost || 0), xPos + (colWidths[13] / 2), yPos + rowHeight / 2, { align: 'center' });
-      xPos += colWidths[13];
-      
-      // Total (col 14)
-      doc.text(formatCurrency(item.amt || 0), xPos + (colWidths[14] / 2), yPos + rowHeight / 2, { align: 'center' });
+      // Total (col 13)
+      doc.text(formatCurrency(item.amt || 0), xPos + (colWidths[13] / 2), yPos + rowHeight / 2, { align: 'center' });
       
       yPos += rowHeight;
     });
@@ -386,26 +382,103 @@ yPos = invoiceTitleY + 8;
     const totalsRightX = pageWidth - marginRight;
     const totalsLabelX = totalsRightX - 55;
     
+    // ========== GROUP SUMMARY TABLE (LEFT SIDE) ==========
+    const summaryStartX = marginLeft;
+    const summaryStartY = yPos;
+    
+    // Group items by parentName
+    const groupSummary = {};
+    validItems.forEach(item => {
+      const groupName = item.parentName || 'Others';
+      if (!groupSummary[groupName]) {
+        groupSummary[groupName] = {
+          overwt: 0,
+          qty: 0,
+          totalAmt: 0
+        };
+      }
+      groupSummary[groupName].overwt += parseFloat(item.ovrwt || 0);
+      groupSummary[groupName].qty += parseFloat(item.qty || 0);
+      groupSummary[groupName].totalAmt += parseFloat(item.amt || 0);
+    });
+    
+    // Draw summary table
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    
+    // Table header
+    const sumColWidths = [50, 20, 15, 25]; // GroupName, OverWt, Qty, TotalAmt
+    const sumTableWidth = sumColWidths.reduce((a, b) => a + b, 0);
+    
+    doc.setFillColor(27, 145, 218);
+    doc.rect(summaryStartX, summaryStartY, sumTableWidth, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    
+    let sumX = summaryStartX;
+    doc.text('Group Name', sumX + 2, summaryStartY + 4.5, { align: 'left' });
+    sumX += sumColWidths[0];
+    doc.text('OverWt', sumX + (sumColWidths[1] / 2), summaryStartY + 4.5, { align: 'center' });
+    sumX += sumColWidths[1];
+    doc.text('Qty', sumX + (sumColWidths[2] / 2), summaryStartY + 4.5, { align: 'center' });
+    sumX += sumColWidths[2];
+    doc.text('Total Amt', sumX + (sumColWidths[3] / 2), summaryStartY + 4.5, { align: 'center' });
+    
+    // Table rows
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    let sumY = summaryStartY + 7;
+    let rowIndex = 0;
+    
+    Object.entries(groupSummary).forEach(([groupName, data]) => {
+      // Alternating row background
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(240, 248, 255);
+        doc.rect(summaryStartX, sumY, sumTableWidth, 6, 'F');
+      }
+      
+      sumX = summaryStartX;
+      
+      // Group Name (truncate if too long)
+      const displayName = doc.splitTextToSize(groupName, sumColWidths[0] - 4);
+      doc.text(displayName[0], sumX + 2, sumY + 4, { align: 'left', maxWidth: sumColWidths[0] - 4 });
+      sumX += sumColWidths[0];
+      
+      // OverWt
+      doc.text(formatCurrency(data.overwt), sumX + (sumColWidths[1] / 2), sumY + 4, { align: 'center' });
+      sumX += sumColWidths[1];
+      
+      // Qty
+      doc.text(formatCurrency(data.qty), sumX + (sumColWidths[2] / 2), sumY + 4, { align: 'center' });
+      sumX += sumColWidths[2];
+      
+      // Total Amt
+      doc.text(formatCurrency(data.totalAmt), sumX + (sumColWidths[3] / 2), sumY + 4, { align: 'center' });
+      
+      sumY += 6;
+      rowIndex++;
+    });
+    
+    // Draw table border
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(summaryStartX, summaryStartY, sumTableWidth, sumY - summaryStartY);
+    
+    // ========== TOTALS TABLE (RIGHT SIDE) ==========
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     
-    // Calculate totals
-    const subTotal = totals.subTotal;
-    const gstAmount = totals.gstTotals;
+    // Calculate items total and net total
+    const itemsTotal = totals.net || 0;
+    const freight = parseFloat(freightAmount) || 0;
+    const transport = parseFloat(transportData?.amount) || 0;
+    const addLess = parseFloat(addLessAmount) || 0;
+    const netTotal = itemsTotal + freight + transport + addLess;
     
     // Totals list (right-aligned)
     const totalsRows = [
-      { label: 'Sub Total', value: formatCurrency(subTotal), bold: false },
-      { label: 'GST Amount', value: formatCurrency(gstAmount), bold: false }
+      { label: 'TOTAL', value: formatCurrency(itemsTotal), bold: false }
     ];
-
-    if (freightAmount && parseFloat(freightAmount) !== 0) {
-      totalsRows.push({ label: 'Freight', value: formatCurrency(freightAmount), bold: false });
-    }
-
-    if (transportData?.amount && parseFloat(transportData.amount) !== 0) {
-      totalsRows.push({ label: 'Transport', value: formatCurrency(transportData.amount), bold: false });
-    }
 
     if (addLessAmount && parseFloat(addLessAmount) !== 0) {
       const label = parseFloat(addLessAmount) > 0 ? 'Add' : 'Less';
@@ -416,7 +489,15 @@ yPos = invoiceTitleY + 8;
       });
     }
 
-    totalsRows.push({ label: 'NET TOTAL', value: formatCurrency(totals.net), bold: true });
+    if (freightAmount && parseFloat(freightAmount) !== 0) {
+      totalsRows.push({ label: 'Freight', value: formatCurrency(freightAmount), bold: false });
+    }
+
+    if (transportData?.amount && parseFloat(transportData.amount) !== 0) {
+      totalsRows.push({ label: 'Transport', value: formatCurrency(transportData.amount), bold: false });
+    }
+
+    totalsRows.push({ label: 'NET TOTAL', value: formatCurrency(netTotal), bold: true });
 
     const tableRowHeight = 7;
     const tableHeight = totalsRows.length * tableRowHeight;
@@ -430,8 +511,10 @@ yPos = invoiceTitleY + 8;
       doc.text(`${row.value}`, totalsRightX, rowY + 4.8, { align: 'right' });
     });
 
-    // Advance yPos for any following content
-    yPos = yPos - 4 + tableHeight + 4;
+    // Advance yPos for any following content (use max of both tables)
+    const summaryTableEndY = sumY;
+    const totalsTableEndY = yPos - 4 + tableHeight + 4;
+    yPos = Math.max(summaryTableEndY, totalsTableEndY) + 4;
     
     // Footer with authorized signatory at bottom-right
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -445,7 +528,7 @@ const footerCenterX = pageWidth - marginRight - 20;
 
 // FIRST LINE
 doc.text(
-  'For SANKARAPANDIAN STORE',
+  'For SANKARAPANDIAN STORES',
   footerCenterX,
   footerBaseY,
   { align: 'center' }
