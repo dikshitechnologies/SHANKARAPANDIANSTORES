@@ -2286,7 +2286,23 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
 
     const sRate = acost + (acost * profitPercent) / 100;
     const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
-    const wsRate = ntCost + (ntCost * wsPercent) / 100;
+    
+    // WS Rate calculation logic:
+    // If wsPercent has a value, calculate wsRate from wsPercent
+    // If wsPercent is empty, keep the manually entered wsRate value
+    let wsRate;
+    let shouldFormatWsRate = false;
+    
+    if (wsPercent > 0 || (item.wsPercent && item.wsPercent !== '' && item.wsPercent !== '0')) {
+      // Calculate wsRate from wsPercent
+      wsRate = ntCost + (ntCost * wsPercent) / 100;
+      shouldFormatWsRate = true;
+    } else {
+      // Keep the manually entered wsRate value as-is (don't format while typing)
+      wsRate = item.wsRate !== undefined && item.wsRate !== '' ? item.wsRate : ntCost;
+      // Only format if it's the default ntCost value
+      shouldFormatWsRate = (item.wsRate === undefined || item.wsRate === '');
+    }
 
     return {
       ...item,
@@ -2295,7 +2311,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       ntCost: ntCost.toFixed(2),
       sRate: sRate.toFixed(2),
       letProfPer: letProfPer.toFixed(2),
-      wsRate: wsRate.toFixed(2),
+      wsRate: shouldFormatWsRate ? Number(wsRate).toFixed(2) : wsRate,
       amt: amt.toFixed(2),
       profitPercent
     };
@@ -2310,7 +2326,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     setItems(prev =>
       prev.map(item => {
         if (item.id === id) {
-          const updatedItem = { ...item, [field]: value };
+          let updatedItem = { ...item, [field]: value };
+          
+          // If wsRate is manually changed, clear wsPercent to allow manual entry
+          if (field === 'wsRate' && value !== '' && value !== item.wsRate) {
+            updatedItem.wsPercent = '';
+          }
+          
+          // If wsPercent is changed, let calculateItem recalculate wsRate
+          // (no special handling needed, calculateItem will handle it)
+          
           return calculateItem(updatedItem);
         }
         return item;
@@ -4364,7 +4389,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 onChange={(e) => handleItemChange(item.id, 'wsPercent', handleNumericInput(e.target.value))}
                 onKeyDown={(e) => handleTableKeyDown(e, index, 'wsPercent')}
                 onFocus={() => setFocusedField(`wsPercent-${item.id}`)}
-                onBlur={() => setFocusedField('')}
+                onBlur={() => {
+                  setFocusedField('');
+                  // Format wsPercent to 2 decimal places on blur if it has a value
+                  if (item.wsPercent && item.wsPercent !== '') {
+                    const numValue = parseFloat(item.wsPercent);
+                    if (!isNaN(numValue)) {
+                      handleItemChange(item.id, 'wsPercent', numValue.toFixed(2));
+                    }
+                  }
+                }}
               />
             </td>                  
             
@@ -4379,7 +4413,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 onChange={(e) => handleItemChange(item.id, 'wsRate', handleNumericInput(e.target.value))}
                 onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                 onFocus={() => setFocusedField(`wsRate-${item.id}`)}
-                onBlur={() => setFocusedField('')}
+                onBlur={() => {
+                  setFocusedField('');
+                  // Format wsRate to 2 decimal places on blur if it has a value
+                  if (item.wsRate && item.wsRate !== '') {
+                    const numValue = parseFloat(item.wsRate);
+                    if (!isNaN(numValue)) {
+                      handleItemChange(item.id, 'wsRate', numValue.toFixed(2));
+                    }
+                  }
+                }}
               />
             </td>
             
