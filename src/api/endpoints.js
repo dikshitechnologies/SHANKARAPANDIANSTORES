@@ -316,6 +316,8 @@ CATEGORY: {
     GET_LIVE_DRAWER: (date) => `BillCollector/GetLiveDrawer?date=${date}`,
      GET_ITEMS_DISCOUNT_FLAG: (voucherNo) =>
     `BillCollector/GetItemsDiscountFlag?voucherNo=${voucherNo}`,
+    GET_CUSTOMER_LIST: (page, pageSize, search) =>
+    `BillCollector/customerlist?page=${page}&pageSize=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
 
   },
 

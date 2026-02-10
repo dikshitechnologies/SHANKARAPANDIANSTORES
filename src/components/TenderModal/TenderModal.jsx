@@ -1,33 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
-import styles from './TenderModal.module.css';
-import apiService from '../../api/apiService';
-import { ActionButtons1 } from '../Buttons/ActionButtons';
-import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
-import { API_ENDPOINTS } from '../../api/endpoints';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState, useEffect, useRef } from "react";
+import styles from "./TenderModal.module.css";
+import apiService from "../../api/apiService";
+import { ActionButtons1 } from "../Buttons/ActionButtons";
+import ConfirmationPopup from "../ConfirmationPopup/ConfirmationPopup";
+import { API_ENDPOINTS } from "../../api/endpoints";
+import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "../../api/axiosInstance";
-import { usePermissions } from '../../hooks/usePermissions';
-import { PERMISSION_CODES } from '../../constants/permissions';
-import PopupListSelector from '../Listpopup/PopupListSelector';
-import PrintInvoice from '../../pages/PrintInvoice/PrintInvoice';
-import js from '@eslint/js';
+import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
+import PopupListSelector from "../Listpopup/PopupListSelector";
+import PrintInvoice from "../../pages/PrintInvoice/PrintInvoice";
+import js from "@eslint/js";
 const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const { userData } = useAuth() || {};
-  const [activeFooterAction, setActiveFooterAction] = useState('all');
+  const [activeFooterAction, setActiveFooterAction] = useState("all");
   const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [validationPopup, setValidationPopup] = useState({
     isOpen: false,
-    title: '',
-    message: '',
-    type: 'warning',
-    confirmText: 'OK',
+    title: "",
+    message: "",
+    type: "warning",
+    confirmText: "OK",
     cancelText: null,
     action: null,
-    
-    isLoading: false
+
+    isLoading: false,
   });
-  
 
   // Refs for focus management
   const collectFieldRefs = useRef({});
@@ -58,74 +57,79 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   const [printConfirmationOpen, setPrintConfirmationOpen] = useState(false);
 
   const [denominations, setDenominations] = useState({
-    500: { available: 0, collect: '', issue: '', closing: 0 },
-    200: { available: 0, collect: '', issue: '', closing: 0 },
-    100: { available: 0, collect: '', issue: '', closing: 0 },
-    50: { available: 0, collect: '', issue: '', closing: 0 },
-    20: { available: 0, collect: '', issue: '', closing: 0 },
-    10: { available: 0, collect: '', issue: '', closing: 0 },
-    5: { available: 0, collect: '', issue: '', closing: 0 },
-    2: { available: 0, collect: '', issue: '', closing: 0 },
-    1: { available: 0, collect: '', issue: '', closing: 0 },
+    500: { available: 0, collect: "", issue: "", closing: 0 },
+    200: { available: 0, collect: "", issue: "", closing: 0 },
+    100: { available: 0, collect: "", issue: "", closing: 0 },
+    50: { available: 0, collect: "", issue: "", closing: 0 },
+    20: { available: 0, collect: "", issue: "", closing: 0 },
+    10: { available: 0, collect: "", issue: "", closing: 0 },
+    5: { available: 0, collect: "", issue: "", closing: 0 },
+    2: { available: 0, collect: "", issue: "", closing: 0 },
+    1: { available: 0, collect: "", issue: "", closing: 0 },
   });
 
   const [formData, setFormData] = useState({
-    billNo: '',
-    salesman: '',
-    date: '',
-    originalDate: '',
-    grossAmt: '',
-    itemDAmt: '',
-    billAmount: '',
-    billDiscountPercent: '',
-    billDiscAmt: '',
-    granTotal: '',
-    roudOff: '',
-    scrapAmountBillNo: '',
-    scrapAmount: '',
-    salesReturnBillNo: '',
-    salesReturn: '',
-    freightCharge: '',    
-    serviceCharge: '', 
-    netAmount: '',
-    receivedCash: '',
-    issuedCash: '',
-    upi: '',
-    card: '',
-    upiBank: '',
-    cardBank: '',
-    serviceChargePercent: '',
-    serviceChargeAmount: '',
+    billNo: "",
+    salesman: "",
+    date: "",
+    originalDate: "",
+    grossAmt: "",
+    itemDAmt: "",
+    billAmount: "",
+    billDiscountPercent: "",
+    billDiscAmt: "",
+    granTotal: "",
+    roudOff: "",
+    scrapAmountBillNo: "",
+    scrapAmount: "",
+    salesReturnBillNo: "",
+    salesReturn: "",
+    freightCharge: "",
+    serviceCharge: "",
+    netAmount: "",
+    receivedCash: "",
+    issuedCash: "",
+    upi: "",
+    card: "",
+    upiBank: "",
+    cardBank: "",
+    serviceChargePercent: "",
+    serviceChargeAmount: "",
     isServiceCharge: false,
     // Transport charge fields
     isTransportCharge: false,
-    transport: '', // text field for transport
-    transportAmount: '',
+    transport: "", // text field for transport
+    transportAmount: "",
     isCreditBill: false,
+    creditCustomer: "",
+    creditCustomerCode: "",
+    creditAmount: "",
     delivery: false,
-    balance: '',
+    balance: "",
+    customerBalance: "",
+    balanceType: "",
   });
   // Handle Transport Charge Toggle
   const handleTransportChargeToggle = (e) => {
     const isChecked = e.target.checked;
-    setFormData(prev => {
+    setFormData((prev) => {
       const updated = { ...prev, isTransportCharge: isChecked };
       if (!isChecked) {
-        updated.transport = '';
-        updated.transportAmount = '';
+        updated.transport = "";
+        updated.transportAmount = "";
       }
       return updated;
     });
   };
 
   // Handle Transport (text) Change
-// Allow both numbers and alphabets in TC Charge field
-const handleTransportChange = (value) => {
-  setFormData(prev => ({ ...prev, transport: value }));
-};
+  // Allow both numbers and alphabets in TC Charge field
+  const handleTransportChange = (value) => {
+    setFormData((prev) => ({ ...prev, transport: value }));
+  };
   // Focus handlers for transport charge
   const handleTransportChargeCheckboxKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       if (formData.isTransportCharge) {
         if (transportChargePercentRef.current) {
@@ -140,98 +144,135 @@ const handleTransportChange = (value) => {
   };
 
   // Handle Transport Amount Change
-const handleTransportAmountChange = (value) => {
-  setFormData(prev => ({ ...prev, transportAmount: value }));
-};
+  const handleTransportAmountChange = (value) => {
+    setFormData((prev) => ({ ...prev, transportAmount: value }));
+  };
 
-const handleTransportChargePercentKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    // Focus on transport field (will open popup if typed)
-    if (transportChargePercentRef.current) {
-      transportChargePercentRef.current.focus();
+  const handleTransportChargePercentKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Focus on transport field (will open popup if typed)
+      if (transportChargePercentRef.current) {
+        transportChargePercentRef.current.focus();
+      }
     }
-  }
-};
+  };
 
-const handleTransportAmountKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    if (saveButtonRef.current) {
-      saveButtonRef.current.focus();
+  const handleTransportAmountKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (saveButtonRef.current) {
+        saveButtonRef.current.focus();
+      }
     }
-  }
-};
+  };
 
-// Handle keydown for Transport field - opens popup when typing
-const handleTransportFieldKeyDown = (e) => {
-  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    // User typed a character - open popup
-    e.preventDefault();
-    e.stopPropagation();
-    setTransportPopupInitialSearch(e.key);
-    setTransportPopupOpen(true);
-  } else if (e.key === 'Enter') {
-    // Move to TC Charge field on Enter
-    e.preventDefault();
-    if (transportAmountRef.current) {
-      transportAmountRef.current.focus();
+  // Handle keydown for Transport field - opens popup when typing
+  const handleTransportFieldKeyDown = (e) => {
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // User typed a character - open popup
+      e.preventDefault();
+      e.stopPropagation();
+      setTransportPopupInitialSearch(e.key);
+      setTransportPopupOpen(true);
+    } else if (e.key === "Enter") {
+      // Move to TC Charge field on Enter
+      e.preventDefault();
+      if (transportAmountRef.current) {
+        transportAmountRef.current.focus();
+      }
     }
-  }
-};
+  };
 
   // Update form data when billData changes
   useEffect(() => {
     if (billData && isOpen) {
       const newFormData = {
-        billNo: billData.billNo || '',
-        salesman: billData.salesman || '',
-        date: billData.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
-        originalDate: billData.date || '',
-        grossAmt: billData.amount ? billData.amount.toString() : '',
-        itemDAmt: '',
-        billAmount: billData.amount ? billData.amount.toString() : '',
-        billDiscountPercent: '',
-        billDiscAmt: '',
-        granTotal: billData.amount ? billData.amount.toString() : '',
-        roudOff: '',
-        scrapAmountBillNo: '',
-        scrapAmount: '',
-        salesReturnBillNo: '',
-        salesReturn: '',
-         freightCharge: '',      // NEW FIELD
-         serviceCharge: '',      // NEW FIELD
-        netAmount: billData.amount ? billData.amount.toString() : '',
-        receivedCash: '',
-        issuedCash: '',
-        upi: '',
-        card: '',
-        upiBank: '',
-        cardBank: '',
-        serviceChargePercent: '',
-        serviceChargeAmount: '',
+        billNo: billData.billNo || "",
+        salesman: billData.salesman || "",
+        date: billData.date
+          ? new Date(billData.date).toLocaleDateString("en-IN")
+          : "",
+        originalDate: billData.date || "",
+        grossAmt: billData.amount ? billData.amount.toString() : "",
+        itemDAmt: "",
+        billAmount: billData.amount ? billData.amount.toString() : "",
+        billDiscountPercent: "",
+        billDiscAmt: "",
+        granTotal: billData.amount ? billData.amount.toString() : "",
+        roudOff: "",
+        scrapAmountBillNo: "",
+        scrapAmount: "",
+        salesReturnBillNo: "",
+        salesReturn: "",
+        freightCharge: "", // NEW FIELD
+        serviceCharge: "", // NEW FIELD
+        netAmount: billData.amount ? billData.amount.toString() : "",
+        receivedCash: "",
+        issuedCash: "",
+        upi: "",
+        card: "",
+        upiBank: "",
+        cardBank: "",
+        serviceChargePercent: "",
+        serviceChargeAmount: "",
         isServiceCharge: false,
         isCreditBill: false,
+        creditCustomer: "",
+        creditCustomerCode: "",
+        creditAmount: "",
         delivery: false,
-        balance: billData.amount ? billData.amount.toString() : '',
+        balance: billData.amount ? billData.amount.toString() : "",
+        customerBalance: billData.balance ? billData.balance.toString() : "",
+        balanceType: billData.balanceType || "",
       };
-      
+
       setFormData(newFormData);
-      
-      setDenominations(prev => ({
-        500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
-        200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
-        100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
-        50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
-        20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
-        10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
-        5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
-        2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
-        1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
+
+      setDenominations((prev) => ({
+        500: {
+          ...prev[500],
+          collect: "",
+          issue: "",
+          closing: prev[500].available,
+        },
+        200: {
+          ...prev[200],
+          collect: "",
+          issue: "",
+          closing: prev[200].available,
+        },
+        100: {
+          ...prev[100],
+          collect: "",
+          issue: "",
+          closing: prev[100].available,
+        },
+        50: {
+          ...prev[50],
+          collect: "",
+          issue: "",
+          closing: prev[50].available,
+        },
+        20: {
+          ...prev[20],
+          collect: "",
+          issue: "",
+          closing: prev[20].available,
+        },
+        10: {
+          ...prev[10],
+          collect: "",
+          issue: "",
+          closing: prev[10].available,
+        },
+        5: { ...prev[5], collect: "", issue: "", closing: prev[5].available },
+        2: { ...prev[2], collect: "", issue: "", closing: prev[2].available },
+        1: { ...prev[1], collect: "", issue: "", closing: prev[1].available },
       }));
-      
+
       fetchLiveDrawer();
-      
+
       setTimeout(() => {
         if (billDiscountPercentRef.current) {
           billDiscountPercentRef.current.focus();
@@ -253,7 +294,7 @@ const handleTransportFieldKeyDown = (e) => {
   useEffect(() => {
     // Calculate total collected cash amount from all denominations
     let totalCollectedCash = 0;
-    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+    [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
       const collectValue = Number(denominations[d].collect) || 0;
       totalCollectedCash += collectValue * d;
     });
@@ -261,37 +302,39 @@ const handleTransportFieldKeyDown = (e) => {
     // Get UPI and Card amounts
     const upiAmount = Number(formData.upi) || 0;
     const cardAmount = Number(formData.card) || 0;
-    
+    const creditAmount = Number(formData.creditAmount) || 0;
+
     // Calculate net amount
     const netAmount = Number(formData.netAmount) || 0;
-    
-    // Calculate total payment received (cash + upi + card)
-    const cardTotal = formData.isServiceCharge
-      ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
-      : (Number(formData.card) || 0);
 
-    const totalPaymentReceived = totalCollectedCash + upiAmount + cardTotal;
-        
+    // Calculate total payment received (cash + upi + card + credit)
+    const cardTotal = formData.isServiceCharge
+      ? (Number(formData.card) || 0) +
+        (Number(formData.serviceChargeAmount) || 0)
+      : Number(formData.card) || 0;
+
+    const totalPaymentReceived = totalCollectedCash + upiAmount + cardTotal + creditAmount;
+
     // Calculate balance: Net Amount - Total Payment Received
     const balance = netAmount - totalPaymentReceived;
-    
+
     // If balance is negative, we need to issue cash (give change)
     const issuedCash = balance < 0 ? Math.abs(balance) : 0;
-    console.log(upiAmount,cardAmount);
+    console.log(upiAmount, cardAmount);
     // Update form data
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       receivedCash: totalCollectedCash.toString(),
       balance: balance.toString(),
-      issuedCash: issuedCash.toString()
+      issuedCash: issuedCash.toString(),
     }));
 
     // Update denominations with new closing and issue values
-    setDenominations(prevDenom => {
+    setDenominations((prevDenom) => {
       const newDenom = { ...prevDenom };
-      
+
       // Recalculate closing for each denomination
-      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
         const col = Number(newDenom[d].collect) || 0;
         const iss = Number(newDenom[d].issue) || 0;
         newDenom[d].closing = newDenom[d].available + col - iss;
@@ -300,7 +343,7 @@ const handleTransportFieldKeyDown = (e) => {
       // If we need to issue cash (balance is negative), auto-calculate issue denominations
       if (balance < 0) {
         const optimalIssue = calculateOptimalDenominations(issuedCash);
-        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
           const iss = optimalIssue[d];
           newDenom[d] = { ...newDenom[d], issue: iss.toString() };
           // Recalculate closing with new issue value
@@ -309,8 +352,8 @@ const handleTransportFieldKeyDown = (e) => {
         });
       } else {
         // Clear issue denominations if no cash to issue
-        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-          newDenom[d] = { ...newDenom[d], issue: '' };
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
+          newDenom[d] = { ...newDenom[d], issue: "" };
           const col = Number(newDenom[d].collect) || 0;
           newDenom[d].closing = newDenom[d].available + col;
         });
@@ -319,70 +362,105 @@ const handleTransportFieldKeyDown = (e) => {
       return newDenom;
     });
   }, [
-    Object.values(denominations).map(d => d.collect).join(','), 
-    formData.netAmount, 
-    formData.upi, 
-    formData.card
+    Object.values(denominations)
+      .map((d) => d.collect)
+      .join(","),
+    formData.netAmount,
+    formData.upi,
+    formData.card,
+    formData.creditAmount,
   ]);
 
-
-
   // api/bankApi.js
-const fetchBankList = async (page, search) => {
-  const res = await fetch(
-    `https://dikshi.ddns.net/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ''}`
-  );
-  const json = await res.json();
-  return json?.data || [];
-};
+  const fetchBankList = async (page, search) => {
+    const res = await fetch(
+      `http://dikshiserver/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ""}`,
+    );
+    const json = await res.json();
+    return json?.data || [];
+  };
 
-// Fetch transport list from API
-const fetchTransportList = async (page, search) => {
-  const res = await fetch(
-    `https://dikshi.ddns.net/spstorewebapi/api/transport/transport?search=${search || ''}&page=${page}&pageSize=10`
-  );
-  const json = await res.json();
-  return json?.data || [];
-};
+  // Fetch transport list from API
+  const fetchTransportList = async (page, search) => {
+    const res = await fetch(
+      `http://dikshiserver/spstorewebapi/api/transport/transport?search=${search || ""}&page=${page}&pageSize=10`,
+    );
+    const json = await res.json();
+    return json?.data || [];
+  };
 
+  // Fetch customer list from API
+  const fetchCustomerList = async (page, search) => {
+    try {
+      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_CUSTOMER_LIST(page, 10, search);
+      const response = await apiService.get(endpoint);
+      console.log('Customer List Response:', response);
+      // apiService might already extract data, so check response structure
+      return response?.data || response || [];
+    } catch (error) {
+      console.error('Error fetching customer list:', error);
+      return [];
+    }
+  };
 
-const [upiPopupOpen, setUpiPopupOpen] = useState(false);
-const [cardPopupOpen, setCardPopupOpen] = useState(false);
+  const [upiPopupOpen, setUpiPopupOpen] = useState(false);
+  const [cardPopupOpen, setCardPopupOpen] = useState(false);
 
-// initial search text when opening popups by typing
-const [upiPopupInitialSearch, setUpiPopupInitialSearch] = useState('');
-const [cardPopupInitialSearch, setCardPopupInitialSearch] = useState('');
+  // initial search text when opening popups by typing
+  const [upiPopupInitialSearch, setUpiPopupInitialSearch] = useState("");
+  const [cardPopupInitialSearch, setCardPopupInitialSearch] = useState("");
 
-const [upiBank, setUpiBank] = useState(null);
-const [cardBank, setCardBank] = useState(null);
+  const [upiBank, setUpiBank] = useState(null);
+  const [cardBank, setCardBank] = useState(null);
 
-const [balanceAmt, setBalanceAmt] = useState(0);
-const [serviceChargePercent, setServiceChargePercent] = useState(0);
-const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
+  const [balanceAmt, setBalanceAmt] = useState(0);
+  const [serviceChargePercent, setServiceChargePercent] = useState(0);
+  const [serviceChargeAmount, setServiceChargeAmount] = useState(0);
 
-// Transport popup states
-const [transportPopupOpen, setTransportPopupOpen] = useState(false);
-const [transportPopupInitialSearch, setTransportPopupInitialSearch] = useState('');
-const [selectedTransport, setSelectedTransport] = useState(null);
+  // Transport popup states
+  const [transportPopupOpen, setTransportPopupOpen] = useState(false);
+  const [transportPopupInitialSearch, setTransportPopupInitialSearch] =
+    useState("");
+  const [selectedTransport, setSelectedTransport] = useState(null);
 
+  // Credit customer popup states
+  const [customerPopupOpen, setCustomerPopupOpen] = useState(false);
+  const [customerPopupInitialSearch, setCustomerPopupInitialSearch] =
+    useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   // Fetch live drawer available from API
   const fetchLiveDrawer = async () => {
     try {
       const today = new Date();
-      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const companyCode = userData?.companyCode || '001';
-      
-      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_LIVE_DRAWER(dateStr, companyCode);
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const companyCode = userData?.companyCode || "001";
+
+      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_LIVE_DRAWER(
+        dateStr,
+        companyCode,
+      );
       const response = await apiService.get(endpoint);
-      
+
       if (response) {
         const data = response.data || response;
-        
-        setDenominations(prev => ({
-          500: { ...prev[500], available: data.r500 || 0, closing: data.r500 || 0 },
-          200: { ...prev[200], available: data.r200 || 0, closing: data.r200 || 0 },
-          100: { ...prev[100], available: data.r100 || 0, closing: data.r100 || 0 },
+
+        setDenominations((prev) => ({
+          500: {
+            ...prev[500],
+            available: data.r500 || 0,
+            closing: data.r500 || 0,
+          },
+          200: {
+            ...prev[200],
+            available: data.r200 || 0,
+            closing: data.r200 || 0,
+          },
+          100: {
+            ...prev[100],
+            available: data.r100 || 0,
+            closing: data.r100 || 0,
+          },
           50: { ...prev[50], available: data.r50 || 0, closing: data.r50 || 0 },
           20: { ...prev[20], available: data.r20 || 0, closing: data.r20 || 0 },
           10: { ...prev[10], available: data.r10 || 0, closing: data.r10 || 0 },
@@ -392,7 +470,7 @@ const [selectedTransport, setSelectedTransport] = useState(null);
         }));
       }
     } catch (err) {
-      console.error('Error fetching live drawer:', err);
+      console.error("Error fetching live drawer:", err);
     }
   };
 
@@ -400,62 +478,63 @@ const [selectedTransport, setSelectedTransport] = useState(null);
   const calculateOptimalDenominations = (amount) => {
     const denomList = [500, 200, 100, 50, 20, 10, 5, 2, 1];
     const result = {};
-    
-    denomList.forEach(d => result[d] = 0);
-    
+
+    denomList.forEach((d) => (result[d] = 0));
+
     let remaining = amount;
-    
+
     for (let denom of denomList) {
       const available = denominations[denom]?.available || 0;
-      
+
       if (available <= 0) {
         continue;
       }
-      
+
       if (remaining >= denom) {
         const needed = Math.floor(remaining / denom);
         const canUse = Math.min(needed, available);
         result[denom] = canUse;
-        remaining = remaining - (canUse * denom);
+        remaining = remaining - canUse * denom;
       }
     }
-    
+
     return result;
   };
 
   const handleDenominationChange = (denom, field, value) => {
     const updated = { ...denominations };
-    updated[denom] = { ...updated[denom], [field]: value === '' ? '' : value };
-    
+    updated[denom] = { ...updated[denom], [field]: value === "" ? "" : value };
+
     const collect = Number(updated[denom].collect) || 0;
     const issue = Number(updated[denom].issue) || 0;
     updated[denom].closing = updated[denom].available + collect - issue;
-    
-    if (field === 'collect') {
+
+    if (field === "collect") {
       let totalCollected = 0;
-      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-        const collectValue = d === denom ? Number(value) || 0 : Number(updated[d].collect) || 0;
+      [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
+        const collectValue =
+          d === denom ? Number(value) || 0 : Number(updated[d].collect) || 0;
         totalCollected += collectValue * d;
       });
-      
+
       const netAmount = Number(formData.netAmount) || 0;
       const upiAmount = Number(formData.upi) || 0;
       const cardAmount = Number(formData.card) || 0;
       const totalCollectedAll = totalCollected + upiAmount + cardAmount;
-      
+
       const balance = netAmount - totalCollectedAll;
-      const issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
-      
-      setFormData(prev => ({
+      const issuedCash = balance < 0 ? Math.abs(balance).toString() : "";
+
+      setFormData((prev) => ({
         ...prev,
         receivedCash: totalCollected.toString(),
         balance: balance.toString(),
-        issuedCash: issuedCash
+        issuedCash: issuedCash,
       }));
-      
+
       if (balance < 0) {
         const optimalIssue = calculateOptimalDenominations(Math.abs(balance));
-        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
+        [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
           updated[d] = { ...updated[d], issue: optimalIssue[d].toString() };
           const col = Number(updated[d].collect) || 0;
           const iss = optimalIssue[d];
@@ -463,19 +542,28 @@ const [selectedTransport, setSelectedTransport] = useState(null);
         });
       }
     }
-    
+
     setDenominations(updated);
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const updated = { ...prev, [field]: value };
       const freightCharge = Number(prev.freightCharge) || 0;
       const serviceCharge = Number(prev.serviceCharge) || 0;
       console.log(freightCharge, serviceCharge);
 
+      // Handle Credit Bill toggle - auto-fill amount with balance
+      if (field === "isCreditBill" && value === true) {
+        updated.creditAmount = prev.balance || "";
+      } else if (field === "isCreditBill" && value === false) {
+        updated.creditAmount = "";
+        updated.creditCustomer = "";
+        updated.creditCustomerCode = "";
+      }
+
       // Calculate Bill Discount Amount when discount % is entered
-      if (field === 'billDiscountPercent') {
+      if (field === "billDiscountPercent") {
         const billAmount = Number(prev.billAmount) || 0;
         const discountPercent = Number(value) || 0;
         const discountAmount = (billAmount * discountPercent) / 100;
@@ -483,7 +571,7 @@ const [selectedTransport, setSelectedTransport] = useState(null);
       }
 
       // Calculate Grand Total when discount amount is updated
-      if (field === 'billDiscAmt') {
+      if (field === "billDiscAmt") {
         const billAmount = Number(prev.billAmount) || 0;
         const discountAmount = Number(value) || 0;
         const grandTotal = Math.round(billAmount - discountAmount);
@@ -491,7 +579,7 @@ const [selectedTransport, setSelectedTransport] = useState(null);
       }
 
       // Calculate Grand Total when discount percent is updated (for Enter key)
-      if (field === 'billDiscountPercent') {
+      if (field === "billDiscountPercent") {
         const billAmount = Number(prev.billAmount) || 0;
         const discountPercent = Number(value) || 0;
         const discountAmount = (billAmount * discountPercent) / 100;
@@ -499,95 +587,133 @@ const [selectedTransport, setSelectedTransport] = useState(null);
         const freightCharge = Number(prev.freightCharge) || 0;
         const serviceCharge = Number(prev.serviceCharge) || 0;
         updated.granTotal = grandTotal.toFixed(2);
-        
+
         const roundOff = Number(prev.roudOff) || 0;
         const scrapAmount = Number(prev.scrapAmount) || 0;
         const salesReturn = Number(prev.salesReturn) || 0;
-         const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
-                   freightCharge + serviceCharge;
-        console.log('Net Amount calc on discount %:', netAmount);
+        const netAmount =
+          grandTotal +
+          roundOff -
+          scrapAmount -
+          salesReturn +
+          freightCharge +
+          serviceCharge;
+        console.log("Net Amount calc on discount %:", netAmount);
         updated.netAmount = netAmount.toFixed(2);
       }
 
       // Calculate Net Amount when round off is entered
-      if (field === 'roudOff') {
+      if (field === "roudOff") {
         const grandTotal = Number(prev.granTotal) || 0;
         const roundOff = Number(value) || 0;
         const scrapAmount = Number(prev.scrapAmount) || 0;
         const salesReturn = Number(prev.salesReturn) || 0;
         const freightCharge = Number(prev.freightCharge) || 0;
         const serviceCharge = Number(prev.serviceCharge) || 0;
-         const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
-                   freightCharge + serviceCharge;
+        const netAmount =
+          grandTotal +
+          roundOff -
+          scrapAmount -
+          salesReturn +
+          freightCharge +
+          serviceCharge;
         updated.netAmount = netAmount.toFixed(2);
       }
 
       // Recalculate Net Amount when Scrap Amount changes
-      if (field === 'scrapAmount') {
+      if (field === "scrapAmount") {
         const grandTotal = Number(prev.granTotal) || 0;
         const roundOff = Number(prev.roudOff) || 0;
         const scrapAmount = Number(value) || 0;
         const salesReturn = Number(prev.salesReturn) || 0;
         const freightCharge = Number(prev.freightCharge) || 0;
         const serviceCharge = Number(prev.serviceCharge) || 0;
-         const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + freightCharge + serviceCharge;
+        const netAmount =
+          grandTotal +
+          roundOff -
+          scrapAmount -
+          salesReturn +
+          freightCharge +
+          serviceCharge;
         updated.netAmount = netAmount.toFixed(2);
       }
 
       // Recalculate Net Amount when Sales Return changes
-      if (field === 'salesReturn') {
+      if (field === "salesReturn") {
         const grandTotal = Number(prev.granTotal) || 0;
         const roundOff = Number(prev.roudOff) || 0;
         const scrapAmount = Number(prev.scrapAmount) || 0;
         const salesReturn = Number(value) || 0;
         const freightCharge = Number(prev.freightCharge) || 0;
         const serviceCharge = Number(prev.serviceCharge) || 0;
-        const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
-                   freightCharge + serviceCharge;
+        const netAmount =
+          grandTotal +
+          roundOff -
+          scrapAmount -
+          salesReturn +
+          freightCharge +
+          serviceCharge;
         updated.netAmount = netAmount.toFixed(2);
       }
 
       // When UPI or Card changes, recalculate balance
-      if (field === 'upi' || field === 'card') {
-        const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
-          return sum + ((Number(data.collect) || 0) * Number(denom));
-        }, 0);
-        
+      if (field === "upi" || field === "card") {
+        const totalCollectedCash = Object.entries(denominations).reduce(
+          (sum, [denom, data]) => {
+            return sum + (Number(data.collect) || 0) * Number(denom);
+          },
+          0,
+        );
+
         const netAmt = Number(updated.netAmount || prev.netAmount) || 0;
-        const upiAmt = field === 'upi' ? Number(value) || 0 : Number(prev.upi) || 0;
-        const cardAmt = field === 'card' ? Number(value) || 0 : Number(prev.card) || 0;
-        
+        const upiAmt =
+          field === "upi" ? Number(value) || 0 : Number(prev.upi) || 0;
+        const cardAmt =
+          field === "card" ? Number(value) || 0 : Number(prev.card) || 0;
+
         const totalPayment = totalCollectedCash + upiAmt + cardAmt;
         const balance = netAmt - totalPayment;
-        
+
         updated.balance = balance.toString();
-        updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
+        updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : "";
       }
 
       // When Net Amount is updated, calculate the balance
-      if (field === 'netAmount' || field === 'roudOff' || field === 'scrapAmount' || field === 'salesReturn' || field === 'billDiscountPercent') {
-        const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
-          return sum + ((Number(data.collect) || 0) * Number(denom));
-        }, 0);
-        
+      if (
+        field === "netAmount" ||
+        field === "roudOff" ||
+        field === "scrapAmount" ||
+        field === "salesReturn" ||
+        field === "billDiscountPercent"
+      ) {
+        const totalCollectedCash = Object.entries(denominations).reduce(
+          (sum, [denom, data]) => {
+            return sum + (Number(data.collect) || 0) * Number(denom);
+          },
+          0,
+        );
+
         const netAmt = Number(updated.netAmount || prev.netAmount) || 0;
         const upiAmt = Number(updated.upi || prev.upi) || 0;
         const cardAmt = Number(updated.card || prev.card) || 0;
         const totalPayment = totalCollectedCash + upiAmt + cardAmt;
-        
+
         const balance = netAmt - totalPayment;
-        const issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
-        
+        const issuedCash = balance < 0 ? Math.abs(balance).toString() : "";
+
         updated.balance = balance.toString();
         updated.issuedCash = issuedCash;
-        
+
         // If we need to issue cash (balance is negative), auto-calculate issue denominations
         if (balance < 0) {
           const optimalIssue = calculateOptimalDenominations(Math.abs(balance));
-          setDenominations(prevDenom => {
+          setDenominations((prevDenom) => {
             const newDenom = { ...prevDenom };
-            [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-              newDenom[d] = { ...newDenom[d], issue: optimalIssue[d].toString() };
+            [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
+              newDenom[d] = {
+                ...newDenom[d],
+                issue: optimalIssue[d].toString(),
+              };
               const col = Number(newDenom[d].collect) || 0;
               const iss = optimalIssue[d];
               newDenom[d].closing = newDenom[d].available + col - iss;
@@ -596,10 +722,10 @@ const [selectedTransport, setSelectedTransport] = useState(null);
           });
         } else {
           // Clear issue denominations if no cash to issue
-          setDenominations(prevDenom => {
+          setDenominations((prevDenom) => {
             const newDenom = { ...prevDenom };
-            [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach(d => {
-              newDenom[d] = { ...newDenom[d], issue: '' };
+            [500, 200, 100, 50, 20, 10, 5, 2, 1].forEach((d) => {
+              newDenom[d] = { ...newDenom[d], issue: "" };
               const col = Number(newDenom[d].collect) || 0;
               newDenom[d].closing = newDenom[d].available + col;
             });
@@ -614,121 +740,133 @@ const [selectedTransport, setSelectedTransport] = useState(null);
 
   // ...existing code...
 
-useEffect(() => {
-  // List all fields that affect netAmount
-  const billAmount = Number(formData.billAmount) || 0;
-  const discountPercent = Number(formData.billDiscountPercent) || 0;
-  const discountAmount = (billAmount * discountPercent) / 100;
-  const grandTotal = Math.round(billAmount - discountAmount);
+  useEffect(() => {
+    // List all fields that affect netAmount
+    const billAmount = Number(formData.billAmount) || 0;
+    const discountPercent = Number(formData.billDiscountPercent) || 0;
+    const discountAmount = (billAmount * discountPercent) / 100;
+    const grandTotal = Math.round(billAmount - discountAmount);
 
-  const roundOff = Number(formData.roudOff) || 0;
-  const scrapAmount = Number(formData.scrapAmount) || 0;
-  const salesReturn = Number(formData.salesReturn) || 0;
-  const freightCharge = Number(formData.freightCharge) || 0;
-  // Only add serviceCharge if serviceChargeAmount is present
-  const serviceCharge = formData.serviceChargeAmount ? (Number(formData.serviceChargeAmount) || 0) : 0;
-  const serviceChargeAmount = Number(formData.serviceCharge) || 0;
-  const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + freightCharge + serviceCharge + serviceChargeAmount;
+    const roundOff = Number(formData.roudOff) || 0;
+    const scrapAmount = Number(formData.scrapAmount) || 0;
+    const salesReturn = Number(formData.salesReturn) || 0;
+    const freightCharge = Number(formData.freightCharge) || 0;
+    // Only add serviceCharge if serviceChargeAmount is present
+    const serviceCharge = formData.serviceChargeAmount
+      ? Number(formData.serviceChargeAmount) || 0
+      : 0;
+    const serviceChargeAmount = Number(formData.serviceCharge) || 0;
+    const netAmount =
+      grandTotal +
+      roundOff -
+      scrapAmount -
+      salesReturn +
+      freightCharge +
+      serviceCharge +
+      serviceChargeAmount;
 
-  // Only update if value actually changed (avoid infinite loop)
-  if (Number(formData.netAmount) !== Number(netAmount.toFixed(2))) {
-    setFormData(prev => ({
-      ...prev,
-      billDiscAmt: discountAmount.toFixed(2),
-      granTotal: grandTotal.toFixed(2),
-      netAmount: netAmount.toFixed(2)
-    }));
-  }
-}, [
-  formData.billAmount,
-  formData.billDiscountPercent,
-  formData.roudOff,
-  formData.scrapAmount,
-  formData.salesReturn,
-  formData.freightCharge,
-  formData.serviceCharge,
-  formData.serviceChargeAmount // <-- add this
-]);
+    // Only update if value actually changed (avoid infinite loop)
+    if (Number(formData.netAmount) !== Number(netAmount.toFixed(2))) {
+      setFormData((prev) => ({
+        ...prev,
+        billDiscAmt: discountAmount.toFixed(2),
+        granTotal: grandTotal.toFixed(2),
+        netAmount: netAmount.toFixed(2),
+      }));
+    }
+  }, [
+    formData.billAmount,
+    formData.billDiscountPercent,
+    formData.roudOff,
+    formData.scrapAmount,
+    formData.salesReturn,
+    formData.freightCharge,
+    formData.serviceCharge,
+    formData.serviceChargeAmount, // <-- add this
+  ]);
 
-// ...existing code...
+  // ...existing code...
 
   // Handle Service Charge Toggle and Calculation
   const handleServiceChargeToggle = (e) => {
     const isChecked = e.target.checked;
-    setFormData(prev => {
+    setFormData((prev) => {
       const updated = { ...prev, isServiceCharge: isChecked };
-      
+
       if (isChecked) {
         const cardAmount = Number(prev.card) || 0;
         const serviceChargePercent = Number(prev.serviceChargePercent) || 0;
         const serviceChargeAmount = (cardAmount * serviceChargePercent) / 100;
-        
+
         updated.serviceChargeAmount = serviceChargeAmount.toFixed(2);
       } else {
-        updated.serviceChargePercent = '';
-        updated.serviceChargeAmount = '';
+        updated.serviceChargePercent = "";
+        updated.serviceChargeAmount = "";
       }
-      
+
       return updated;
     });
   };
 
   // Handle Card Amount Change (to recalc service charge AND balance)
   const handleCardAmountChange = (value) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const updated = { ...prev, card: value };
-      
+
       // If service charge is enabled, recalculate
       if (prev.isServiceCharge) {
         const cardAmount = Number(value) || 0;
         const serviceChargePercent = Number(prev.serviceChargePercent) || 0;
         const serviceChargeAmount = (cardAmount * serviceChargePercent) / 100;
-        
+
         updated.serviceChargeAmount = serviceChargeAmount.toFixed(2);
       }
-      
+
       // Recalculate balance
-      const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
-        return sum + ((Number(data.collect) || 0) * Number(denom));
-      }, 0);
-      
+      const totalCollectedCash = Object.entries(denominations).reduce(
+        (sum, [denom, data]) => {
+          return sum + (Number(data.collect) || 0) * Number(denom);
+        },
+        0,
+      );
+
       const netAmt = Number(updated.netAmount) || 0;
       const upiAmt = Number(updated.upi) || 0;
       const cardAmt = Number(value) || 0;
-      
+
       const totalPayment = totalCollectedCash + upiAmt + cardAmt;
       const balance = netAmt - totalPayment;
-      console.log('Balance after card change:', balance);
+      console.log("Balance after card change:", balance);
       updated.balance = balance.toString();
-      updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : '';
-      
+      updated.issuedCash = balance < 0 ? Math.abs(balance).toString() : "";
+
       return updated;
     });
   };
 
   // Handle Service Charge Percent Change
   const handleServiceChargePercentChange = (value) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const updated = { ...prev, serviceChargePercent: value };
-      
+
       const cardAmount = Number(prev.card) || 0;
       const serviceChargePercent = Number(value) || 0;
       const serviceChargeAmount = (cardAmount * serviceChargePercent) / 100;
-      
+
       updated.serviceChargeAmount = serviceChargeAmount.toFixed(2);
-      
+
       return updated;
     });
   };
 
   // NEW FOCUS HANDLERS START HERE
-  
+
   // Handle keydown in collect fields for navigation
   const handleCollectFieldKeyDown = (e, currentDenom) => {
     const denomSequence = [500, 200, 100, 50, 20, 10, 5, 2, 1];
     const currentIndex = denomSequence.indexOf(currentDenom);
 
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       if (currentIndex < denomSequence.length - 1) {
         // Move to next denomination field
@@ -742,7 +880,7 @@ useEffect(() => {
           upiRef.current.focus();
         }
       }
-    } else if (e.key === 'ArrowRight') {
+    } else if (e.key === "ArrowRight") {
       e.preventDefault();
       if (currentIndex < denomSequence.length - 1) {
         const nextDenom = denomSequence[currentIndex + 1];
@@ -755,7 +893,7 @@ useEffect(() => {
           upiRef.current.focus();
         }
       }
-    } else if (e.key === 'ArrowLeft') {
+    } else if (e.key === "ArrowLeft") {
       e.preventDefault();
       if (currentIndex > 0) {
         const prevDenom = denomSequence[currentIndex - 1];
@@ -763,13 +901,13 @@ useEffect(() => {
           collectFieldRefs.current[prevDenom].focus();
         }
       }
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
       // Move to UPI Bank field
       if (upiBankRef.current) {
         upiBankRef.current.focus();
       }
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       // Move to Bill Discount field when pressing up from collect row
       if (billDiscountPercentRef.current) {
@@ -780,7 +918,7 @@ useEffect(() => {
 
   // Handle keydown for form fields navigation
   const handleFormFieldKeyDown = (e, nextRef) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
@@ -790,9 +928,9 @@ useEffect(() => {
 
   // Handle keydown specifically for Bill Discount % field
   const handleBillDiscountKeyDown = (e, nextRef) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
-      
+
       const billAmount = Number(formData.billAmount) || 0;
       const discountPercent = Number(formData.billDiscountPercent) || 0;
       const discountAmount = (billAmount * discountPercent) / 100;
@@ -802,16 +940,21 @@ useEffect(() => {
       const roundOff = Number(formData.roudOff) || 0;
       const scrapAmount = Number(formData.scrapAmount) || 0;
       const salesReturn = Number(formData.salesReturn) || 0;
-       const netAmount = (grandTotal + roundOff) - scrapAmount - salesReturn + 
-                   freightCharge + serviceCharge;
-      
-      setFormData(prev => ({
+      const netAmount =
+        grandTotal +
+        roundOff -
+        scrapAmount -
+        salesReturn +
+        freightCharge +
+        serviceCharge;
+
+      setFormData((prev) => ({
         ...prev,
         billDiscAmt: discountAmount.toFixed(2),
         granTotal: grandTotal.toFixed(2),
-        netAmount: netAmount.toFixed(2)
+        netAmount: netAmount.toFixed(2),
       }));
-      
+
       // Move to next field
       if (nextRef && nextRef.current) {
         nextRef.current.focus();
@@ -821,7 +964,7 @@ useEffect(() => {
 
   // NEW: Handle keydown for UPI Bank field - move to UPI Amount
   const handleUPIBankKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       if (cardRef.current) {
         cardRef.current.focus();
@@ -831,7 +974,7 @@ useEffect(() => {
 
   // NEW: Handle keydown for UPI Amount field - move to Card Bank
   const handleUPIKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       if (upiBankRef.current) {
         upiBankRef.current.focus();
@@ -840,19 +983,19 @@ useEffect(() => {
   };
 
   // NEW: Handle keydown for Card Bank field - move to Card Amount
-const handleCardBankKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    // Focus on Is Card Charge checkbox
-    if (serviceChargeCheckboxRef.current) {
-      serviceChargeCheckboxRef.current.focus();
+  const handleCardBankKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Focus on Is Card Charge checkbox
+      if (serviceChargeCheckboxRef.current) {
+        serviceChargeCheckboxRef.current.focus();
+      }
     }
-  }
-};
+  };
 
   // NEW: Handle keydown for Card Amount field - move to Service Charge or Save
   const handleCardKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       if (cardBankRef.current) {
         cardBankRef.current.focus();
@@ -861,121 +1004,119 @@ const handleCardBankKeyDown = (e) => {
   };
 
   // NEW: Handle keydown for Service Charge Checkbox
-// NEW: Handle keydown for Service Charge Checkbox
-const handleServiceChargeCheckboxKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    
-    // If service charge is checked, move to percentage field
-    if (formData.isServiceCharge) {
-      if (serviceChargePercentRef.current) {
-        serviceChargePercentRef.current.focus();
+  // NEW: Handle keydown for Service Charge Checkbox
+  const handleServiceChargeCheckboxKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+
+      // If service charge is checked, move to percentage field
+      if (formData.isServiceCharge) {
+        if (serviceChargePercentRef.current) {
+          serviceChargePercentRef.current.focus();
+        }
+      } else {
+        // If service charge is NOT checked, move to Transport Charge checkbox
+        if (transportChargeCheckboxRef.current) {
+          transportChargeCheckboxRef.current.focus();
+        }
       }
-    } else {
-      // If service charge is NOT checked, move to Transport Charge checkbox
+    }
+  };
+
+  const handleServiceChargeAmountKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Move to Transport Charge checkbox
       if (transportChargeCheckboxRef.current) {
         transportChargeCheckboxRef.current.focus();
       }
     }
-  }
-};
+  };
 
-const handleServiceChargeAmountKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    // Move to Transport Charge checkbox
-    if (transportChargeCheckboxRef.current) {
-      transportChargeCheckboxRef.current.focus();
+  // NEW: Handle keydown for Service Charge Percent field - move to Amount field
+  const handleServiceChargePercentKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Move to Service Charge Amount field
+      if (serviceChargeAmountRef.current) {
+        serviceChargeAmountRef.current.focus();
+      }
     }
-  }
-};
-
-
-
-// NEW: Handle keydown for Service Charge Percent field - move to Amount field
-const handleServiceChargePercentKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    // Move to Service Charge Amount field
-    if (serviceChargeAmountRef.current) {
-      serviceChargeAmountRef.current.focus();
-    }
-  }
-};
+  };
 
   // Handle keydown for salesReturnBillNo field - move to collect 500 field
- const handleSalesReturnBillKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    // Move to Freight Charge instead of collect field
-    if (freightChargeRef.current) {
-      freightChargeRef.current.focus();
+  const handleSalesReturnBillKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Move to Freight Charge instead of collect field
+      if (freightChargeRef.current) {
+        freightChargeRef.current.focus();
+      }
     }
-  }
-};
+  };
 
-// Handle keydown for Freight Charge field
-const handleFreightChargeKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    if (serviceChargeRef.current) {
-      serviceChargeRef.current.focus();
+  // Handle keydown for Freight Charge field
+  const handleFreightChargeKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (serviceChargeRef.current) {
+        serviceChargeRef.current.focus();
+      }
     }
-  }
-};
+  };
 
-// Handle keydown for Service Charge field
-const handleServiceChargeFieldKeyDown = (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    // Move to collect 500 field
-    if (collectFieldRefs.current[500]) {
-      collectFieldRefs.current[500].focus();
+  // Handle keydown for Service Charge field
+  const handleServiceChargeFieldKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Move to collect 500 field
+      if (collectFieldRefs.current[500]) {
+        collectFieldRefs.current[500].focus();
+      }
     }
-  }
-};
+  };
 
   const fetchBillAmount = async (billNo, fieldType) => {
     if (!billNo.trim()) return;
-    
+
     try {
       const response = await axiosInstance.get(
-        API_ENDPOINTS.SALESRETURN.GET_SALESRETURN_TENDER(billNo)
+        API_ENDPOINTS.SALESRETURN.GET_SALESRETURN_TENDER(billNo),
       );
-      
+
       const data = response.data;
-      
+
       if (data && data.fBillAmt) {
-        if (fieldType === 'scrap') {
-          handleInputChange('scrapAmount', data.fBillAmt.toString());
-        } else if (fieldType === 'salesReturn') {
-          handleInputChange('salesReturn', data.fBillAmt.toString());
+        if (fieldType === "scrap") {
+          handleInputChange("scrapAmount", data.fBillAmt.toString());
+        } else if (fieldType === "salesReturn") {
+          handleInputChange("salesReturn", data.fBillAmt.toString());
         }
       }
     } catch (error) {
-      console.error('Error fetching bill amount:', error);
+      console.error("Error fetching bill amount:", error);
     }
   };
 
   const handleScrapBillNoChange = (e) => {
     const value = e.target.value;
-    handleInputChange('scrapAmountBillNo', value);
-    
+    handleInputChange("scrapAmountBillNo", value);
+
     if (!value.trim()) {
-      handleInputChange('scrapAmount', '');
+      handleInputChange("scrapAmount", "");
     } else if (value.length > 2) {
-      fetchBillAmount(value, 'scrap');
+      fetchBillAmount(value, "scrap");
     }
   };
 
   const handleSalesReturnBillNoChange = (e) => {
     const value = e.target.value;
-    handleInputChange('salesReturnBillNo', value);
-    
+    handleInputChange("salesReturnBillNo", value);
+
     if (!value.trim()) {
-      handleInputChange('salesReturn', '');
+      handleInputChange("salesReturn", "");
     } else if (value.length > 2) {
-      fetchBillAmount(value, 'salesReturn');
+      fetchBillAmount(value, "salesReturn");
     }
   };
 
@@ -983,25 +1124,31 @@ const handleServiceChargeFieldKeyDown = (e) => {
     const receivedCash = Number(formData.receivedCash) || 0;
     const upi = Number(formData.upi) || 0;
     const card = Number(formData.card) || 0;
-    const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
-      return sum + ((Number(data.issue) || 0) * Number(denom));
-    }, 0);
+    const creditAmount = Number(formData.creditAmount) || 0;
+    const totalIssuedCash = Object.entries(denominations).reduce(
+      (sum, [denom, data]) => {
+        return sum + (Number(data.issue) || 0) * Number(denom);
+      },
+      0,
+    );
     const cardTotal = formData.isServiceCharge
-  ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
-  : (Number(formData.card) || 0);
+      ? (Number(formData.card) || 0) +
+        (Number(formData.serviceChargeAmount) || 0)
+      : Number(formData.card) || 0;
 
-    const calculatedNetAmount = (receivedCash + upi + cardTotal) - totalIssuedCash;
+    const calculatedNetAmount =
+      receivedCash + upi + cardTotal + creditAmount - totalIssuedCash;
     const formNetAmount = Number(formData.netAmount) || 0;
     if (calculatedNetAmount !== formNetAmount) {
       setValidationPopup({
         isOpen: true,
-        title: 'Validation Error',
-        message: 'Bill Amount Mismatch. Please check the entered amounts.',
-        type: 'warning',
-        confirmText: 'OK',
+        title: "Validation Error",
+        message: "Bill Amount Mismatch. Please check the entered amounts.",
+        type: "warning",
+        confirmText: "OK",
         cancelText: null,
         action: null,
-        isLoading: false
+        isLoading: false,
       });
       return;
     }
@@ -1014,19 +1161,25 @@ const handleServiceChargeFieldKeyDown = (e) => {
       const receivedCash = Number(formData.receivedCash) || 0;
       const upi = Number(formData.upi) || 0;
       const card = Number(formData.card) || 0;
-       const cardTotal = formData.isServiceCharge
-  ? (Number(formData.card) || 0) + (Number(formData.serviceChargeAmount) || 0)
-  : (Number(formData.card) || 0);
-      const totalIssuedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
-        return sum + ((Number(data.issue) || 0) * Number(denom));
-      }, 0);
-      
-      const calculatedNetAmount = (receivedCash + upi + cardTotal) - totalIssuedCash;
-      
+      const creditAmount = Number(formData.creditAmount) || 0;
+      const cardTotal = formData.isServiceCharge
+        ? (Number(formData.card) || 0) +
+          (Number(formData.serviceChargeAmount) || 0)
+        : Number(formData.card) || 0;
+      const totalIssuedCash = Object.entries(denominations).reduce(
+        (sum, [denom, data]) => {
+          return sum + (Number(data.issue) || 0) * Number(denom);
+        },
+        0,
+      );
+
+      const calculatedNetAmount =
+        receivedCash + upi + cardTotal + creditAmount - totalIssuedCash;
+
       const formNetAmount = Number(formData.netAmount) || 0;
-      
+
       if (calculatedNetAmount !== formNetAmount) {
-        alert(' Bill Amount Mismatch. Please check the entered amounts.');
+        alert(" Bill Amount Mismatch. Please check the entered amounts.");
         return;
       }
 
@@ -1034,51 +1187,63 @@ const handleServiceChargeFieldKeyDown = (e) => {
       if (formData.originalDate) {
         const dateObj = new Date(formData.originalDate);
         const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const hours = String(dateObj.getHours()).padStart(2, '0');
-        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-        const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        const hours = String(dateObj.getHours()).padStart(2, "0");
+        const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+        const seconds = String(dateObj.getSeconds()).padStart(2, "0");
         dateToSend = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
       } else {
         const now = new Date();
         const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const day = String(now.getDate()).padStart(2, "0");
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        const seconds = String(now.getSeconds()).padStart(2, "0");
         dateToSend = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.000Z`;
       }
-      
+
       const payload = {
         invoiceNo: formData.billNo,
         date: dateToSend,
         billAmount: Number(formData.granTotal) || 0,
         givenTotal: Number(formData.receivedCash) || 0,
         balanceGiven: Number(formData.issuedCash) || 0,
-        fCompCode: userData?.companyCode || '001',
+        fCompCode: userData?.companyCode || "001",
         fGrossAMT: Number(formData.grossAmt) || 0,
         fitemAMT: Number(formData.itemDAmt) || 0,
         fBilDIS: Number(formData.billDiscountPercent) || 0,
         froundoFf: Number(formData.roudOff) || 0,
-        fScrapBillNo: formData.scrapAmountBillNo || '',
+        fScrapBillNo: formData.scrapAmountBillNo || "",
         fscrapAMT: Number(formData.scrapAmount) || 0,
-        fsaleBillNO: formData.salesReturnBillNo || '',
+        fsaleBillNO: formData.salesReturnBillNo || "",
         fSalesAMT: Number(formData.salesReturn) || 0,
         fIssueCash: Number(formData.issuedCash) || 0,
         fupi: Number(formData.upi) || 0,
         fcard: Number(formData.card) || 0,
-        fcardcode: cardBank?.fCode || '',
-        fupIcode: upiBank?.fCode || '',
+        fcardcode: cardBank?.fCode || "",
+        fupIcode: upiBank?.fCode || "",
         balanceAmt: Number(formData.balance) || 0,
         servicechrgeAmt: Number(formData.serviceChargeAmount) || 0,
         fdisAmt: Number(formData.billDiscAmt) || 0,
         fFreight: Number(formData.freightCharge) || 0,
-        fTRans: formData.isTransportCharge ? Number(formData.transport) || 0 : 0,
-        fCardchrg: formData.isServiceCharge ? Number(formData.serviceChargeAmount) : 0,
-        fCardPer: formData.isServiceCharge ? Number(formData.serviceChargePercent) : 0,
-        fLrNo: formData.transportAmount || '',
+        fTRans: formData.isTransportCharge
+          ? Number(formData.transport) || 0
+          : 0,
+        fCardchrg: formData.isServiceCharge
+          ? Number(formData.serviceChargeAmount)
+          : 0,
+        fCardPer: formData.isServiceCharge
+          ? Number(formData.serviceChargePercent)
+          : 0,
+        fLrNo: formData.transportAmount || "",
+        fcusAmt: formData.isCreditBill
+          ? Number(formData.creditAmount) || 0
+          : 0,
+        fcuscode: formData.isCreditBill
+          ? formData.creditCustomerCode || ""
+          : "",
         collect: {
           r500: Number(denominations[500].collect) || 0,
           r200: Number(denominations[200].collect) || 0,
@@ -1088,7 +1253,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
           r10: Number(denominations[10].collect) || 0,
           r5: Number(denominations[5].collect) || 0,
           r2: Number(denominations[2].collect) || 0,
-          r1: Number(denominations[1].collect) || 0
+          r1: Number(denominations[1].collect) || 0,
         },
         issue: {
           r500: Number(denominations[500].issue) || 0,
@@ -1099,75 +1264,107 @@ const handleServiceChargeFieldKeyDown = (e) => {
           r10: Number(denominations[10].issue) || 0,
           r5: Number(denominations[5].issue) || 0,
           r2: Number(denominations[2].issue) || 0,
-          r1: Number(denominations[1].issue) || 0
-        }
+          r1: Number(denominations[1].issue) || 0,
+        },
       };
 
       const response = await apiService.post(
-        'BillCollector/InsertTender',
-        payload
+        "BillCollector/InsertTender",
+        payload,
       );
-    console.log(JSON.stringify(payload));
+      console.log(JSON.stringify(payload));
       if (response) {
         setConfirmSaveOpen(false);
-        
+
         // Fetch invoice details for printing FIRST, which will also show the popup
         await fetchInvoiceDetailsForPrint();
-        
+
         const resetFormData = {
-          billNo: '',
-          salesman: '',
-          date: '',
-          originalDate: '',
-          grossAmt: '',
-          itemDAmt: '',
-          billAmount: '',
-          billDiscountPercent: '',
-          billDiscAmt: '',
-          granTotal: '',
-          roudOff: '',
-          scrapAmountBillNo: '',
-          scrapAmount: '',
-          salesReturnBillNo: '',
-          salesReturn: '',
-          netAmount: '',
-          receivedCash: '',
-          issuedCash: '',
-          upi: '',
-          card: '',
-          upiBank: '',
-          cardBank: '',
-          serviceChargePercent: '',
-          serviceChargeAmount: '',
+          billNo: "",
+          salesman: "",
+          date: "",
+          originalDate: "",
+          grossAmt: "",
+          itemDAmt: "",
+          billAmount: "",
+          billDiscountPercent: "",
+          billDiscAmt: "",
+          granTotal: "",
+          roudOff: "",
+          scrapAmountBillNo: "",
+          scrapAmount: "",
+          salesReturnBillNo: "",
+          salesReturn: "",
+          netAmount: "",
+          receivedCash: "",
+          issuedCash: "",
+          upi: "",
+          card: "",
+          upiBank: "",
+          cardBank: "",
+          serviceChargePercent: "",
+          serviceChargeAmount: "",
           isServiceCharge: false,
           isCreditBill: false,
+          creditCustomer: "",
+          creditAmount: "",
           delivery: false,
-          balance: '',
+          balance: "",
         };
-        
+
         setFormData(resetFormData);
-        
-        setDenominations(prev => ({
-          500: { ...prev[500], collect: '', issue: '', closing: prev[500].available },
-          200: { ...prev[200], collect: '', issue: '', closing: prev[200].available },
-          100: { ...prev[100], collect: '', issue: '', closing: prev[100].available },
-          50: { ...prev[50], collect: '', issue: '', closing: prev[50].available },
-          20: { ...prev[20], collect: '', issue: '', closing: prev[20].available },
-          10: { ...prev[10], collect: '', issue: '', closing: prev[10].available },
-          5: { ...prev[5], collect: '', issue: '', closing: prev[5].available },
-          2: { ...prev[2], collect: '', issue: '', closing: prev[2].available },
-          1: { ...prev[1], collect: '', issue: '', closing: prev[1].available },
+
+        setDenominations((prev) => ({
+          500: {
+            ...prev[500],
+            collect: "",
+            issue: "",
+            closing: prev[500].available,
+          },
+          200: {
+            ...prev[200],
+            collect: "",
+            issue: "",
+            closing: prev[200].available,
+          },
+          100: {
+            ...prev[100],
+            collect: "",
+            issue: "",
+            closing: prev[100].available,
+          },
+          50: {
+            ...prev[50],
+            collect: "",
+            issue: "",
+            closing: prev[50].available,
+          },
+          20: {
+            ...prev[20],
+            collect: "",
+            issue: "",
+            closing: prev[20].available,
+          },
+          10: {
+            ...prev[10],
+            collect: "",
+            issue: "",
+            closing: prev[10].available,
+          },
+          5: { ...prev[5], collect: "", issue: "", closing: prev[5].available },
+          2: { ...prev[2], collect: "", issue: "", closing: prev[2].available },
+          1: { ...prev[1], collect: "", issue: "", closing: prev[1].available },
         }));
-        
+
         if (onSaveSuccess) {
           onSaveSuccess();
         }
-        
+
         // Don't close the modal after save - keep it open
         // if (onClose) {
         //   onClose();
         // }
-        
+
         setTimeout(() => {
           if (billDiscountPercentRef.current) {
             billDiscountPercentRef.current.focus();
@@ -1175,12 +1372,20 @@ const handleServiceChargeFieldKeyDown = (e) => {
         }, 0);
       } else {
         setConfirmSaveOpen(false);
-        alert('Failed to save tender details: ' + (response.data?.message || 'Unknown error'));
+        alert(
+          "Failed to save tender details: " +
+            (response.data?.message || "Unknown error"),
+        );
       }
     } catch (error) {
-      console.error('Error saving tender:', error);
+      console.error("Error saving tender:", error);
       setConfirmSaveOpen(false);
-      alert('Error: ' + (error.response?.data?.message || error.message || 'Failed to save tender'));
+      alert(
+        "Error: " +
+          (error.response?.data?.message ||
+            error.message ||
+            "Failed to save tender"),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -1190,78 +1395,92 @@ const handleServiceChargeFieldKeyDown = (e) => {
   const fetchInvoiceDetailsForPrint = async () => {
     try {
       if (!billData?.billNo) {
-        console.error('No bill number available');
+        console.error("No bill number available");
         return;
       }
 
       const response = await apiService.get(
-        `Salesinvoices/GetVoucherDetails?voucherNo=${billData.billNo}`
+        `Salesinvoices/GetVoucherDetails?voucherNo=${billData.billNo}`,
       );
 
-      console.log('API Full Response:', response);
-      console.log('API Response.data:', response?.data);
+      console.log("API Full Response:", response);
+      console.log("API Response.data:", response?.data);
 
       // Data might be at response.data OR directly at response
       const apiData = response?.data || response;
-      console.log('API Data being used:', apiData);
+      console.log("API Data being used:", apiData);
 
       if (apiData) {
         // The API might return data directly or in a nested structure
         const header = apiData.header || apiData;
         const items = apiData.items || apiData.fItems || [];
-        
-        console.log('Header:', header);
-        console.log('Items:', items);
-        
+
+        console.log("Header:", header);
+        console.log("Items:", items);
+
         // Build payment mode data from current form state
-        const totalCollectedCash = Object.entries(denominations).reduce((sum, [denom, data]) => {
-          return sum + ((Number(data.collect) || 0) * Number(denom));
-        }, 0);
-        
+        const totalCollectedCash = Object.entries(denominations).reduce(
+          (sum, [denom, data]) => {
+            return sum + (Number(data.collect) || 0) * Number(denom);
+          },
+          0,
+        );
+
         const cashAmount = totalCollectedCash || 0;
         const upiAmount = parseFloat(formData.upi) || 0;
         const cardAmount = parseFloat(formData.card) || 0;
         const balanceAmount = parseFloat(formData.balance) || 0;
-        
+
         // Build modeofPayment array with CASH, UPI, CARD, BALANCE
         const modeOfPaymentData = [];
-        if (cashAmount > 0) modeOfPaymentData.push({ method: 'CASH', amount: cashAmount });
-        if (upiAmount > 0) modeOfPaymentData.push({ method: 'UPI', amount: upiAmount });
-        if (cardAmount > 0) modeOfPaymentData.push({ method: 'CARD', amount: cardAmount });
-        if (balanceAmount !== 0) modeOfPaymentData.push({ method: 'BALANCE', amount: Math.abs(balanceAmount) });
-        
+        if (cashAmount > 0)
+          modeOfPaymentData.push({ method: "CASH", amount: cashAmount });
+        if (upiAmount > 0)
+          modeOfPaymentData.push({ method: "UPI", amount: upiAmount });
+        if (cardAmount > 0)
+          modeOfPaymentData.push({ method: "CARD", amount: cardAmount });
+        if (balanceAmount !== 0)
+          modeOfPaymentData.push({
+            method: "BALANCE",
+            amount: Math.abs(balanceAmount),
+          });
+
         const printData = {
           voucherNo: header?.voucherNo || header?.fVoucherNo || billData.billNo,
-          voucherDate: header?.voucherDate || header?.fVoucherDate || new Date().toISOString(),
-          customerName: header?.customerName || header?.fCustNme || '',
-          customerCode: header?.customerCode || header?.fCustCode || '',
-          salesmanName: header?.sManName || header?.fSalesmanName || '',
-          salesCode: header?.sManCode || header?.fSalesmanCode || '',
+          voucherDate:
+            header?.voucherDate ||
+            header?.fVoucherDate ||
+            new Date().toISOString(),
+          customerName: header?.customerName || header?.fCustNme || "",
+          customerCode: header?.customerCode || header?.fCustCode || "",
+          salesmanName: header?.sManName || header?.fSalesmanName || "",
+          salesCode: header?.sManCode || header?.fSalesmanCode || "",
           billAmount: header?.billAmt || header?.fBillAmt || 0,
           netAmount: header?.billAmt || header?.fBillAmt || 0,
-          items: (Array.isArray(items) ? items : [])?.map(item => ({
-            itemName: item.fitemNme || item.itemName || '',
-            itemCode: item.fItemcode || item.itemCode || '',
-            rate: parseFloat(item.fRate || item.rate) || 0,
-            qty: parseFloat(item.fTotQty || item.qty) || 0,
-            amount: parseFloat(item.fAmount || item.amount) || 0,
-            tax: parseFloat(item.fTax || item.tax) || 0,
-            hsn: item.fHSN || item.hsn || '',
-            description: item.fdesc || item.description || ''
-          })) || [],
-          modeofPayment: modeOfPaymentData
+          items:
+            (Array.isArray(items) ? items : [])?.map((item) => ({
+              itemName: item.fitemNme || item.itemName || "",
+              itemCode: item.fItemcode || item.itemCode || "",
+              rate: parseFloat(item.fRate || item.rate) || 0,
+              qty: parseFloat(item.fTotQty || item.qty) || 0,
+              amount: parseFloat(item.fAmount || item.amount) || 0,
+              tax: parseFloat(item.fTax || item.tax) || 0,
+              hsn: item.fHSN || item.hsn || "",
+              description: item.fdesc || item.description || "",
+            })) || [],
+          modeofPayment: modeOfPaymentData,
         };
 
-        console.log('Final print data:', printData);
+        console.log("Final print data:", printData);
         setPrintBillData(printData);
       } else {
-        console.warn('No data found in API response');
+        console.warn("No data found in API response");
       }
-      
+
       // Always show the popup regardless of API response
       setPrintConfirmationOpen(true);
     } catch (error) {
-      console.error('Error fetching invoice details:', error);
+      console.error("Error fetching invoice details:", error);
       // Still show the popup even on error
       setPrintConfirmationOpen(true);
     }
@@ -1277,59 +1496,64 @@ const handleServiceChargeFieldKeyDown = (e) => {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete?')) {
-      console.log('Deleted');
-      alert('Deleted successfully!');
+    if (window.confirm("Are you sure you want to delete?")) {
+      console.log("Deleted");
+      alert("Deleted successfully!");
     }
   };
 
   const handlePrint = () => {
-    console.log('Fetching invoice details for printing...');
+    console.log("Fetching invoice details for printing...");
     fetchInvoiceDetailsForPrint();
   };
 
   const handleClear = () => {
     setFormData({
-      billNo: billData?.billNo || '',
-      salesman: billData?.salesman || '',
-      date: billData?.date ? new Date(billData.date).toLocaleDateString('en-IN') : '',
-      grossAmt: billData?.amount ? billData.amount.toString() : '',
-      itemDAmt: '',
-      billAmount: billData?.amount ? billData.amount.toString() : '',
-      billDiscountPercent: '',
-      billDiscAmt: '',
-      granTotal: '',
-      roudOff: '',
-      scrapAmountBillNo: '',
-      scrapAmount: '',
-      salesReturnBillNo: '',
-      salesReturn: '',
-      freightCharge: '',      
-      serviceCharge: '',      
-      netAmount: '',
-      receivedCash: '',
-      issuedCash: '',
-      upi: '',
-      card: '',
-      upiBank: '',
-      cardBank: '',
-      serviceChargePercent: '',
-      serviceChargeAmount: '',
+      billNo: billData?.billNo || "",
+      salesman: billData?.salesman || "",
+      date: billData?.date
+        ? new Date(billData.date).toLocaleDateString("en-IN")
+        : "",
+      grossAmt: billData?.amount ? billData.amount.toString() : "",
+      itemDAmt: "",
+      billAmount: billData?.amount ? billData.amount.toString() : "",
+      billDiscountPercent: "",
+      billDiscAmt: "",
+      granTotal: "",
+      roudOff: "",
+      scrapAmountBillNo: "",
+      scrapAmount: "",
+      salesReturnBillNo: "",
+      salesReturn: "",
+      freightCharge: "",
+      serviceCharge: "",
+      netAmount: "",
+      receivedCash: "",
+      issuedCash: "",
+      upi: "",
+      card: "",
+      upiBank: "",
+      cardBank: "",
+      serviceChargePercent: "",
+      serviceChargeAmount: "",
       isServiceCharge: false,
       isCreditBill: false,
+      creditCustomer: "",
+      creditCustomerCode: "",
+      creditAmount: "",
       delivery: false,
-      balance: billData?.amount ? billData.amount.toString() : '',
+      balance: billData?.amount ? billData.amount.toString() : "",
     });
-    setDenominations(prev => ({
-      500: { ...prev[500], collect: '', issue: '' },
-      200: { ...prev[200], collect: '', issue: '' },
-      100: { ...prev[100], collect: '', issue: '' },
-      50: { ...prev[50], collect: '', issue: '' },
-      20: { ...prev[20], collect: '', issue: '' },
-      10: { ...prev[10], collect: '', issue: '' },
-      5: { ...prev[5], collect: '', issue: '' },
-      2: { ...prev[2], collect: '', issue: '' },
-      1: { ...prev[1], collect: '', issue: '' },
+    setDenominations((prev) => ({
+      500: { ...prev[500], collect: "", issue: "" },
+      200: { ...prev[200], collect: "", issue: "" },
+      100: { ...prev[100], collect: "", issue: "" },
+      50: { ...prev[50], collect: "", issue: "" },
+      20: { ...prev[20], collect: "", issue: "" },
+      10: { ...prev[10], collect: "", issue: "" },
+      5: { ...prev[5], collect: "", issue: "" },
+      2: { ...prev[2], collect: "", issue: "" },
+      1: { ...prev[1], collect: "", issue: "" },
     }));
     if (billDiscountPercentRef && billDiscountPercentRef.current) {
       billDiscountPercentRef.current.focus();
@@ -1343,7 +1567,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
       className={styles.modalOverlay}
       onClick={(e) => {
         // When either popup is open, avoid closing the Tender modal by outer overlay clicks
-        if (upiPopupOpen || cardPopupOpen || transportPopupOpen) {
+        if (upiPopupOpen || cardPopupOpen || transportPopupOpen || customerPopupOpen) {
           e.stopPropagation();
           return;
         }
@@ -1365,7 +1589,9 @@ const handleServiceChargeFieldKeyDown = (e) => {
               <span className={styles.company}>{formData.salesman}</span>
               <span className={styles.date}>{formData.date}</span>
             </div>
-            <button className={styles.closeButton} onClick={onClose}>✕</button>
+            <button className={styles.closeButton} onClick={onClose}>
+              ✕
+            </button>
           </div>
 
           <div className={styles.mainContent}>
@@ -1384,7 +1610,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                     />
                   </div>
                 </div>
-                
+
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Item D.Amt.</label>
                   <div className={styles.inputContainer}>
@@ -1422,15 +1648,23 @@ const handleServiceChargeFieldKeyDown = (e) => {
                       ref={billDiscountPercentRef}
                       type="number"
                       value={formData.billDiscountPercent}
-                      onChange={(e) => handleInputChange('billDiscountPercent', e.target.value)}
-                      onKeyDown={(e) => handleBillDiscountKeyDown(e, roundOffRef)}
+                      onChange={(e) =>
+                        handleInputChange("billDiscountPercent", e.target.value)
+                      }
+                      onKeyDown={(e) =>
+                        handleBillDiscountKeyDown(e, roundOffRef)
+                      }
                       className={styles.inputField}
                       disabled={billData?.isDiscountAllowed === false}
-                      title={billData?.isDiscountAllowed === false ? "Discount not allowed for items in this bill" : ""}
+                      title={
+                        billData?.isDiscountAllowed === false
+                          ? "Discount not allowed for items in this bill"
+                          : ""
+                      }
                     />
                   </div>
                 </div>
-                
+
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Bill Disc.Amt</label>
                   <div className={styles.inputContainer}>
@@ -1457,7 +1691,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                     />
                   </div>
                 </div>
-                
+
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Round Off</label>
                   <div className={styles.inputContainer}>
@@ -1465,8 +1699,12 @@ const handleServiceChargeFieldKeyDown = (e) => {
                       ref={roundOffRef}
                       type="number"
                       value={formData.roudOff}
-                      onChange={(e) => handleInputChange('roudOff', e.target.value)}
-                      onKeyDown={(e) => handleFormFieldKeyDown(e, scrapBillNoRef)}
+                      onChange={(e) =>
+                        handleInputChange("roudOff", e.target.value)
+                      }
+                      onKeyDown={(e) =>
+                        handleFormFieldKeyDown(e, scrapBillNoRef)
+                      }
                       className={styles.inputField}
                     />
                   </div>
@@ -1483,19 +1721,23 @@ const handleServiceChargeFieldKeyDown = (e) => {
                       type="text"
                       value={formData.scrapAmountBillNo}
                       onChange={handleScrapBillNoChange}
-                      onKeyDown={(e) => handleFormFieldKeyDown(e, salesReturnBillNoRef)}
+                      onKeyDown={(e) =>
+                        handleFormFieldKeyDown(e, salesReturnBillNoRef)
+                      }
                       className={styles.inputField}
                     />
                   </div>
                 </div>
-                
+
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Scrap Amount</label>
                   <div className={styles.inputContainer}>
                     <input
                       type="number"
                       value={formData.scrapAmount}
-                      onChange={(e) => handleInputChange('scrapAmount', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("scrapAmount", e.target.value)
+                      }
                       className={styles.inputField}
                       readOnly
                     />
@@ -1518,14 +1760,16 @@ const handleServiceChargeFieldKeyDown = (e) => {
                     />
                   </div>
                 </div>
-                
+
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Sales Return</label>
                   <div className={styles.inputContainer}>
                     <input
                       type="number"
                       value={formData.salesReturn}
-                      onChange={(e) => handleInputChange('salesReturn', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("salesReturn", e.target.value)
+                      }
                       className={styles.inputField}
                       readOnly
                     />
@@ -1534,35 +1778,56 @@ const handleServiceChargeFieldKeyDown = (e) => {
               </div>
 
               {/* Freight Charge & Service Charge Row - ADD THIS AFTER SALES RETURN ROW */}
-<div className={styles.inputRow}>
-  <div className={styles.inputGroup}>
-    <label className={styles.label}>Freight Charge</label>
-    <div className={styles.inputContainer}>
-      <input
-        ref={freightChargeRef}
-        type="number"
-        value={formData.freightCharge}
-        onChange={(e) => handleInputChange('freightCharge', e.target.value)}
-        onKeyDown={handleFreightChargeKeyDown}
-        className={styles.inputField}
-      />
-    </div>
-  </div>
-  
-  <div className={styles.inputGroup}>
-    <label className={styles.label}>Service Charge</label>
-    <div className={styles.inputContainer}>
-      <input
-        ref={serviceChargeRef}
-        type="number"
-        value={formData.serviceCharge}
-        onChange={(e) => handleInputChange('serviceCharge', e.target.value)}
-        onKeyDown={handleServiceChargeFieldKeyDown}
-        className={styles.inputField}
-      />
-    </div>
-  </div>
-</div>
+              <div className={styles.inputRow}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>Freight Charge</label>
+                  <div className={styles.inputContainer}>
+                    <input
+                      ref={freightChargeRef}
+                      type="number"
+                      value={formData.freightCharge}
+                      onChange={(e) =>
+                        handleInputChange("freightCharge", e.target.value)
+                      }
+                      onKeyDown={handleFreightChargeKeyDown}
+                      className={styles.inputField}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>Service Charge</label>
+                  <div className={styles.inputContainer}>
+                    <input
+                      ref={serviceChargeRef}
+                      type="number"
+                      value={formData.serviceCharge}
+                      onChange={(e) =>
+                        handleInputChange("serviceCharge", e.target.value)
+                      }
+                      onKeyDown={handleServiceChargeFieldKeyDown}
+                      className={styles.inputField}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className={styles.inputRow}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>Customer Balance</label>
+                  <div className={styles.inputContainer}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={
+                        formData.customerBalance
+                          ? `${Number(formData.customerBalance).toFixed(2)} ${formData.balanceType}`
+                          : ""
+                      }
+                      className={`${styles.inputField} ${styles.readonlyField}`}
+                    />
+                  </div>
+                </div>                
+              </div>
 
               {/* Net Amount Row */}
               <div className={styles.inputRow}>
@@ -1592,7 +1857,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                     <span>Service</span>
                   </label>
                 </div> */}
-                
+
                 {/* <div className={styles.checkboxGroup}>
                   <label className={styles.checkboxLabel}>
                     <input
@@ -1629,27 +1894,51 @@ const handleServiceChargeFieldKeyDown = (e) => {
                   {/* Available Row */}
                   <div className={styles.tableRow}>
                     <div className={styles.tableLabelCell}>Available</div>
-                    <div className={styles.tableCell}>{denominations[500].available}</div>
-                    <div className={styles.tableCell}>{denominations[200].available}</div>
-                    <div className={styles.tableCell}>{denominations[100].available}</div>
-                    <div className={styles.tableCell}>{denominations[50].available}</div>
-                    <div className={styles.tableCell}>{denominations[20].available}</div>
-                    <div className={styles.tableCell}>{denominations[10].available}</div>
-                    <div className={styles.tableCell}>{denominations[5].available}</div>
-                    <div className={styles.tableCell}>{denominations[2].available}</div>
-                    <div className={styles.tableCell}>{denominations[1].available}</div>
+                    <div className={styles.tableCell}>
+                      {denominations[500].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[200].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[100].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[50].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[20].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[10].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[5].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[2].available}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[1].available}
+                    </div>
                   </div>
 
                   {/* Collect Row */}
                   <div className={styles.tableRow}>
                     <div className={styles.tableLabelCell}>Collect</div>
-                    {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
+                    {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((denom) => (
                       <div key={denom} className={styles.tableCell}>
                         <input
                           ref={(el) => (collectFieldRefs.current[denom] = el)}
                           type="number"
                           value={denominations[denom].collect}
-                          onChange={(e) => handleDenominationChange(denom, 'collect', e.target.value)}
+                          onChange={(e) =>
+                            handleDenominationChange(
+                              denom,
+                              "collect",
+                              e.target.value,
+                            )
+                          }
                           onKeyDown={(e) => handleCollectFieldKeyDown(e, denom)}
                           className={styles.tableInput}
                         />
@@ -1660,7 +1949,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                   {/* Issue Row */}
                   <div className={styles.tableRow}>
                     <div className={styles.tableLabelCell}>Issue</div>
-                    {[500, 200, 100, 50, 20, 10, 5, 2, 1].map(denom => (
+                    {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((denom) => (
                       <div key={denom} className={styles.tableCell}>
                         <input
                           type="number"
@@ -1675,19 +1964,36 @@ const handleServiceChargeFieldKeyDown = (e) => {
                   {/* Closing Row */}
                   <div className={styles.tableRow}>
                     <div className={styles.tableLabelCell}>Closing</div>
-                    <div className={styles.tableCell}>{denominations[500].closing}</div>
-                    <div className={styles.tableCell}>{denominations[200].closing}</div>
-                    <div className={styles.tableCell}>{denominations[100].closing}</div>
-                    <div className={styles.tableCell}>{denominations[50].closing}</div>
-                    <div className={styles.tableCell}>{denominations[20].closing}</div>
-                    <div className={styles.tableCell}>{denominations[10].closing}</div>
-                    <div className={styles.tableCell}>{denominations[5].closing}</div>
-                    <div className={styles.tableCell}>{denominations[2].closing}</div>
-                    <div className={styles.tableCell}>{denominations[1].closing}</div>
+                    <div className={styles.tableCell}>
+                      {denominations[500].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[200].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[100].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[50].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[20].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[10].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[5].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[2].closing}
+                    </div>
+                    <div className={styles.tableCell}>
+                      {denominations[1].closing}
+                    </div>
                   </div>
                 </div>
               </div>
-
 
               {/* Bottom: Payment Details (Updated Rows) */}
               <div className={styles.paymentSection}>
@@ -1698,7 +2004,11 @@ const handleServiceChargeFieldKeyDown = (e) => {
                     <div className={styles.paymentInputContainer}>
                       <input
                         type="number"
-                        value={formData.receivedCash === '0' ? '' : formData.receivedCash}
+                        value={
+                          formData.receivedCash === "0"
+                            ? ""
+                            : formData.receivedCash
+                        }
                         readOnly
                         className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                       />
@@ -1709,7 +2019,9 @@ const handleServiceChargeFieldKeyDown = (e) => {
                     <div className={styles.paymentInputContainer}>
                       <input
                         type="text"
-                        value={formData.issuedCash === '0' ? '' : formData.issuedCash}
+                        value={
+                          formData.issuedCash === "0" ? "" : formData.issuedCash
+                        }
                         readOnly
                         className={`${styles.paymentInput} ${styles.readonlyPayment}`}
                       />
@@ -1722,7 +2034,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                         type="text"
                         value={formData.balance}
                         readOnly
-                        className={`${styles.paymentInput} ${styles.readonlyPayment} ${Number(formData.balance) < 0 ? styles.negativeBalance : ''}`}
+                        className={`${styles.paymentInput} ${styles.readonlyPayment} ${Number(formData.balance) < 0 ? styles.negativeBalance : ""}`}
                         title="Net Amount - (Cash Collected + UPI + Card)"
                       />
                     </div>
@@ -1738,7 +2050,9 @@ const handleServiceChargeFieldKeyDown = (e) => {
                         ref={upiRef}
                         type="number"
                         value={formData.upi}
-                        onChange={(e) => handleInputChange('upi', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("upi", e.target.value)
+                        }
                         onKeyDown={handleUPIKeyDown}
                         className={styles.paymentInput}
                       />
@@ -1751,9 +2065,16 @@ const handleServiceChargeFieldKeyDown = (e) => {
                         ref={upiBankRef}
                         type="text"
                         value={formData.upiBank}
-                        onChange={(e) => handleInputChange('upiBank', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("upiBank", e.target.value)
+                        }
                         onKeyDown={(e) => {
-                          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                          if (
+                            e.key.length === 1 &&
+                            !e.ctrlKey &&
+                            !e.metaKey &&
+                            !e.altKey
+                          ) {
                             e.preventDefault();
                             e.stopPropagation();
                             setUpiPopupInitialSearch(e.key);
@@ -1764,13 +2085,16 @@ const handleServiceChargeFieldKeyDown = (e) => {
                         }}
                         placeholder=""
                         className={styles.paymentInput}
-                        onClick={() => { setUpiPopupInitialSearch(''); setUpiPopupOpen(true); }}
+                        onClick={() => {
+                          setUpiPopupInitialSearch("");
+                          setUpiPopupOpen(true);
+                        }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Third Row: Card Amount, Card Bank, Is Service Charge */}
+                {/* Third Row: Card Amount, Card Bank */}
                 <div className={styles.paymentRow}>
                   <div className={styles.paymentGroup}>
                     <label className={styles.paymentLabel}>Card Amount</label>
@@ -1778,7 +2102,7 @@ const handleServiceChargeFieldKeyDown = (e) => {
                       <input
                         ref={cardRef}
                         type="number"
-                       value={
+                        value={
                           formData.isServiceCharge
                             ? (
                                 (parseFloat(formData.card) || 0) +
@@ -1799,9 +2123,16 @@ const handleServiceChargeFieldKeyDown = (e) => {
                         ref={cardBankRef}
                         type="text"
                         value={formData.cardBank}
-                        onChange={(e) => handleInputChange('cardBank', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("cardBank", e.target.value)
+                        }
                         onKeyDown={(e) => {
-                          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                          if (
+                            e.key.length === 1 &&
+                            !e.ctrlKey &&
+                            !e.metaKey &&
+                            !e.altKey
+                          ) {
                             e.preventDefault();
                             e.stopPropagation();
                             setCardPopupInitialSearch(e.key);
@@ -1810,12 +2141,20 @@ const handleServiceChargeFieldKeyDown = (e) => {
                             handleCardBankKeyDown(e);
                           }
                         }}
-                        onClick={() => { setCardPopupInitialSearch(''); setCardPopupOpen(true); }}
+                        onClick={() => {
+                          setCardPopupInitialSearch("");
+                          setCardPopupOpen(true);
+                        }}
                         placeholder=""
                         className={styles.paymentInput}
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Fourth Row: All Charges */}
+                <div className={styles.paymentRow}>
+                  {/* Is Card Charge */}
                   <div className={styles.paymentGroup}>
                     <label className={styles.checkboxLabel}>
                       <input
@@ -1823,36 +2162,49 @@ const handleServiceChargeFieldKeyDown = (e) => {
                         type="checkbox"
                         checked={formData.isServiceCharge}
                         onChange={handleServiceChargeToggle}
-                     onKeyDown={handleServiceChargeCheckboxKeyDown}
+                        onKeyDown={handleServiceChargeCheckboxKeyDown}
                         className={styles.checkbox}
                       />
                       <span>Is Card Charge</span>
                     </label>
-               {formData.isServiceCharge && (
-  <div className={styles.serviceChargeContainer}>
-    <input
-      ref={serviceChargePercentRef}
-      type="number"
-      value={formData.serviceChargePercent}
-      onChange={(e) => handleServiceChargePercentChange(e.target.value)}
-      onKeyDown={handleServiceChargePercentKeyDown}
-      placeholder=""
-      className={styles.serviceChargeInput}
-    />
-    <span>%</span>
-    <input
-      ref={serviceChargeAmountRef}  
-      type="number"
-      value={formData.serviceChargeAmount === '0.00' || formData.serviceChargeAmount === '0' ? '' : formData.serviceChargeAmount}
-      onChange={(e) => handleInputChange('serviceChargeAmount', e.target.value)} 
-      onKeyDown={handleServiceChargeAmountKeyDown}  
-      className={styles.serviceChargeInput} 
-      placeholder=""
-    />
-  </div>
-)}
+                    {formData.isServiceCharge && (
+                      <div className={styles.serviceChargeContainer}>
+                        <input
+                          ref={serviceChargePercentRef}
+                          type="number"
+                          value={formData.serviceChargePercent}
+                          onChange={(e) =>
+                            handleServiceChargePercentChange(e.target.value)
+                          }
+                          onKeyDown={handleServiceChargePercentKeyDown}
+                          placeholder=""
+                          className={styles.serviceChargeInput}
+                        />
+                        <span>%</span>
+                        <input
+                          ref={serviceChargeAmountRef}
+                          type="number"
+                          value={
+                            formData.serviceChargeAmount === "0.00" ||
+                            formData.serviceChargeAmount === "0"
+                              ? ""
+                              : formData.serviceChargeAmount
+                          }
+                          onChange={(e) =>
+                            handleInputChange(
+                              "serviceChargeAmount",
+                              e.target.value,
+                            )
+                          }
+                          onKeyDown={handleServiceChargeAmountKeyDown}
+                          className={styles.serviceChargeInput}
+                          placeholder=""
+                        />
+                      </div>
+                    )}
                   </div>
-                  {/* Transport Charge Checkbox and Fields */}
+
+                  {/* Is Transport Charge */}
                   <div className={styles.paymentGroup}>
                     <label className={styles.checkboxLabel}>
                       <input
@@ -1863,66 +2215,160 @@ const handleServiceChargeFieldKeyDown = (e) => {
                         onKeyDown={handleTransportChargeCheckboxKeyDown}
                         className={styles.checkbox}
                       />
-                      <span>Is Transport Charge</span>
+                      <span>Is Transport Chrg</span>
                     </label>
                     {formData.isTransportCharge && (
                       <div className={styles.serviceChargeContainer}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <label style={{ fontSize: '12px', marginBottom: '2px' }}>Transport</label>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <label
+                              style={{ fontSize: "12px", marginBottom: "2px" }}
+                            >
+                              Transport
+                            </label>
                             <input
                               ref={transportChargePercentRef}
                               type="text"
                               value={formData.transport}
-                              onChange={(e) => handleTransportChange(e.target.value)}
-                              onKeyDown={handleTransportFieldKeyDown}  
-  onClick={() => { 
-    setTransportPopupInitialSearch(''); 
-    setTransportPopupOpen(true); 
-  }}
+                              onChange={(e) =>
+                                handleTransportChange(e.target.value)
+                              }
+                              onKeyDown={handleTransportFieldKeyDown}
+                              onClick={() => {
+                                setTransportPopupInitialSearch("");
+                                setTransportPopupOpen(true);
+                              }}
                               placeholder=""
                               className={styles.serviceChargeInput}
                             />
                           </div>
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-  <label style={{ fontSize: '12px', marginBottom: '2px' }}>Transport No</label>
-  <input
-    ref={transportAmountRef}
-    type="text"
-    value={formData.transportAmount === '0.00' || formData.transportAmount === '0' ? '' : formData.transportAmount}
-    onChange={(e) => handleTransportAmountChange(e.target.value)}
-    onKeyDown={handleTransportAmountKeyDown}
-    placeholder=""
-    className={styles.serviceChargeInput}
-  />
-</div>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <label
+                              style={{ fontSize: "12px", marginBottom: "2px" }}
+                            >
+                              Transport No
+                            </label>
+                            <input
+                              ref={transportAmountRef}
+                              type="text"
+                              value={
+                                formData.transportAmount === "0.00" ||
+                                formData.transportAmount === "0"
+                                  ? ""
+                                  : formData.transportAmount
+                              }
+                              onChange={(e) =>
+                                handleTransportAmountChange(e.target.value)
+                              }
+                              onKeyDown={handleTransportAmountKeyDown}
+                              placeholder=""
+                              className={styles.serviceChargeInput}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
-                </div>
 
-                {/* Fourth Row: Is Credit Bill */}
-                <div className={styles.paymentRow}>
-                  {/* <div className={styles.paymentGroup}>
+                  {/* By Credit */}
+                  <div className={styles.paymentGroup}>
                     <label className={styles.checkboxLabel}>
                       <input
                         type="checkbox"
                         checked={formData.isCreditBill}
-                        onChange={(e) => handleInputChange('isCreditBill', e.target.checked)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (saveButtonRef.current) {
-                              saveButtonRef.current.focus();
-                            }
-                          }
-                        }}
+                        onChange={(e) =>
+                          handleInputChange("isCreditBill", e.target.checked)
+                        }
                         className={styles.checkbox}
                       />
-                      <span>Is Credit Bill</span>
+                      <span>By Credit</span>
                     </label>
-                  </div> */}
+                    {formData.isCreditBill && (
+                      <div className={styles.serviceChargeContainer}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            
+                            <input
+                              type="text"
+                              value={formData.creditCustomer}
+                              onChange={(e) =>
+                                handleInputChange("creditCustomer", e.target.value)
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              onClick={() => {
+                                setCustomerPopupInitialSearch("");
+                                setCustomerPopupOpen(true);
+                              }}
+                              placeholder="Select Customer"
+                              className={styles.serviceChargeInput}
+                            />
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                           
+                            <input
+                              type="number"
+                              value={
+                                formData.creditAmount === "0.00" ||
+                                formData.creditAmount === "0"
+                                  ? ""
+                                  : formData.creditAmount
+                              }
+                              onChange={(e) =>
+                                handleInputChange("creditAmount", e.target.value)
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              placeholder="Enter Amount"
+                              className={styles.serviceChargeInput}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1952,11 +2398,11 @@ const handleServiceChargeFieldKeyDown = (e) => {
         cancelText={validationPopup.cancelText}
         onConfirm={(e) => {
           if (e && e.stopPropagation) e.stopPropagation();
-          setValidationPopup(p => ({ ...p, isOpen: false }));
+          setValidationPopup((p) => ({ ...p, isOpen: false }));
         }}
         onClose={(e) => {
           if (e && e.stopPropagation) e.stopPropagation();
-          setValidationPopup(p => ({ ...p, isOpen: false }));
+          setValidationPopup((p) => ({ ...p, isOpen: false }));
         }}
         isLoading={validationPopup.isLoading}
       />
@@ -1974,79 +2420,116 @@ const handleServiceChargeFieldKeyDown = (e) => {
         disableBackdropClose={isSaving}
       />
 
-
       <PopupListSelector
         open={upiPopupOpen}
-        onClose={() => { setUpiPopupOpen(false); setUpiPopupInitialSearch(''); }}
+        onClose={() => {
+          setUpiPopupOpen(false);
+          setUpiPopupInitialSearch("");
+        }}
         initialSearch={upiPopupInitialSearch}
         title="Select UPI Bank"
         fetchItems={fetchBankList}
-        displayFieldKeys={['fAcname']}
-        searchFields={['fAcname']}
-        headerNames={['UPI Bank Name']}
+        displayFieldKeys={["fAcname"]}
+        searchFields={["fAcname"]}
+        headerNames={["UPI Bank Name"]}
         onSelect={(item) => {
           setUpiBank(item); // for fCode
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            upiBank: item.fAcname   // ✅ SHOW in input
+            upiBank: item.fAcname, // ✅ SHOW in input
           }));
-          setUpiPopupInitialSearch('');
+          setUpiPopupInitialSearch("");
           setUpiPopupOpen(false);
         }}
       />
 
       <PopupListSelector
         open={cardPopupOpen}
-        onClose={() => { setCardPopupOpen(false); setCardPopupInitialSearch(''); }}
+        onClose={() => {
+          setCardPopupOpen(false);
+          setCardPopupInitialSearch("");
+        }}
         initialSearch={cardPopupInitialSearch}
         title="Select Card Bank"
         fetchItems={fetchBankList}
-        displayFieldKeys={['fAcname']}
-        searchFields={['fAcname']}
-        headerNames={['Card Bank Name']}
+        displayFieldKeys={["fAcname"]}
+        searchFields={["fAcname"]}
+        headerNames={["Card Bank Name"]}
         onSelect={(item) => {
           setCardBank(item); // for fCode
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            cardBank: item.fAcname  // ✅ SHOW in input
+            cardBank: item.fAcname, // ✅ SHOW in input
           }));
-          setCardPopupInitialSearch('');
+          setCardPopupInitialSearch("");
           setCardPopupOpen(false);
         }}
       />
 
       {/* Transport Popup */}
-<PopupListSelector
-  open={transportPopupOpen}
-  onClose={() => { 
-    setTransportPopupOpen(false); 
-    setTransportPopupInitialSearch(''); 
-  }}
-  initialSearch={transportPopupInitialSearch}
-  title="Select Transport"
-  fetchItems={fetchTransportList}
-  displayFieldKeys={['fTransport']}
-  searchFields={['fTransport']}
-  headerNames={['Transport Name']}
-  onSelect={(item) => {
-    setSelectedTransport(item);
-    setFormData(prev => ({
-      ...prev,
-      transport: item.fTransport
-    }));
-    setTransportPopupInitialSearch('');
-    setTransportPopupOpen(false);
-    // After selecting transport, move focus to TC Charge field
-    if (transportAmountRef.current) {
-      setTimeout(() => {
-        transportAmountRef.current.focus();
-      }, 100);
-    }
-  }}
-/>
+      <PopupListSelector
+        open={transportPopupOpen}
+        onClose={() => {
+          setTransportPopupOpen(false);
+          setTransportPopupInitialSearch("");
+        }}
+        initialSearch={transportPopupInitialSearch}
+        title="Select Transport"
+        fetchItems={fetchTransportList}
+        displayFieldKeys={["fTransport"]}
+        searchFields={["fTransport"]}
+        headerNames={["Transport Name"]}
+        onSelect={(item) => {
+          setSelectedTransport(item);
+          setFormData((prev) => ({
+            ...prev,
+            transport: item.fTransport,
+          }));
+          setTransportPopupInitialSearch("");
+          setTransportPopupOpen(false);
+          // After selecting transport, move focus to TC Charge field
+          if (transportAmountRef.current) {
+            setTimeout(() => {
+              transportAmountRef.current.focus();
+            }, 100);
+          }
+        }}
+      />
+
+      {/* Customer Popup */}
+      <PopupListSelector
+        open={customerPopupOpen}
+        onClose={() => {
+          setCustomerPopupOpen(false);
+          setCustomerPopupInitialSearch("");
+        }}
+        initialSearch={customerPopupInitialSearch}
+        title="Select Customer"
+        fetchItems={fetchCustomerList}
+        displayFieldKeys={["fAcname"]}
+        searchFields={["fAcname"]}
+        headerNames={["Customer Name"]}
+        onSelect={(item) => {
+          if (!item) return;
+
+          setFormData((prev) => ({
+            ...prev,
+            creditCustomer: item.fAcname || "",
+            creditCustomerCode: item.fcode || "",
+          }));
+
+          setSelectedCustomer(item);
+          setCustomerPopupOpen(false);
+          setCustomerPopupInitialSearch("");
+        }}
+      />
 
       {/* Print Invoice Component */}
-      <PrintInvoice ref={printInvoiceRef} billData={printBillData} mode="tax_invoice" />
+      <PrintInvoice
+        ref={printInvoiceRef}
+        billData={printBillData}
+        mode="tax_invoice"
+      />
 
       {/* Print Confirmation Popup */}
       <ConfirmationPopup
@@ -2058,10 +2541,9 @@ const handleServiceChargeFieldKeyDown = (e) => {
         onConfirm={handlePrintConfirm}
         onClose={() => {
           setPrintConfirmationOpen(false);
-          onClose();  
+          onClose();
         }}
       />
-
     </div>
   );
 };
