@@ -54,7 +54,16 @@ export const AuthProvider = ({ children }) => {
       companyName: data.fCompName,
       userCode: data.fUcode || '', // fUcode may not exist for Admin
       images: data.images || '',
-      date:data.date || '',
+      date: (() => {
+      const now = new Date();
+
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+
+      return `${day}-${month}-${year} 00:00:00`;
+    })(),
+
       length: data.fLength || ''
     };
     const newPermissions = data.permissions || [];
