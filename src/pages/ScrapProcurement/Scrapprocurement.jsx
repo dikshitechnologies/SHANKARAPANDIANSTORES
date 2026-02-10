@@ -202,7 +202,7 @@ const Scrapprocurement = () => {
   ], []);
 
   // Define table fields in order (for arrow navigation) - EXCLUDE UOM since it's not editable
-  const tableFields = useMemo(() => [ 'itemName', 'tax', 'sRate', 'qty'], []);
+  const tableFields = useMemo(() => [ 'itemName', 'sRate', 'qty'], []);
 
   // Fetch next bill number
   const fetchNextBillNo = async () => {
@@ -1246,7 +1246,7 @@ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
     }
     
     // Fields in the visual order (excluding UOM since it's not editable)
-    const fields = ['itemName', 'tax', 'qty'];
+    const fields = ['itemName', 'qty'];
     const currentFieldIndex = fields.indexOf(currentField);
 
     // Check if itemName is empty in the current row
@@ -2463,7 +2463,7 @@ const clearFormData = async () => {
           <th style={styles.th}>S.No</th>
           <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Item Name</th>
           <th style={{ ...styles.th, textAlign: 'right' }}>UOM</th> {/* RIGHT ALIGN */}
-          <th style={{ ...styles.th, textAlign: 'right' }}>TAX (%)</th> {/* RIGHT ALIGN */}
+          {/* <th style={{ ...styles.th, textAlign: 'right' }}>TAX (%)</th> */}
           <th style={{ ...styles.th, textAlign: 'right' }}>SRate</th> {/* RIGHT ALIGN */}
           <th style={{ ...styles.th, textAlign: 'right' }}>Qty/Wt</th> {/* RIGHT ALIGN */}
           <th style={{ ...styles.th, ...styles.amountContainer, textAlign: 'right' }}>Amount</th> {/* RIGHT ALIGN */}
@@ -2534,7 +2534,7 @@ const clearFormData = async () => {
                 data-field="uom"
               />
             </td>
-            <td style={{ ...styles.td, textAlign: 'right' }}> {/* RIGHT ALIGN */}
+            {/* <td style={{ ...styles.td, textAlign: 'right' }}> 
               <input
                 style={focusedField === `tax-${item.id}` 
                   ? { ...styles.editableInputFocused, textAlign: 'right' }
@@ -2595,7 +2595,7 @@ const clearFormData = async () => {
                 // placeholder="3, 5, 12, 18, 40"
                 // maxLength="2"
               />
-            </td>
+            </td> */}
             <td style={{ ...styles.td, textAlign: 'right' }}> {/* RIGHT ALIGN */}
               <input
                 style={focusedField === `sRate-${item.id}` 
