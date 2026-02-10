@@ -368,8 +368,7 @@ function BillCollector() {
   };
 
   const selectedRowStyle = {
-    ...tdStyle,
-    backgroundColor: "#dbeafe"
+    ...tdStyle
   };
 
   const printButtonContainer = {
@@ -477,7 +476,7 @@ function BillCollector() {
                   key={i} 
                   onClick={() => setSelectedRow(i)}
                   style={{ 
-                    backgroundColor: selectedRow === i ? "#dbeafe" : i % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                    backgroundColor: i % 2 === 0 ? '#f9f9f9' : '#ffffff',
                     transition: "all 0.2s",
                     cursor: "pointer"
                   }}
