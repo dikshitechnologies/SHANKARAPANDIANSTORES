@@ -1269,8 +1269,13 @@ const handleBlur = () => {
     }
   };
 
-  const handleAddItem = () => {
-    if (!billDetails.barcodeInput) {
+  const handleAddItem = async () => {
+    // Validate customer first
+    if (!validateCustomer()) {
+      return;
+    }
+
+    if (!billDetails.barcodeInput || billDetails.barcodeInput.trim() === '') {
       showAlertConfirmation(
         "Please enter barcode",
         () => {
@@ -1281,26 +1286,221 @@ const handleBlur = () => {
       return;
     }
     
-    const newItem = {
-      id: items.length + 1,
-      barcode: billDetails.barcodeInput,
-      name: 'Fauget Cafe',
-      sub: 'Coffee Shop',
-      stock: 500,
-      mrp: 500,
-      uom: 500,
-      hsn: 'ASW090',
-      tax: 21,
-      rate: 2000000,
-      qty: 1,
-    };
-    
-    setItems([...items, newItem]);
-    setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
-    if (barcodeRef.current) barcodeRef.current.focus();
+    try {
+      // Fetch item details by barcode
+      const itemData = await getPurchaseStockDetailsByBarcode(billDetails.barcodeInput);
+      
+      console.log('✅ Item data received:', itemData);
+      
+      if (!itemData) {
+        showAlertConfirmation(
+          `No item found for barcode: ${billDetails.barcodeInput}`,
+          () => {
+            setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
+            if (barcodeRef.current) barcodeRef.current.focus();
+          },
+          'warning'
+        );
+        return;
+      }
+      
+      // Check if the first row is empty
+      const firstRowIsEmpty = items.length === 1 && 
+        (!items[0].name || items[0].name.trim() === '') && 
+        (!items[0].itemcode || items[0].itemcode.trim() === '');
+      
+      // Check if item already exists in the table (but not in empty first row)
+      const existingItemIndex = items.findIndex(
+        item => (item.itemcode && item.itemcode === itemData.itemcode) || 
+                (item.barcode && item.barcode === itemData.barcode)
+      );
+      
+      if (existingItemIndex !== -1 && !firstRowIsEmpty) {
+        // Item exists, update quantity
+        setItems(prevItems =>
+          prevItems.map((item, idx) => {
+            if (idx === existingItemIndex) {
+              const newQty = (parseFloat(item.qty) || 0) + 1;
+              const updatedItem = { ...item, qty: newQty };
+              return calculateItem(updatedItem);
+            }
+            return item;
+          })
+        );
+      } else {
+        // Create new item object
+        const newItem = {
+          id: firstRowIsEmpty ? items[0].id : items.length + 1,
+          barcode: itemData.barcode,
+          itemcode: itemData.itemcode,
+          name: itemData.fItemName,
+          sub: '',
+          stock: itemData.fstock,
+          mrp: itemData.mrp,
+          uom: itemData.fUnit,
+          hsn: itemData.fHSN,
+          tax: itemData.inTax,
+          rate: itemData.rate,
+          qty: itemData.qty || 1,
+          ovrwt: itemData.ovrWt || '',
+          avgwt: itemData.avgWt || '',
+          prate: itemData.rate,
+          intax: itemData.inTax || 0,
+          outtax: itemData.outTax || 0,
+          acost: itemData.aCost || 0,
+          sudo: '',
+          profitPercent: '',
+          preRT: itemData.preRate || 0,
+          sRate: itemData.rRate || 0,
+          asRate: itemData.rRate || 0,
+          letProfPer: '',
+          ntCost: '',
+          wsPercent: '',
+          wsRate: itemData.wRate || 0,
+          amt: itemData.amount || 0,
+          min: '',
+          max: ''
+        };
+        
+        const calculatedItem = calculateItem(newItem);
+        
+        console.log('✅ Calculated item:', calculatedItem);
+        console.log('✅ First row is empty:', firstRowIsEmpty);
+        
+        if (firstRowIsEmpty) {
+          // Replace first empty row
+          console.log('✅ Replacing first empty row');
+          setItems([calculatedItem]);
+        } else {
+          // Add new row
+          console.log('✅ Adding new row');
+          setItems([...items, calculatedItem]);
+        }
+      }
+      
+      // Clear barcode input and focus back
+      setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
+      if (barcodeRef.current) barcodeRef.current.focus();
+      
+    } catch (error) {
+      console.error('Error adding item by barcode:', error);
+      showAlertConfirmation(
+        'Failed to fetch item details. Please try again.',
+        () => {
+          setBillDetails(prev => ({ ...prev, barcodeInput: '' }));
+          if (barcodeRef.current) barcodeRef.current.focus();
+        },
+        'danger'
+      );
+    }
   };
 
-  const handleAddRow = (focusField = 'name') => {
+  // Handle barcode scan in table
+  const handleBarcodeInTable = async (rowIndex, barcode) => {
+    if (!barcode || barcode.trim() === '') return;
+    
+    // Validate customer first
+    if (!validateCustomer()) {
+      return;
+    }
+    
+    // Check for duplicate barcode in other rows
+    const duplicateIndex = items.findIndex(
+      (item, idx) => idx !== rowIndex && item.barcode && item.barcode.trim().toLowerCase() === barcode.trim().toLowerCase()
+    );
+    
+    if (duplicateIndex !== -1) {
+      showAlertConfirmation(
+        `Barcode "${barcode}" already exists in row ${duplicateIndex + 1}`,
+        () => {
+          // Clear the duplicate barcode
+          setItems(prevItems =>
+            prevItems.map((item, idx) =>
+              idx === rowIndex ? { ...item, barcode: '' } : item
+            )
+          );
+          // Focus back on the barcode field
+          setTimeout(() => {
+            const barcodeInput = document.querySelector(`input[data-row="${rowIndex}"][data-field="barcode"]`);
+            if (barcodeInput) {
+              barcodeInput.focus();
+              barcodeInput.select();
+            }
+          }, 100);
+        },
+        'warning'
+      );
+      return;
+    }
+    
+    try {
+      const itemData = await getPurchaseStockDetailsByBarcode(barcode);
+      
+      console.log('✅ Barcode scan - Item data:', itemData);
+      
+      if (!itemData) {
+        showAlertConfirmation(
+          `No item found for barcode: ${barcode}`,
+          () => {
+            // Clear the barcode field
+            setItems(prevItems =>
+              prevItems.map((item, idx) =>
+                idx === rowIndex ? { ...item, barcode: '' } : item
+              )
+            );
+          },
+          'warning'
+        );
+        return;
+      }
+      
+      // Update the current row with fetched data
+      setItems(prevItems =>
+        prevItems.map((item, idx) => {
+          if (idx === rowIndex) {
+            const updatedItem = {
+              ...item,
+              barcode: itemData.barcode,
+              itemcode: itemData.itemcode,
+              name: itemData.fItemName,
+              stock: itemData.fstock,
+              mrp: itemData.mrp,
+              uom: itemData.fUnit,
+              hsn: itemData.fHSN,
+              tax: itemData.inTax,
+              rate: itemData.rate,
+              qty: itemData.qty || 1,
+              ovrwt: itemData.ovrWt || '',
+              avgwt: itemData.avgWt || '',
+              prate: itemData.rate,
+              intax: itemData.inTax || 0,
+              outtax: itemData.outTax || 0,
+              acost: itemData.aCost || 0,
+              preRT: itemData.preRate || 0,
+              sRate: itemData.rRate || 0,
+              asRate: itemData.rRate || 0,
+              wsRate: itemData.wRate || 0,
+              amt: itemData.amount || 0
+            };
+            return calculateItem(updatedItem);
+          }
+          return item;
+        })
+      );
+      
+      console.log('✅ Item populated in row', rowIndex);
+      
+    } catch (error) {
+      console.error('Error fetching item by barcode:', error);
+      showAlertConfirmation(
+        'Failed to fetch item details. Please try again.',
+        null,
+        'danger'
+      );
+    }
+  };
+
+  const handleAddRow = (focusField = 'barcode') => {
     setItems(prevItems => {
      const lastRow = prevItems[prevItems.length - 1];
 
@@ -1598,6 +1798,39 @@ if (e.key === 'Enter') {
   e.preventDefault();
   e.stopPropagation();
 
+  // 🎯 SPECIAL CASE: BARCODE field - Fetch item details when Enter is pressed
+  if (currentField === 'barcode') {
+    const currentItem = items[currentRowIndex];
+    const barcodeValue = currentItem?.barcode;
+    
+    if (barcodeValue && barcodeValue.trim() !== '') {
+      // Fetch item details by barcode
+      handleBarcodeInTable(currentRowIndex, barcodeValue.trim());
+      
+      // After fetching, move to next field (name)
+      setTimeout(() => {
+        const nameInput = document.querySelector(
+          `input[data-row="${currentRowIndex}"][data-field="name"]`
+        );
+        if (nameInput) {
+          nameInput.focus();
+          nameInput.select();
+        }
+      }, 100);
+      return;
+    } else {
+      // Empty barcode, just move to name field
+      const nameInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="name"]`
+      );
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.select();
+      }
+      return;
+    }
+  }
+
   const isLastRow = currentRowIndex === items.length - 1;
   const isLastField = currentField === 'amt';
 
@@ -1629,7 +1862,7 @@ if (e.key === 'Enter') {
       return;
     }
 
-    handleAddRow('name');
+    handleAddRow('barcode');
     return;
   }
 
@@ -1694,14 +1927,19 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
 
     console.log("Barcode API FULL response:", response.data);
 
-    // ✅ HANDLE REAL BACKEND RESPONSE
+    // ✅ HANDLE REAL BACKEND RESPONSE - Array directly or nested
     const item =
-      response?.data?.items?.[0] ||     // ✅ MOST IMPORTANT
+      response?.data?.[0] ||              // Direct array response
+      response?.data?.items?.[0] ||       // Nested under items
       response?.data?.data?.[0] ||
-      response?.data?.[0] ||
       null;
 
-    if (!item) return null;
+    if (!item) {
+      console.log("No item found for barcode:", barcode);
+      return null;
+    }
+
+    console.log("Parsed item:", item);
 
     return {
       barcode: item.barcode || barcode,
@@ -1713,10 +1951,15 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
       fUnit: item.fUnit || item.uom || '',
       fHSN: item.fHSN || item.hsn || '',
       inTax: item.inTax || item.tax || 0,
+      outTax: item.outTax || 0,
       wRate: item.wRate || 0,
       rRate: item.rRate || 0,
-      
-      amount:  0,
+      preRate: item.preRate || 0,
+      aCost: item.aCost || 0,
+      ovrWt: item.ovrWt || 0,
+      avgWt: item.avgWt || 0,
+      qty: item.qty || 0,
+      amount: item.amount || 0,
       success: true
     };
   } catch (err) {
@@ -3020,17 +3263,13 @@ const [savedBillDetailsForPrint, setSavedBillDetailsForPrint] = useState({});
                     return;
                   }
                   
-                  // Focus on the first row's name field
-                  if (items.length > 0 && firstRowNameRef.current) {
-                    firstRowNameRef.current.focus();
-                  } else {
-                    // Fallback to the barcode field of first row
-                    const firstRowBarcodeInput = document.querySelector(
-                      'input[data-row="0"][data-field="barcode"]'
-                    );
-                    if (firstRowBarcodeInput) {
-                      firstRowBarcodeInput.focus();
-                    }
+                  // Focus on the first row's barcode field
+                  const firstRowBarcodeInput = document.querySelector(
+                    'input[data-row="0"][data-field="barcode"]'
+                  );
+                  if (firstRowBarcodeInput) {
+                    firstRowBarcodeInput.focus();
+                    firstRowBarcodeInput.select();
                   }
                 }
               }}
