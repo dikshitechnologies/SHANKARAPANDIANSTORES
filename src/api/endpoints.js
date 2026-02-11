@@ -322,6 +322,8 @@ CATEGORY: {
     // Endpoint to get specific bill details - IMPORTANT: Match your server endpoint
     GET_PAYMENT_VOUCHER_DETAILS: (voucherNo) => 
       `/BillCollector/GetPaymentVoucherDetails?voucherNo=${voucherNo}`,
+    GET_CUSTOMER_LIST: (page, pageSize, search) =>
+    `BillCollector/customerlist?page=${page}&pageSize=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
 
   },
 

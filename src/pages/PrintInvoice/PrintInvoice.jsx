@@ -40,7 +40,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         <title>Sales Invoice Receipt</title>
         <style>
           @page {
-            size:  110mm auto;
+            size:  80mm auto;
             margin: 0;
             padding: 0;
           }
@@ -56,7 +56,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
             margin: 0;
             padding: 0;
             font-size: 10pt;
-            width:  110mm;
+            width:  80mm;
             font-family: Arial, sans-serif;
             font-size: 13px;
             font-weight: 500;
@@ -67,7 +67,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
           .receipt {
             padding: 2mm 1mm;
             width: 100%;
-            max-width:  110mm;
+            max-width:  80mm;
           }
 
           .header {
@@ -180,7 +180,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
 
           .total-row {
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 8pt;
             padding-top: 2mm;
           }
 
@@ -229,6 +229,12 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
     const totalAmount = billData.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || billData.netAmount || 0;
     const totalQty = billData.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0;
 
+    // Extract payment amounts from modeofPayment
+    const cashAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'CASH')?.amount || 0;
+    const upiAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'UPI')?.amount || 0;
+    const cardAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'CARD')?.amount || 0;
+    const balanceAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'BALANCE')?.amount || 0;
+
     return (
       <div>
         <div className="invoice-title">
@@ -276,7 +282,10 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
 
         {/* Customer Info */}
         <div className="customer-info">
-          <p>Customer: {billData.customerName || 'N/A'}</p>         
+          <p>Customer: {billData.customerName || ' '}</p>
+          {billData.customerMobile && (
+            <p style={{ paddingLeft: "60px" }}>{billData.customerMobile}</p>
+          )}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
@@ -291,8 +300,8 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
             <tr>
               <th style={{ textAlign: "left", width: "15%"}} colSpan="1">HSN</th>
               <th style={{ textAlign: "left", width: "15%" }} colSpan="1">Tax</th>
-              <th style={{ textAlign: "right", width: "20%" }} colSpan="1">Rate</th>
               <th style={{ textAlign: "right", width: "20%" }} colSpan="1">Qty</th>
+              <th style={{ textAlign: "right", width: "20%" }} colSpan="1">Rate</th>
               <th style={{ textAlign: "right", width: "30%" }} colSpan="1">Amount</th>
             </tr>
           </thead>
@@ -312,8 +321,8 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                 <tr>
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.hsn || '-'}</td>
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.tax || '-'}</td>
+                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.qty || 0)}</td>
                   <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.rate || 0).toFixed(2)}</td>
-                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.qty || 0).toFixed(3)}</td>
                   <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.amount || 0).toFixed(2)}</td>
                 </tr>
               </React.Fragment>
@@ -330,16 +339,32 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
                 Grand Total
               </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
+              <td style={{ textAlign: "right", fontWeight: "bold"}}>
                 {totalAmount.toFixed(2)}
               </td>
             </tr>
             <tr className="total-row">
               <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
-                Amount
+                Discount
               </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
-                {totalAmount.toFixed(2)}
+              <td style={{ textAlign: "right", fontWeight: "bold"}}>
+                {(billData.discount || 0).toFixed(2)}
+              </td>
+            </tr>
+            <tr className="total-row">
+              <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
+                Net Amount
+              </td>
+              <td style={{ textAlign: "right", fontWeight: "bold"}}>
+                {(billData.netAmount || totalAmount).toFixed(2)}
+              </td>
+            </tr>
+            <tr className="total-row">
+              <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
+                Bill Amount
+              </td>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "17pt" }}>
+                {(billData.netAmount || totalAmount).toFixed(2)}
               </td>
             </tr>
           </tbody>
@@ -351,51 +376,204 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
-        {/* Payment Mode Table */}
-        {billData.modeofPayment && Array.isArray(billData.modeofPayment) && billData.modeofPayment.length > 0 && (
+        {/* Payment Mode Table - Always Show */}
+        <div style={{ marginTop: "2mm", width: "100%", overflow: "visible" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8pt", tableLayout: "fixed" }}>
+            <tbody>
+              <tr>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt", 
+                    fontWeight: "bold",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  Cash
+                </td>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt", 
+                    fontWeight: "bold",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  UPI
+                </td>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt", 
+                    fontWeight: "bold",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  Card
+                </td>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt", 
+                    fontWeight: "bold",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  Balance
+                </td>
+              </tr>  
+              <tr>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  {cashAmount.toFixed(2)}
+                </td>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  {upiAmount.toFixed(2)}
+                </td>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  {cardAmount.toFixed(2)}
+                </td>
+                <td 
+                  style={{ 
+                    border: "1pt solid #070808", 
+                    textAlign: "center", 
+                    padding: "3pt 2pt",
+                    width: "25%",
+                    fontSize: "8pt"
+                  }}
+                >
+                  {balanceAmount.toFixed(2)}
+                </td>
+              </tr>                       
+            </tbody>
+          </table>
+        </div>
+
+        {/* Cash Tender Breakdown Table */}
+        {billData.denominations && (
           <div style={{ marginTop: "2mm", width: "100%", overflow: "visible" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8pt", tableLayout: "fixed" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "7pt", tableLayout: "fixed" }}>
               <tbody>
                 <tr>
-                  {billData.modeofPayment.map((payment, index) => (
+                  <td 
+                    style={{ 
+                      border: "1pt solid #070808", 
+                      textAlign: "center", 
+                      padding: "2pt 1pt", 
+                      fontWeight: "bold",
+                      width: "10%",
+                      fontSize: "7pt"
+                    }}
+                  >
+                    CA
+                  </td>
+                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((denom) => (
                     <td 
-                      key={`method-${index}`}
+                      key={`denom-${denom}`}
                       style={{ 
                         border: "1pt solid #070808", 
                         textAlign: "center", 
-                        padding: "3pt 2pt", 
+                        padding: "2pt 1pt", 
                         fontWeight: "bold",
-                        width: `${100 / billData.modeofPayment.length}%`,
-                        fontSize: "8pt",
-                        wordBreak: "break-word"
+                        width: "10%",
+                        fontSize: "7pt"
                       }}
                     >
-                      {payment.method || payment.fMethod || 'N/A'}
+                      {denom}
                     </td>
                   ))}
-                </tr>  
+                </tr>
                 <tr>
-                  {billData.modeofPayment.map((payment, index) => (
+                  <td 
+                    style={{ 
+                      border: "1pt solid #070808", 
+                      textAlign: "center", 
+                      padding: "2pt 1pt",
+                      fontWeight: "bold",
+                      width: "10%",
+                      fontSize: "7pt"
+                    }}
+                  >
+                    RE
+                  </td>
+                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((denom) => (
                     <td 
-                      key={`amount-${index}`}
+                      key={`receive-${denom}`}
                       style={{ 
                         border: "1pt solid #070808", 
                         textAlign: "center", 
-                        padding: "3pt 2pt",
-                        width: `${100 / billData.modeofPayment.length}%`,
-                        fontSize: "8pt"
+                        padding: "2pt 1pt",
+                        width: "10%",
+                        fontSize: "7pt"
                       }}
                     >
-                      {(payment.amount || 0).toFixed(2)}
+                      {billData.denominations[denom]?.receive || ''}
                     </td>
                   ))}
-                </tr>                       
+                </tr>
+                <tr>
+                  <td 
+                    style={{ 
+                      border: "1pt solid #070808", 
+                      textAlign: "center", 
+                      padding: "2pt 1pt",
+                      fontWeight: "bold",
+                      width: "10%",
+                      fontSize: "7pt"
+                    }}
+                  >
+                    IS
+                  </td>
+                  {[500, 200, 100, 50, 20, 10, 5, 2, 1].map((denom) => (
+                    <td 
+                      key={`issue-${denom}`}
+                      style={{ 
+                        border: "1pt solid #070808", 
+                        textAlign: "center", 
+                        padding: "2pt 1pt",
+                        width: "10%",
+                        fontSize: "7pt"
+                      }}
+                    >
+                      {billData.denominations[denom]?.issue || ''}
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
           </div>
         )}
-
-        
 
         {/* Thank You Message */}
         <div className="thank-you">*** Thank You Visit Again! ***</div>
