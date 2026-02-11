@@ -282,7 +282,8 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
 
         {/* Customer Info */}
         <div className="customer-info">
-          <p>Customer: {billData.customerName || 'N/A'}</p>         
+          <p>Customer: {billData.customerName || ' '}</p>         
+          <p>{billData.customerMobile || ' '}</p>         
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
