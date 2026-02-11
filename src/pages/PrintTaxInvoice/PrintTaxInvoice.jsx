@@ -78,13 +78,29 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.text('TAX INVOICE', pageWidth / 2, y + 10, { align: 'center' });
+    y+= 25;
 
-    y += 25;
+
+    /* ----------invoice details ---------- */
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('No : ', marginLeft, y);
+    doc.text(billData.voucherNo || 'N/A', marginLeft + 10, y);
+    y+= 5;
+    doc.text('Date : ', marginLeft, y);
+    doc.text(formatDate(billData.voucherDate), marginLeft + 10, y);
+    y += 10;
 
     /* ---------- COMPANY ---------- */
 
-    doc.setFontSize(11);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Billed By :', marginLeft, y);
+    doc.text('Billed To :', pageWidth / 2, y);
+    y += 7;
+    doc.setFontSize(12);
     doc.text('R. SANKARAPANDIAN STORES', marginLeft, y);
+    doc.text(billData.customerName || 'N/A', pageWidth / 2, y + 5);
     y += 5;
 
     doc.setFontSize(9);
@@ -95,23 +111,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y += 4;
     doc.text('GSTIN: 33ECCPR7067N1ZL', marginLeft, y);
 
-    /* ---------- INVOICE INFO ---------- */
-
-    y += 8;
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Invoice No:', marginLeft, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(billData.voucherNo || 'N/A', marginLeft + 30, y);
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Date:', pageWidth - 70, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(formatDate(billData.voucherDate), pageWidth - 45, y);
-
-    y += 6;
-
-    /* ---------- CUSTOMER ---------- */
+  /* ---------- CUSTOMER ---------- */
 
     doc.setFont('helvetica', 'bold');
     doc.text('Customer:', marginLeft, y);
@@ -119,6 +119,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.text(billData.customerName || 'N/A', marginLeft + 30, y);
 
     y += 8;
+  
 
     /* ---------- ITEMS TABLE ---------- */
 
