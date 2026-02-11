@@ -631,10 +631,9 @@ const calculateTotals = (items = []) => {
   // Check which tax field is being used
   items.forEach(item => {
     const intax = parseFloat(item?.intax) || 0;
-    const outtax = parseFloat(item?.outtax) || 0;
-    
+   
     if (intax > 0) hasIntax = true;
-    if (outtax > 0) hasOuttax = true;
+   
   });
   
   if (hasIntax) {
