@@ -180,7 +180,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
 
           .total-row {
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 8pt;
             padding-top: 2mm;
           }
 
@@ -282,8 +282,10 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
 
         {/* Customer Info */}
         <div className="customer-info">
-          <p>Customer: {billData.customerName || ' '}</p>         
-          <p>{billData.customerMobile || ' '}</p>         
+          <p>Customer: {billData.customerName || ' '}</p>
+          {billData.customerMobile && (
+            <p style={{ paddingLeft: "60px" }}>{billData.customerMobile}</p>
+          )}
         </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
@@ -319,7 +321,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                 <tr>
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.hsn || '-'}</td>
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.tax || '-'}</td>
-                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.qty || 0).toFixed(3)}</td>
+                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.qty || 0)}</td>
                   <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.rate || 0).toFixed(2)}</td>
                   <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.amount || 0).toFixed(2)}</td>
                 </tr>
@@ -337,7 +339,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
                 Grand Total
               </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
+              <td style={{ textAlign: "right", fontWeight: "bold"}}>
                 {totalAmount.toFixed(2)}
               </td>
             </tr>
@@ -345,7 +347,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
                 Discount
               </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
+              <td style={{ textAlign: "right", fontWeight: "bold"}}>
                 {(billData.discount || 0).toFixed(2)}
               </td>
             </tr>
@@ -353,7 +355,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
                 Net Amount
               </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
+              <td style={{ textAlign: "right", fontWeight: "bold"}}>
                 {(billData.netAmount || totalAmount).toFixed(2)}
               </td>
             </tr>
@@ -361,7 +363,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               <td colSpan="4" style={{ textAlign: "right", paddingRight: "10pt" }}>
                 Bill Amount
               </td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>
+              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "17pt" }}>
                 {(billData.netAmount || totalAmount).toFixed(2)}
               </td>
             </tr>
