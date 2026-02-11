@@ -291,7 +291,7 @@ const Navbar = () => {
       permission: "SCRAP_PROCUREMENT",
     },
      {
-          name: "Bill Print",
+          name: "Bill Re-Print",
           path: "/transactions/bill-print",
           icon: <MoneyCollectOutlined />,
           permission: "BILL_PRINT",
@@ -612,6 +612,7 @@ const Navbar = () => {
                     "/masters/DayClose": "Day Close",
                     "/masters/SalesmanCreation": "Salesman Creation",
                      "/masters/Statecreation": "State Creation",
+                     "/transactions/bill-print":"Bill Re - Print"
 
                
                
