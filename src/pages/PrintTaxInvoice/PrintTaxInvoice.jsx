@@ -32,6 +32,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     if (!billData || !billData.items || billData.items.length === 0) {
       throw new Error('No items to print');
     }
+    console.log('Generating PDF with bill data:', {billData});
 
     /* ---------- NORMALIZE DATA ---------- */
 
@@ -177,7 +178,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     items.forEach((item, idx) => {
       // Calculate row height based on item name
       const nameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-      const rowHeight = Math.max(6, nameLines.length * 3.5);
+      const rowHeight = Math.max(6, nameLines.length * 2.5); // 3.5 is line height, +2 for padding
       
       // Alternating row background (light blue for even rows)
       if (idx % 2 === 0) {
@@ -200,16 +201,16 @@ export const generateTenderA4PDF = async ({ billData }) => {
       x += colWidths[2];
       
       // Qty
-      doc.text(formatCurrency(item.qty), x + (colWidths[3] / 2), y + rowHeight / 2, { align: 'center' });
+      doc.text(formatCurrency(item.qty), x + (colWidths[3] / 2), y  + rowHeight / 2, { align: 'right' });
       x += colWidths[3];
       
       // Rate
-      doc.text(formatCurrency(item.rate), x + (colWidths[4] / 2), y + rowHeight / 2, { align: 'center' });
+      doc.text(formatCurrency(item.rate), x + (colWidths[4] / 2), y + rowHeight / 2, { align: 'right' });
       x += colWidths[4];
       
       // Amount
       doc.text(formatCurrency(item.amount || (item.qty * item.rate)), 
-               x + (colWidths[5] / 2), y + rowHeight / 2, { align: 'center' });
+               x + (colWidths[5] / 2)+4, y + rowHeight / 2, { align: 'right' });
       
       y += rowHeight;
     });
@@ -284,7 +285,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
 
     /* ---------- FOOTER ---------- */
 
-    y = pageHeight - 20;
+    y = pageHeight - 30;
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text('For R. SANKARAPANDIAN STORES', pageWidth - 80, y);
