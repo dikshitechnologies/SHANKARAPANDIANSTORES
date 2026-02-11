@@ -1482,38 +1482,51 @@ const PurchaseInvoice = () => {
         console.log('Items data found:', itemsData.length, 'items');
         
         if (itemsData.length > 0) {
-          const formattedItems = itemsData.map((item, index) => ({
-            id: index + 1,
-            barcode: item.barcode || item.fid || '', 
-            itemcode: item.itemCode || item.fItemCode || '',            
-            name: item.itemname || item.fName || '',
-            stock: item.stock || '',
-            mrp: item.mrp || '',
-            uom: item.fUnit || item.unit || '',
-            hsn: item.fhsn || item.hsn || '',
-            tax: item.fTax || item.tax || '',
-            prate: item.rate || '',
-            qty: item.qty || '',
-            ovrwt: item.ovrWt || '',
-            avgwt: item.avgWt || '',
-            intax: item.inTax || '',
-            outtax: item.outTax || '',
-            acost: item.acost || '',
-            sudo: item.sudo || '',
-            profitPercent: item.profitPercent || '',
-            preRT: item.preRate || '',
-            sRate: item.sRate || '',
-            asRate: item.asRate || '',
-            letProfPer: item.letProfPer || '',
-            ntCost: item.ntCost || '',
-            wsPercent: item.wsPer || '',
-            wsRate: item.wRate || '',
-            amt: item.amount || '',
-            min: '',
-            max: '',
-            parentCode: item.parentCode || '',
-            parentName: item.parentName || ''
-          }));
+          const formattedItems = itemsData.map((item, index) => {
+            const wsPer = item.wsPer || '';
+            const wRate = item.wRate || '';
+            const ntCostValue = item.ntCost || '';
+            
+            // Determine if wsRate was manually set:
+            // If wsPercent exists, wsRate was calculated (not manual)
+            // If wsPercent is empty but wsRate differs from ntCost, it was manually set
+            const wasManuallySet = !wsPer && wRate && ntCostValue && 
+                                   Math.abs(Number(wRate) - Number(ntCostValue)) > 0.01;
+            
+            return {
+              id: index + 1,
+              barcode: item.barcode || item.fid || '', 
+              itemcode: item.itemCode || item.fItemCode || '',            
+              name: item.itemname || item.fName || '',
+              stock: item.stock || '',
+              mrp: item.mrp || '',
+              uom: item.fUnit || item.unit || '',
+              hsn: item.fhsn || item.hsn || '',
+              tax: item.fTax || item.tax || '',
+              prate: item.rate || '',
+              qty: item.qty || '',
+              ovrwt: item.ovrWt || '',
+              avgwt: item.avgWt || '',
+              intax: item.inTax || '',
+              outtax: item.outTax || '',
+              acost: item.acost || '',
+              sudo: item.sudo || '',
+              profitPercent: item.profitPercent || '',
+              preRT: item.preRate || '',
+              sRate: item.sRate || '',
+              asRate: item.asRate || '',
+              letProfPer: item.letProfPer || '',
+              ntCost: ntCostValue,
+              wsPercent: wsPer,
+              wsRate: wRate,
+              wsRateManuallySet: wasManuallySet,
+              amt: item.amount || '',
+              min: '',
+              max: '',
+              parentCode: item.parentCode || '',
+              parentName: item.parentName || ''
+            };
+          });
           
           console.log('Formatted items:', formattedItems);
           setItems(formattedItems);
@@ -2288,8 +2301,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
     
     // WS Rate calculation logic:
-    // If wsPercent has a value, calculate wsRate from wsPercent
-    // If wsPercent is empty, keep the manually entered wsRate value
+    // 1. If wsPercent has a value, calculate wsRate from wsPercent
+    // 2. If wsPercent is empty and wsRate was manually set, preserve it
+    // 3. If wsPercent is empty and wsRate not manually set, auto-track ntCost
     let wsRate;
     let shouldFormatWsRate = false;
     
@@ -2297,11 +2311,14 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       // Calculate wsRate from wsPercent
       wsRate = ntCost + (ntCost * wsPercent) / 100;
       shouldFormatWsRate = true;
+    } else if (item.wsRateManuallySet && item.wsRate) {
+      // User manually set wsRate, preserve it
+      wsRate = item.wsRate;
+      shouldFormatWsRate = false; // Don't format manual values
     } else {
-      // Keep the manually entered wsRate value as-is (don't format while typing)
-      wsRate = item.wsRate !== undefined && item.wsRate !== '' ? item.wsRate : ntCost;
-      // Only format if it's the default ntCost value
-      shouldFormatWsRate = (item.wsRate === undefined || item.wsRate === '');
+      // Auto-track ntCost when no percentage and no manual entry
+      wsRate = ntCost;
+      shouldFormatWsRate = true;
     }
 
     return {
@@ -2328,13 +2345,21 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         if (item.id === id) {
           let updatedItem = { ...item, [field]: value };
           
-          // If wsRate is manually changed, clear wsPercent to allow manual entry
-          if (field === 'wsRate' && value !== '' && value !== item.wsRate) {
-            updatedItem.wsPercent = '';
+          // If wsRate is manually changed, clear wsPercent and mark as manually set
+          if (field === 'wsRate') {
+            if (value !== '' && value !== item.wsRate) {
+              updatedItem.wsPercent = '';
+              updatedItem.wsRateManuallySet = true;
+            } else if (value === '') {
+              // If cleared, remove manual flag to allow auto-tracking
+              updatedItem.wsRateManuallySet = false;
+            }
           }
           
-          // If wsPercent is changed, let calculateItem recalculate wsRate
-          // (no special handling needed, calculateItem will handle it)
+          // If wsPercent is changed, clear the manual flag to allow recalculation
+          if (field === 'wsPercent') {
+            updatedItem.wsRateManuallySet = false;
+          }
           
           return calculateItem(updatedItem);
         }
@@ -4573,7 +4598,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         onClose={() => {
           setShowBillListPopup(false);
           setPopupMode('');
-          setItemSearchTerm('');
+          setItemSearchTerm('');         
+          clearForm();
         }}
         title={popupMode === 'edit' ? 'Select Purchase to Edit' : 'Select Purchase to Delete'}
         fetchItems={fetchBillList}
