@@ -1432,21 +1432,16 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         const cashAmount = totalCollectedCash || 0;
         const upiAmount = parseFloat(formData.upi) || 0;
         const cardAmount = parseFloat(formData.card) || 0;
-        const balanceAmount = parseFloat(formData.balance) || 0;
+        const creditAmount = parseFloat(formData.creditAmount) || 0;
+        const balanceAmount = creditAmount || parseFloat(formData.balance) || 0;
 
-        // Build modeofPayment array with CASH, UPI, CARD, BALANCE
-        const modeOfPaymentData = [];
-        if (cashAmount > 0)
-          modeOfPaymentData.push({ method: "CASH", amount: cashAmount });
-        if (upiAmount > 0)
-          modeOfPaymentData.push({ method: "UPI", amount: upiAmount });
-        if (cardAmount > 0)
-          modeOfPaymentData.push({ method: "CARD", amount: cardAmount });
-        if (balanceAmount !== 0)
-          modeOfPaymentData.push({
-            method: "BALANCE",
-            amount: Math.abs(balanceAmount),
-          });
+        // Build modeofPayment array - Always include all payment methods
+        const modeOfPaymentData = [
+          { method: "CASH", amount: cashAmount },
+          { method: "UPI", amount: upiAmount },
+          { method: "CARD", amount: cardAmount },
+          { method: "BALANCE", amount: Math.abs(balanceAmount) }
+        ];
 
         const printData = {
           voucherNo: header?.voucherNo || header?.fVoucherNo || billData.billNo,
@@ -1459,7 +1454,19 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           salesmanName: header?.sManName || header?.fSalesmanName || "",
           salesCode: header?.sManCode || header?.fSalesmanCode || "",
           billAmount: header?.billAmt || header?.fBillAmt || 0,
-          netAmount: header?.billAmt || header?.fBillAmt || 0,
+          discount: parseFloat(formData.billDiscAmt) || 0,
+          netAmount: parseFloat(formData.netAmount) || header?.billAmt || header?.fBillAmt || 0,
+          denominations: {
+            500: { receive: Number(denominations[500].collect) || 0, issue: Number(denominations[500].issue) || 0 },
+            200: { receive: Number(denominations[200].collect) || 0, issue: Number(denominations[200].issue) || 0 },
+            100: { receive: Number(denominations[100].collect) || 0, issue: Number(denominations[100].issue) || 0 },
+            50: { receive: Number(denominations[50].collect) || 0, issue: Number(denominations[50].issue) || 0 },
+            20: { receive: Number(denominations[20].collect) || 0, issue: Number(denominations[20].issue) || 0 },
+            10: { receive: Number(denominations[10].collect) || 0, issue: Number(denominations[10].issue) || 0 },
+            5: { receive: Number(denominations[5].collect) || 0, issue: Number(denominations[5].issue) || 0 },
+            2: { receive: Number(denominations[2].collect) || 0, issue: Number(denominations[2].issue) || 0 },
+            1: { receive: Number(denominations[1].collect) || 0, issue: Number(denominations[1].issue) || 0 }
+          },
           items:
             (Array.isArray(items) ? items : [])?.map((item) => ({
               itemName: item.fitemNme || item.itemName || "",
