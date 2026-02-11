@@ -32,6 +32,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     if (!billData || !billData.items || billData.items.length === 0) {
       throw new Error('No items to print');
     }
+    console.log('Generating PDF with bill data:', {billData});
 
     /* ---------- NORMALIZE DATA ---------- */
 
@@ -43,6 +44,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     );
 
     const netTotal = billData.netAmount || subTotal;
+    const netAmount = netTotal - (billData.discount || 0) + (billData.serviceChargeAmount || 0);
 
     /* ---------- PDF SETUP ---------- */
 
@@ -78,24 +80,17 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.text('TAX INVOICE', pageWidth / 2, y + 10, { align: 'center' });
-    y+= 25;
-
+    y += 25;
 
     /* ----------invoice details ---------- */
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('No : ', marginLeft, y);
     doc.text(billData.voucherNo || 'N/A', marginLeft + 10, y);
-    y+= 5;
+    y += 5;
     doc.text('Date : ', marginLeft, y);
     doc.text(formatDate(billData.voucherDate), marginLeft + 10, y);
     y += 10;
-
-    /* ---------- QR CODE ---------- */
-
-    const qr = await QRCode.toDataURL(billData.voucherNo || 'N/A');
-    doc.addImage(qr, 'PNG', marginLeft, y - 10, 25, 25);
-    y += 20;
 
     /* ---------- COMPANY ---------- */
 
@@ -118,74 +113,109 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y += 4;
     doc.text('Tamil Nadu, India - 601204', marginLeft, y);
     y += 4;
-    doc.text('GSTIN: 33ECCPR7067N1ZL', marginLeft, y);
-    y += 4;
-    doc.text('PAN: ECQPR7067N', marginLeft, y);
-    y += 4;
-    doc.text('Email: rspvfstores@gmail.com', marginLeft, y);
-    y += 4;
-    doc.text('Phone: +91 72007 79217', marginLeft, y);
-    y += 8;
-
-    /* ---------- ITEMS TABLE ---------- */
-
+    // GSTIN
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.text('GSTIN: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('33ECCPR7067N1ZL', marginLeft + 12, y);
+    y += 4;
 
+    // PAN
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAN: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ECQPR7067N', marginLeft + 12, y);
+    y += 4;
+
+    // Email
+    doc.setFont('helvetica', 'bold');
+    doc.text('Email: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('rspvfstores@gmail.com', marginLeft + 12, y);
+    y += 4;
+
+    // Phone
+    doc.setFont('helvetica', 'bold');
+    doc.text('Phone: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('+91 72007 79217', marginLeft + 12, y);
+    y += 10;
+
+    /* ---------- ITEMS TABLE (Updated with PrintPDF style) ---------- */
+
+    // Table Header with blue background
+    doc.setFillColor(27, 145, 218); // #1B91DA color from PrintPDF
+    doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    
     const colWidths = [10, 85, 20, 20, 25, 30];
     const headers = ['S.No', 'Item Name', 'HSN', 'Qty', 'Rate', 'Amount'];
-
+    
     let x = marginLeft;
-
+    
     headers.forEach((h, i) => {
       if (h === 'Qty' || h === 'Rate' || h === 'Amount') {
-    // Center align inside column
-    doc.text(h, x +5 + colWidths[i] / 2, y, { align: 'right' });
-  } else {
-    // Default left align
-    doc.text(h, x + 1, y);
-  }
-
-  x += colWidths[i];
-});
-
-    y += 3;
-    doc.line(marginLeft, y, pageWidth - marginRight, y);
-    y += 4;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-
-    items.forEach((item, idx) => {
-      x = marginLeft;
-
-      const amount = item.amount || (item.qty * item.rate);
-
-      doc.text(String(idx + 1), x + 1, y);
-      x += colWidths[0];
-
-      const nameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 2);
-      doc.text(nameLines, x + 1, y);
-      x += colWidths[1];
-
-      doc.text(item.hsn || '-', x + 1, y);
-      x += colWidths[2];
-
-      doc.text(formatCurrency(item.qty), x + colWidths[3] - 2, y, { align: 'right' });
-      x += colWidths[3];
-
-      doc.text(formatCurrency(item.rate), x + colWidths[4] - 2, y, { align: 'right' });
-      x += colWidths[4];
-
-      doc.text(formatCurrency(amount), x + colWidths[5] - 2, y, { align: 'right' });
-
-      y += Math.max(6, nameLines.length * 4);
+        // Center align inside column
+        doc.text(h, x + (colWidths[i] / 2), y + 4.5, { align: 'center' });
+      } else {
+        // Left align for other columns
+        const offset = h === 'S.No' ? colWidths[i] / 2 : 2;
+        const align = h === 'S.No' ? 'center' : 'left';
+        doc.text(h, x + offset, y + 4.5, { align: align });
+      }
+      x += colWidths[i];
     });
-
-    y += 4;
-    doc.line(marginLeft, y, pageWidth - marginRight, y);
+    
+    y += 7;
+    doc.setTextColor(0, 0, 0); // Reset to black
+    
+    // Items Rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    items.forEach((item, idx) => {
+      // Calculate row height based on item name
+      const nameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
+      const rowHeight = Math.max(6, nameLines.length * 2.5); // 3.5 is line height, +2 for padding
+      
+      // Alternating row background (light blue for even rows)
+      if (idx % 2 === 0) {
+        doc.setFillColor(240, 248, 255); // Light blue from PrintPDF
+        doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, rowHeight, 'F');
+      }
+      
+      x = marginLeft;
+      
+      // S.No
+      doc.text(String(idx + 1), x + (colWidths[0] / 2), y + rowHeight / 2, { align: 'center' });
+      x += colWidths[0];
+      
+      // Item Name
+      doc.text(nameLines, x + 2, y + 2, { maxWidth: colWidths[1] - 4 });
+      x += colWidths[1];
+      
+      // HSN
+      doc.text(item.hsn || '-', x + (colWidths[2] / 2), y + rowHeight / 2, { align: 'center' });
+      x += colWidths[2];
+      
+      // Qty
+      doc.text(formatCurrency(item.qty), x + (colWidths[3] / 2), y  + rowHeight / 2, { align: 'right' });
+      x += colWidths[3];
+      
+      // Rate
+      doc.text(formatCurrency(item.rate), x + (colWidths[4] / 2), y + rowHeight / 2, { align: 'right' });
+      x += colWidths[4];
+      
+      // Amount
+      doc.text(formatCurrency(item.amount || (item.qty * item.rate)), 
+               x + (colWidths[5] / 2)+4, y + rowHeight / 2, { align: 'right' });
+      
+      y += rowHeight;
+    });
+    
     y += 8;
-
 
     /* ---------- BANK DETAILS ---------- */
     doc.setFont('helvetica', 'bold');
@@ -198,30 +228,61 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y += 5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text('Account Name: R. SANKARAPANDIAN STORES', marginLeft, y);
+    // Account Name
+    doc.setFont('helvetica', 'bold');
+    doc.text('Account Name: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('R. SANKARAPANDIAN', marginLeft + 28, y);
+    y += 4;
+    doc.text('STORES', marginLeft + 28, y);
     doc.text('Discount:', pageWidth - 70, y);
     doc.text(billData.discount || '0', pageWidth - marginRight, y, {
       align: 'right',
     });
     y += 4;
-    doc.text('Account Number: 743605000713', marginLeft, y);
+    // Account Number
+    doc.setFont('helvetica', 'bold');
+    doc.text('Account Number: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('743605000713', marginLeft + 28, y);
     y += 4;
-    doc.text('IFSC: ICIC0007436', marginLeft, y);    
+
+    // IFSC
+    doc.setFont('helvetica', 'bold');
+    doc.text('IFSC: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ICIC0007436', marginLeft + 28, y);
+    doc.text('Charges:', pageWidth - 70, y);
+    doc.text(billData.serviceChargeAmount || '0', pageWidth - marginRight, y, {
+      align: 'right',
+    });
     y += 4;
-    doc.text('Account Type: Current', marginLeft, y); 
+
+    // Account Type
+    doc.setFont('helvetica', 'bold');
+    doc.text('Account Type: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Current', marginLeft + 28, y);
     y += 4;
-    doc.text('Bank: ICIC Bank', marginLeft, y);
 
-    /* ---------- TOTAL ---------- */
+    // Bank
+    doc.setFont('helvetica', 'bold');
+    doc.text('Bank: ', marginLeft, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ICIC Bank', marginLeft + 28, y);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Net Amount:', pageWidth - 70, y);
+    doc.text(formatCurrency(netAmount), pageWidth - marginRight, y, {
+      align: 'right',
+    });
+    y += 20;
 
-    // doc.setFont('helvetica', 'bold');
-    // doc.setFontSize(13);
+    /* ---------- QR CODE ---------- */
 
-    
-    // y += 10;
-     
+    const qr = await QRCode.toDataURL(billData.voucherNo || 'N/A');
+    doc.addImage(qr, 'PNG', marginLeft, y - 10, 25, 25);
 
-    
     /* ---------- FOOTER ---------- */
 
     y = pageHeight - 30;
@@ -248,6 +309,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
 
   } catch (err) {
     toast.error(err.message || 'Print failed');
+    console.error('Print error:', err || err.message);
   }
 };
 
