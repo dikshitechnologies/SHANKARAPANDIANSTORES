@@ -91,6 +91,12 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.text(formatDate(billData.voucherDate), marginLeft + 10, y);
     y += 10;
 
+    /* ---------- QR CODE ---------- */
+
+    const qr = await QRCode.toDataURL(billData.voucherNo || 'N/A');
+    doc.addImage(qr, 'PNG', marginLeft, y - 10, 25, 25);
+    y += 20;
+
     /* ---------- COMPANY ---------- */
 
     doc.setFontSize(15);
@@ -105,11 +111,20 @@ export const generateTenderA4PDF = async ({ billData }) => {
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('51/179, Hariharan Bazaar Street', marginLeft, y);
+    doc.text('51/179, HARIHARAN BAZAAR STREET PONNERI,', marginLeft, y);
+    doc.text(billData.customerMobile || 'N/A', pageWidth / 2, y);
     y += 4;
-    doc.text('Ponneri - 601204', marginLeft, y);
+    doc.text('PONNERI,', marginLeft, y);
+    y += 4;
+    doc.text('Tamil Nadu, India - 601204', marginLeft, y);
     y += 4;
     doc.text('GSTIN: 33ECCPR7067N1ZL', marginLeft, y);
+    y += 4;
+    doc.text('PAN: ECQPR7067N', marginLeft, y);
+    y += 4;
+    doc.text('Email: rspvfstores@gmail.com', marginLeft, y);
+    y += 4;
+    doc.text('Phone: +91 72007 79217', marginLeft, y);
     y += 8;
 
     /* ---------- ITEMS TABLE ---------- */
@@ -123,9 +138,16 @@ export const generateTenderA4PDF = async ({ billData }) => {
     let x = marginLeft;
 
     headers.forEach((h, i) => {
-      doc.text(h, x + 5, y);
-      x += colWidths[i];
-    });
+      if (h === 'Qty' || h === 'Rate' || h === 'Amount') {
+    // Center align inside column
+    doc.text(h, x +5 + colWidths[i] / 2, y, { align: 'right' });
+  } else {
+    // Default left align
+    doc.text(h, x + 1, y);
+  }
+
+  x += colWidths[i];
+});
 
     y += 3;
     doc.line(marginLeft, y, pageWidth - marginRight, y);
@@ -164,21 +186,42 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.line(marginLeft, y, pageWidth - marginRight, y);
     y += 8;
 
-    /* ---------- TOTAL ---------- */
 
+    /* ---------- BANK DETAILS ---------- */
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-
+    doc.setFontSize(10);
+    doc.text('Bank Details:', marginLeft, y);
     doc.text('Grand Total:', pageWidth - 70, y);
     doc.text(formatCurrency(netTotal), pageWidth - marginRight, y, {
       align: 'right',
     });
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Account Name: R. SANKARAPANDIAN STORES', marginLeft, y);
+    doc.text('Discount:', pageWidth - 70, y);
+    doc.text(billData.discount || '0', pageWidth - marginRight, y, {
+      align: 'right',
+    });
+    y += 4;
+    doc.text('Account Number: 743605000713', marginLeft, y);
+    y += 4;
+    doc.text('IFSC: ICIC0007436', marginLeft, y);    
+    y += 4;
+    doc.text('Account Type: Current', marginLeft, y); 
+    y += 4;
+    doc.text('Bank: ICIC Bank', marginLeft, y);
 
-    /* ---------- QR CODE ---------- */
+    /* ---------- TOTAL ---------- */
 
-    const qr = await QRCode.toDataURL(billData.voucherNo || 'N/A');
-    doc.addImage(qr, 'PNG', marginLeft, y - 10, 25, 25);
+    // doc.setFont('helvetica', 'bold');
+    // doc.setFontSize(13);
 
+    
+    // y += 10;
+     
+
+    
     /* ---------- FOOTER ---------- */
 
     y = pageHeight - 30;
