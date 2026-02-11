@@ -658,6 +658,42 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         updated.netAmount = netAmount.toFixed(2);
       }
 
+      // Recalculate Net Amount when Freight Charge changes
+      if (field === "freightCharge") {
+        const grandTotal = Number(prev.granTotal) || 0;
+        const roundOff = Number(prev.roudOff) || 0;
+        const scrapAmount = Number(prev.scrapAmount) || 0;
+        const salesReturn = Number(prev.salesReturn) || 0;
+        const freightCharge = Number(value) || 0;
+        const serviceCharge = Number(prev.serviceCharge) || 0;
+        const netAmount =
+          grandTotal +
+          roundOff -
+          scrapAmount -
+          salesReturn +
+          freightCharge +
+          serviceCharge;
+        updated.netAmount = netAmount.toFixed(2);
+      }
+
+      // Recalculate Net Amount when Service Charge changes
+      if (field === "serviceCharge") {
+        const grandTotal = Number(prev.granTotal) || 0;
+        const roundOff = Number(prev.roudOff) || 0;
+        const scrapAmount = Number(prev.scrapAmount) || 0;
+        const salesReturn = Number(prev.salesReturn) || 0;
+        const freightCharge = Number(prev.freightCharge) || 0;
+        const serviceCharge = Number(value) || 0;
+        const netAmount =
+          grandTotal +
+          roundOff -
+          scrapAmount -
+          salesReturn +
+          freightCharge +
+          serviceCharge;
+        updated.netAmount = netAmount.toFixed(2);
+      }
+
       // When UPI or Card changes, recalculate balance
       if (field === "upi" || field === "card") {
         const totalCollectedCash = Object.entries(denominations).reduce(
@@ -686,6 +722,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         field === "roudOff" ||
         field === "scrapAmount" ||
         field === "salesReturn" ||
+        field === "freightCharge" ||
+        field === "serviceCharge" ||
         field === "billDiscountPercent"
       ) {
         const totalCollectedCash = Object.entries(denominations).reduce(
@@ -1227,7 +1265,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         fcardcode: cardBank?.fCode || "",
         fupIcode: upiBank?.fCode || "",
         balanceAmt: Number(formData.balance) || 0,
-        servicechrgeAmt: Number(formData.serviceChargeAmount) || 0,
+        servicechrgeAmt: Number(formData.serviceCharge) || 0,
         fdisAmt: Number(formData.billDiscAmt) || 0,
         fFreight: Number(formData.freightCharge) || 0,
         fTRans: formData.isTransportCharge
@@ -1269,7 +1307,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           r1: Number(denominations[1].issue) || 0,
         },
       };
-  console.log(JSON.stringify(payload));
+      console.log(JSON.stringify(payload));
  
       const response = await apiService.post(
         "BillCollector/InsertTender",
@@ -1461,6 +1499,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           cardBank: formData.cardBank || "",
           serviceChargePercent: parseFloat(formData.serviceChargePercent) || 0,
           serviceChargeAmount: formData.serviceChargeAmount || "",
+          servicechrgeAmt: parseFloat(formData.serviceCharge) || 0,
           isServiceCharge: formData.isServiceCharge || false,
           denominations: {
             500: { receive: Number(denominations[500].collect) || 0, issue: Number(denominations[500].issue) || 0 },

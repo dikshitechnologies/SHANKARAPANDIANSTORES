@@ -24,6 +24,10 @@ const formatCurrency = (val) => {
   const num = Number(val || 0);
   return num.toFixed(2);
 };
+const formatCurrencyq = (val) => {
+  const num = Number(val || 0);
+  return num.toFixed(0);
+};
 
 /* ================= PDF GENERATOR ================= */
 
@@ -44,7 +48,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     );
 
     const netTotal = billData.netAmount || subTotal;
-    const netAmount = netTotal - (billData.discount || 0) + (billData.serviceChargeAmount || 0);
+    const netAmount = netTotal - (billData.discount || 0) + (billData.servicechrgeAmt || 0);
 
     /* ---------- PDF SETUP ---------- */
 
@@ -168,7 +172,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
       x += colWidths[i];
     });
     
-    y += 7;
+    y += 9;
     doc.setTextColor(0, 0, 0); // Reset to black
     
     // Items Rows
@@ -201,7 +205,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
       x += colWidths[2];
       
       // Qty
-      doc.text(formatCurrency(item.qty), x + (colWidths[3] / 2), y  + rowHeight / 2, { align: 'right' });
+      doc.text(formatCurrencyq(item.qty), x + (colWidths[3] / 2), y  + rowHeight / 2, { align: 'right' });
       x += colWidths[3];
       
       // Rate
@@ -253,7 +257,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFont('helvetica', 'normal');
     doc.text('ICIC0007436', marginLeft + 28, y);
     doc.text('Charges:', pageWidth - 70, y);
-    doc.text(billData.serviceChargeAmount || '0', pageWidth - marginRight, y, {
+    doc.text(formatCurrency(billData.servicechrgeAmt), pageWidth - marginRight, y, {
       align: 'right',
     });
     y += 4;

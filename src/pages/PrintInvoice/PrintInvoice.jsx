@@ -322,8 +322,8 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.hsn || '-'}</td>
                   <td style={{ textAlign: "center", fontSize: "8pt" }}>{item.tax || '-'}</td>
                   <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.qty || 0)}</td>
-                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.rate || 0).toFixed(2)}</td>
-                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{(item.amount || 0).toFixed(2)}</td>
+                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{Number(item.rate || 0).toFixed(2)}</td>
+                  <td style={{ textAlign: "right", paddingLeft: "10pt" }}>{Number(item.amount || 0).toFixed(2)}</td>
                 </tr>
               </React.Fragment>
             ))}
@@ -348,7 +348,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                 Discount
               </td>
               <td style={{ textAlign: "right", fontWeight: "bold"}}>
-                {(billData.discount || 0).toFixed(2)}
+                {Number(billData.discount || 0).toFixed(2)}
               </td>
             </tr>
             <tr className="total-row">
@@ -356,7 +356,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                 Net Amount
               </td>
               <td style={{ textAlign: "right", fontWeight: "bold"}}>
-                {(billData.netAmount || totalAmount).toFixed(2)}
+                {Number(billData.netAmount || totalAmount).toFixed(2)}
               </td>
             </tr>
             <tr className="total-row">
@@ -364,7 +364,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                 Bill Amount
               </td>
               <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "17pt" }}>
-                {(billData.netAmount || totalAmount).toFixed(2)}
+                {Number(billData.netAmount || totalAmount).toFixed(2)}
               </td>
             </tr>
           </tbody>
@@ -440,7 +440,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                     fontSize: "8pt"
                   }}
                 >
-                  {cashAmount.toFixed(2)}
+                  {Number(cashAmount).toFixed(2)}
                 </td>
                 <td 
                   style={{ 
@@ -451,7 +451,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                     fontSize: "8pt"
                   }}
                 >
-                  {upiAmount.toFixed(2)}
+                  {Number(upiAmount).toFixed(2)}
                 </td>
                 <td 
                   style={{ 
@@ -462,7 +462,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                     fontSize: "8pt"
                   }}
                 >
-                  {cardAmount.toFixed(2)}
+                  {Number(cardAmount).toFixed(2)}
                 </td>
                 <td 
                   style={{ 
@@ -473,7 +473,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                     fontSize: "8pt"
                   }}
                 >
-                  {balanceAmount.toFixed(2)}
+                  {Number(balanceAmount).toFixed(2)}
                 </td>
               </tr>                       
             </tbody>
