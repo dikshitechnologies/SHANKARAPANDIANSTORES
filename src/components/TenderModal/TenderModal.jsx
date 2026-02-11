@@ -1451,7 +1451,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
             new Date().toISOString(),
           customerName: header?.customerName || header?.fCustNme || "",
           customerCode: header?.customerCode || header?.fCustCode || "",
-          customerMobile: header?.fMobileno || header?.mobileNo || header?.mobile || "",
+          customerMobile: header?.fMobileno || header?.mobileNO || header?.mobile || "",
           salesmanName: header?.sManName || header?.fSalesmanName || "",
           salesCode: header?.sManCode || header?.fSalesmanCode || "",
           billAmount: header?.billAmt || header?.fBillAmt || 0,
