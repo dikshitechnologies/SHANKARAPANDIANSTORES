@@ -29,10 +29,10 @@ function BillCollector() {
   const [loading, setLoading] = useState(false);
   const [printLoading, setPrintLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [apiError, setApiError] = useState(null);
-  const fCompCode = '001'; // getCompCode();
+  const fCompCode = getCompCode();
 
   // ---------- Responsive Design ----------
   useEffect(() => {
@@ -47,116 +47,152 @@ function BillCollector() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput);
-      setCurrentPage(1); // Reset to first page on new search
+      setCurrentPage(1);
     }, 500);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
   // ---------- API Integration - Fetch Bills List ----------
-const fetchBills = useCallback(async (page = 1, search = "") => {
-  try {
-    setLoading(true);
-    setApiError(null);
-    
-    // Get the endpoint - this already includes compCode, pageNumber, and pageSize
-    let endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_SALESPAYMENTVOUCHER_LIST(fCompCode, page, pageSize);
-    
-    // If search is provided, append it to the URL
-    if (search.trim()) {
-      endpoint = `${endpoint}&search=${encodeURIComponent(search.trim())}`;
-    }
-
-    console.log("Full URL:", endpoint);
-
-    // Call the API
-    const response = await apiService.get(endpoint);
-
-    console.log("API Response:", response);
-
-    if (response && response.data) {
-      // Handle different response structures
-      const responseData = response.data.data || response.data;
-      // Handle totalCount - if API returns 0 but data exists, use array length
-      const apiTotalCount = response.data?.totalCount ?? response?.totalCount ?? 0;
-      const total = (apiTotalCount > 0) ? apiTotalCount : (Array.isArray(responseData) ? responseData.length : 0);
+  const fetchBills = useCallback(async (page = 1, search = "") => {
+    try {
+      setLoading(true);
+      setApiError(null);
       
-      // Map API response to table format
-      const mappedBills = Array.isArray(responseData) ? responseData.map((bill, index) => ({
-        id: index,
-        voucherNo: bill.billNo || bill.voucherNo || '',
-        voucherDate: bill.date || bill.voucherDate || '',
-        customerName: bill.customer || bill.customerName || '',
-        customerCode: bill.customercode || bill.customerCode || '',
-        salesmanName: bill.salesman || bill.salesmanName || '',
-        customerMobile: bill.mobile || bill.customerMobile || '',
-        billAmount: bill.grossAmt || bill.billAmount || 0,
-        netAmount: bill.amount || bill.netAmount || 0,
-        itemCount: bill.items || bill.itemCount || 0,
-        totalQty: bill.qty || bill.totalQty || 0,
-        balance: bill.balance || 0,
-        balanceType: bill.balanceType || 'Dr'
-      })) : [];
+      // Get the endpoint with company code, page number, and page size
+      let endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_SALESPAYMENTVOUCHER_LIST(fCompCode, page, pageSize);
+      
+      // If search is provided, append it to the URL
+      if (search.trim()) {
+        endpoint = `${endpoint}&search=${encodeURIComponent(search.trim())}`;
+      }
 
-      setBills(mappedBills);
-      setTotalCount(total || mappedBills.length);
-      setCurrentPage(page);
-    } else {
+      console.log("Fetching bills from:", endpoint);
+
+      // Call the API
+      const response = await apiService.get(endpoint);
+
+      console.log("Bills API Response:", response);
+
+      if (response && response.data) {
+        // Handle response structure based on the API response
+        let responseData = [];
+        let total = 0;
+        
+        if (response.data.data && Array.isArray(response.data.data)) {
+          // Structure: { data: { data: [...] } }
+          responseData = response.data.data;
+          total = response.data.totalCount || response.data.data.length || 0;
+        } else if (Array.isArray(response.data)) {
+          // Structure: { data: [...] }
+          responseData = response.data;
+          total = response.data.length;
+        } else {
+          responseData = [];
+          total = 0;
+        }
+        
+        // Map API response to table format
+        const mappedBills = responseData.map((bill, index) => ({
+          id: index,
+          voucherNo: bill.billNo || bill.voucherNo || '',
+          voucherDate: bill.date || bill.voucherDate || '',
+          customerName: bill.customer || bill.customerName || '',
+          customerCode: bill.customercode || bill.customerCode || '',
+          salesmanName: bill.salesman || bill.salesmanName || '',
+          customerMobile: bill.mobile || bill.customerMobile || '',
+          billAmount: bill.grossAmt || bill.billAmount || 0,
+          netAmount: bill.amount || bill.netAmount || 0,
+          itemCount: bill.items || bill.itemCount || 0,
+          totalQty: bill.qty || bill.totalQty || 0,
+          balance: bill.balance || 0,
+          balanceType: bill.balanceType || 'Dr'
+        }));
+
+        setBills(mappedBills);
+        setTotalCount(total || mappedBills.length);
+        setCurrentPage(page);
+      } else {
+        setBills([]);
+        setTotalCount(0);
+      }
+      
+    } catch (error) {
+      console.error("Error fetching bills:", error);
       setBills([]);
       setTotalCount(0);
+      setApiError(error.message || 'Failed to fetch bills');
+      
+      // Show user-friendly error message
+      if (error.response) {
+        alert(`Failed to fetch bills: ${error.response.status} - ${error.response.statusText || 'Server error'}`);
+      } else if (error.request) {
+        alert('Failed to fetch bills: No response from server. Please check your network connection.');
+      } else {
+        alert(`Failed to fetch bills: ${error.message || 'Network error'}`);
+      }
+    } finally {
+      setLoading(false);
     }
-    
-  } catch (error) {
-    console.error("Error fetching bills:", error);
-    setBills([]);
-    setTotalCount(0);
-    setApiError(error.message || 'Failed to fetch bills');
-    
-    // Show user-friendly error message
-    alert(`Failed to fetch bills: ${error.message || 'Network error'}. Please check if the API endpoint is correct.`);
-  } finally {
-    setLoading(false);
-  }
-}, [fCompCode, pageSize]);
+  }, [fCompCode, pageSize]);
 
-// ---------- API Integration - Fetch Bill Details for Printing ----------
-const fetchBillDetails = useCallback(async (voucherNo) => {
-  if (!voucherNo) {
-    alert('Invalid bill number');
-    return null;
-  }
-  
-  try {
-    setPrintLoading(true);
-    
-    console.log("Fetching details for voucher:", voucherNo);
-    
-    // Get the endpoint - this already includes the voucherNo parameter
-    const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
-    
-    console.log("Details endpoint:", endpoint);
-    
-    // Call the API
-    const response = await apiService.get(endpoint);
-    
-    console.log("Bill details response:", response);
-    
-    if (response && response.data) {
-      // Handle different response structures
-      const detailsData = response.data.data || response.data;
-      setBillDetails(detailsData);
-      return detailsData;
-    } else {
-      throw new Error(response?.message || 'Failed to fetch bill details');
+  // ---------- API Integration - Fetch Bill Details for Printing ----------
+  const fetchBillDetails = useCallback(async (voucherNo) => {
+    if (!voucherNo) {
+      alert('Invalid bill number');
+      return null;
     }
     
-  } catch (error) {
-    console.error("Error fetching bill details:", error);
-    alert(`Failed to load bill details: ${error.message || 'Network error'}`);
-    return null;
-  } finally {
-    setPrintLoading(false);
-  }
-}, []);
+    try {
+      setPrintLoading(true);
+      
+      console.log("Fetching details for voucher:", voucherNo);
+      
+      // Get the endpoint for payment voucher details
+      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
+      
+      console.log("Details endpoint:", endpoint);
+      
+      // Call the API
+      const response = await apiService.get(endpoint);
+      
+      console.log("Bill details response:", response);
+      
+      if (response && response.data) {
+        // Handle the response structure
+        let detailsData = {};
+        
+        if (response.data.success && response.data.data) {
+          // Structure: { success: true, data: { ... } }
+          detailsData = response.data.data;
+        } else if (response.data.data) {
+          // Structure: { data: { ... } }
+          detailsData = response.data.data;
+        } else {
+          // Structure: { ... }
+          detailsData = response.data;
+        }
+        
+        setBillDetails(detailsData);
+        return detailsData;
+      } else {
+        throw new Error(response?.message || 'Failed to fetch bill details');
+      }
+      
+    } catch (error) {
+      console.error("Error fetching bill details:", error);
+      
+      if (error.response) {
+        alert(`Failed to load bill details: ${error.response.status} - ${error.response.statusText || 'Server error'}`);
+      } else if (error.request) {
+        alert('Failed to load bill details: No response from server. Please check your network connection.');
+      } else {
+        alert(`Failed to load bill details: ${error.message || 'Network error'}`);
+      }
+      return null;
+    } finally {
+      setPrintLoading(false);
+    }
+  }, []);
 
   // ---------- Fetch bills when search or pagination changes ----------
   useEffect(() => {
@@ -166,6 +202,11 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
   // ---------- Pagination Handlers ----------
   const handlePageChange = useCallback((page) => {
     setCurrentPage(page);
+  }, []);
+
+  const handlePageSizeChange = useCallback((size) => {
+    setPageSize(size);
+    setCurrentPage(1);
   }, []);
 
   // ---------- Print Handlers ----------
@@ -183,14 +224,12 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
 
   // ---------- Thermal Receipt Print Function ----------
   const printThermalReceipt = (details, voucherNo) => {
-    const customer = details.customerDetails?.[0] || details.customer || {};
-    const items = details.items || details.itemDetails || [];
+    const customer = details.customerDetails?.[0] || {};
+    const items = details.items || [];
     const denominations = details.denominations || {};
     
-    const billAmount = customer.billAmount || details.billAmount || 0;
-    const discount = customer.discount || details.discount || 0;
-    const netAmount = customer.netAmount || details.netAmount || "0";
-    const serviceCharge = customer.serviceChargeAmount || details.serviceCharge || 0;
+    const billAmount = details.grossAmt || customer.grossAmt || 0;
+    const netAmount = details.amount || customer.amount || "0";
     
     const printContent = `
       SHANKARAPANDIAN STORES
@@ -201,11 +240,10 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
       TAX INVOICE
       =================================
       Bill No: ${voucherNo}
-      Date: ${formatDate(customer.voucherDate || details.date || new Date())}
-      Time: ${formatTime(customer.time || details.time || '')}
-      Customer: ${customer.customerName || details.customerName || 'N/A'}
-      Mobile: ${customer.customerMobile || details.customerMobile || 'N/A'}
-      Salesman: ${customer.salesmanName || details.salesmanName || 'N/A'}
+      Date: ${formatDate(details.date || customer.date || new Date())}
+      Customer: ${details.customer || customer.customer || 'N/A'}
+      Mobile: ${details.mobile || customer.mobile || 'N/A'}
+      Salesman: ${details.salesman || customer.salesman || 'N/A'}
       =================================
       Item                 Qty   Rate   Amount
       =================================
@@ -218,68 +256,54 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
       `).join('')}
       =================================
       Bill Amount: ₹${Number(billAmount).toFixed(2)}
-      Discount: ₹${Number(discount).toFixed(2)}
-      Service Charge: ₹${Number(serviceCharge).toFixed(2)}
       =================================
       NET AMOUNT: ₹${netAmount}
       =================================
-      Payment Details:
-      UPI Bank: ${customer.upiBank || details.upiBank || 'N/A'}
-      Card Bank: ${customer.cardBank || details.cardBank || 'N/A'}
-      =================================
+      ${denominations ? `
       Cash Denomination:
-      ₹500: ${denominations._500?.receive || 0}
-      ₹200: ${denominations._200?.receive || 0}
-      ₹100: ${denominations._100?.receive || 0}
-      ₹50: ${denominations._50?.receive || 0}
-      ₹20: ${denominations._20?.receive || 0}
-      ₹10: ${denominations._10?.receive || 0}
-      ₹5: ${denominations._5?.receive || 0}
-      ₹2: ${denominations._2?.receive || 0}
-      ₹1: ${denominations._1?.receive || 0}
+      ${Object.entries(denominations).map(([denom, count]) => {
+        if (count && count > 0) {
+          const value = denom.replace('_', '');
+          return `₹${value}: ${count}`;
+        }
+        return '';
+      }).filter(Boolean).join('\n      ')}
       =================================
+      ` : ''}
       Thank you for your business!
       This is computer generated invoice
     `;
     
     const printWindow = window.open('', '_blank', 'height=600,width=400');
-    printWindow.document.write(`<pre style="font-family: monospace; font-size: 12px; padding: 10px;">${printContent}</pre>`);
-    printWindow.document.write('<button onclick="window.print()" style="position:fixed; bottom:20px; right:20px; padding:10px 20px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;">Print</button>');
+    printWindow.document.write(`<pre style="font-family: monospace; font-size: 12px; padding: 10px; max-width: 300px;">${printContent}</pre>`);
+    printWindow.document.write(`
+      <div style="position:fixed; bottom:20px; right:20px; display:flex; gap:10px;">
+        <button onclick="window.print()" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">🖨️ Print Thermal</button>
+        <button onclick="window.close()" style="padding:10px 20px; background:#dc3545; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">✖ Close</button>
+      </div>
+    `);
     printWindow.document.close();
   };
 
   // ---------- A4 Invoice Print Function ----------
   const printA4Invoice = (details, voucherNo) => {
-    const customer = details.customerDetails?.[0] || details.customer || {};
-    const items = details.items || details.itemDetails || [];
+    const customer = details.customerDetails?.[0] || {};
+    const items = details.items || [];
     const denominations = details.denominations || {};
     
-    const billAmount = customer.billAmount || details.billAmount || 0;
-    const discount = customer.discount || details.discount || 0;
-    const netAmount = customer.netAmount || details.netAmount || "0";
-    const serviceCharge = customer.serviceChargeAmount || details.serviceCharge || 0;
+    const billAmount = details.grossAmt || customer.grossAmt || 0;
+    const netAmount = details.amount || customer.amount || "0";
     
-    const gstByType = {};
-    items.forEach(item => {
-      const taxRate = item.tax || item.taxRate || 0;
-      if (taxRate > 0) {
-        if (!gstByType[taxRate]) gstByType[taxRate] = 0;
-        const taxAmount = ((item.amount || item.total || 0) * taxRate) / 100;
-        gstByType[taxRate] += taxAmount;
-      }
-    });
-    
-    const totalCash = (
-      (denominations._500?.receive || 0) * 500 +
-      (denominations._200?.receive || 0) * 200 +
-      (denominations._100?.receive || 0) * 100 +
-      (denominations._50?.receive || 0) * 50 +
-      (denominations._20?.receive || 0) * 20 +
-      (denominations._10?.receive || 0) * 10 +
-      (denominations._5?.receive || 0) * 5 +
-      (denominations._2?.receive || 0) * 2 +
-      (denominations._1?.receive || 0) * 1
-    );
+    // Calculate total cash from denominations
+    let totalCash = 0;
+    if (denominations) {
+      Object.entries(denominations).forEach(([denom, count]) => {
+        if (count && count > 0) {
+          const value = parseInt(denom.replace('_', '')) || 0;
+          totalCash += count * value;
+        }
+      });
+    }
     
     const printWindow = window.open('', '_blank', 'height=600,width=800');
     
@@ -394,6 +418,7 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
             cursor: pointer;
             margin: 10px;
             border-radius: 4px;
+            font-weight: bold;
           }
           .amount-bold {
             font-weight: bold;
@@ -415,21 +440,18 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
               <div><strong>Bill No:</strong> ${voucherNo}</div>
             </div>
             <div class="bill-row">
-              <div><strong>Date:</strong> ${formatDate(customer.voucherDate || details.date || new Date())}</div>
-            </div>
-            <div class="bill-row">
-              <div><strong>Time:</strong> ${formatTime(customer.time || details.time || '')}</div>
+              <div><strong>Date:</strong> ${formatDate(details.date || customer.date || new Date())}</div>
             </div>
           </div>
           <div class="bill-info-right">
             <div class="bill-row">
-              <div><strong>Customer:</strong> ${customer.customerName || details.customerName || 'N/A'}</div>
+              <div><strong>Customer:</strong> ${details.customer || customer.customer || 'N/A'}</div>
             </div>
             <div class="bill-row">
-              <div><strong>Mobile:</strong> ${customer.customerMobile || details.customerMobile || 'N/A'}</div>
+              <div><strong>Mobile:</strong> ${details.mobile || customer.mobile || 'N/A'}</div>
             </div>
             <div class="bill-row">
-              <div><strong>Salesman:</strong> ${customer.salesmanName || details.salesmanName || 'N/A'}</div>
+              <div><strong>Customer Code:</strong> ${details.customercode || customer.customercode || 'N/A'}</div>
             </div>
           </div>
         </div>
@@ -450,8 +472,9 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
             ${items.map((item, index) => `
               <tr>
                 <td>${index + 1}</td>
-                <td>${item.itemName || item.productName || ''}<br/>
-                  <small style="color: #666;">${item.description || ''}</small>
+                <td>
+                  ${item.itemName || item.productName || ''}
+                  ${item.description ? `<br/><small style="color: #666;">${item.description}</small>` : ''}
                 </td>
                 <td>${item.hsn || item.hsnCode || ''}</td>
                 <td>${item.tax || item.taxRate || 0}%</td>
@@ -468,49 +491,32 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
             <div>Bill Amount:</div>
             <div>₹${Number(billAmount).toFixed(2)}</div>
           </div>
-          ${Object.entries(gstByType).map(([rate, amount]) => `
-            <div class="total-row">
-              <div>GST ${rate}%:</div>
-              <div>₹${Number(amount).toFixed(2)}</div>
-            </div>
-          `).join('')}
-          ${discount > 0 ? `
-            <div class="total-row">
-              <div>Discount:</div>
-              <div>-₹${Number(discount).toFixed(2)}</div>
-            </div>
-          ` : ''}
-          ${serviceCharge > 0 ? `
-            <div class="total-row">
-              <div>Service Charge:</div>
-              <div>₹${Number(serviceCharge).toFixed(2)}</div>
-            </div>
-          ` : ''}
           <div class="total-row amount-bold">
             <div>NET AMOUNT:</div>
             <div>₹${netAmount}</div>
           </div>
         </div>
         
+        ${denominations && Object.keys(denominations).length > 0 ? `
         <div class="denomination-section">
-          <div><strong>Payment Details:</strong></div>
-          <div style="margin: 5px 0;">
-            UPI Bank: ${customer.upiBank || details.upiBank || 'N/A'} | Card Bank: ${customer.cardBank || details.cardBank || 'N/A'}
-          </div>
-          <div><strong>Cash Denomination:</strong> Total Cash: ₹${totalCash.toFixed(2)}</div>
+          <div><strong>Cash Denomination:</strong></div>
+          <div style="margin-bottom: 5px;">Total Cash: ₹${totalCash.toFixed(2)}</div>
           <div class="denomination-grid">
-            ${Object.entries(denominations).map(([denom, data]) => {
-              const value = denom.replace('_', '');
-              const count = data?.receive || 0;
-              return count > 0 ? `
-                <div class="denom-item">
-                  <span>₹${value}:</span>
-                  <span>${count} × ${value} = ₹${count * parseInt(value)}</span>
-                </div>
-              ` : '';
+            ${Object.entries(denominations).map(([denom, count]) => {
+              if (count && count > 0) {
+                const value = denom.replace('_', '');
+                return `
+                  <div class="denom-item">
+                    <span>₹${value}:</span>
+                    <span>${count} × ${value} = ₹${count * parseInt(value)}</span>
+                  </div>
+                `;
+              }
+              return '';
             }).join('')}
           </div>
         </div>
+        ` : ''}
         
         <div class="footer">
           <div>Thank you for your business!</div>
@@ -518,8 +524,8 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
         </div>
         
         <div class="no-print" style="text-align: center; margin-top: 20px;">
-          <button class="print-btn" onclick="window.print()">Print Now</button>
-          <button class="print-btn" onclick="window.close()" style="background: #dc3545;">Close</button>
+          <button class="print-btn" onclick="window.print()">🖨️ Print Now</button>
+          <button class="print-btn" onclick="window.close()" style="background: #dc3545;">✖ Close</button>
         </div>
       </body>
       </html>
@@ -527,10 +533,6 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
     
     printWindow.document.write(printContent);
     printWindow.document.close();
-    
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
   };
 
   // ---------- Helper Functions ----------
@@ -555,28 +557,12 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
       if (dateString.includes('-')) {
         const parts = dateString.split(' ')[0].split('-');
         if (parts.length === 3) {
-          return `${parts[0]}-${parts[1]}-${parts[2]}`;
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
         }
       }
       return dateString;
     } catch (error) {
       return dateString || '-';
-    }
-  };
-
-  const formatTime = (timeString) => {
-    try {
-      if (!timeString) return '';
-      if (timeString.includes(':')) {
-        return timeString.substring(0, 5);
-      }
-      const timePart = timeString.split(' ')[1];
-      if (timePart) {
-        return timePart.substring(0, 5);
-      }
-      return '';
-    } catch (error) {
-      return '';
     }
   };
 
@@ -696,6 +682,40 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
     );
   };
 
+  // ---------- Page Size Selector ----------
+  const PageSizeSelector = ({ pageSize, onPageSizeChange }) => {
+    const pageSizes = [10, 20, 50, 100];
+    
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        fontSize: isMobile ? '12px' : '14px'
+      }}>
+        <span style={{ color: '#666' }}>Show:</span>
+        <select
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          style={{
+            padding: isMobile ? '6px 10px' : '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            fontSize: isMobile ? '12px' : '14px',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            outline: 'none'
+          }}
+        >
+          {pageSizes.map(size => (
+            <option key={size} value={size}>{size}</option>
+          ))}
+        </select>
+        <span style={{ color: '#666' }}>entries</span>
+      </div>
+    );
+  };
+
   // ---------- Styles ----------
   const container = {
     width: "100%",
@@ -718,9 +738,18 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
     display: "flex",
     flexDirection: isMobile ? "column" : "row",
     alignItems: isMobile ? "stretch" : "center",
+    justifyContent: "space-between",
     gap: isMobile ? "12px" : "16px",
     border: "1px solid #e5e7eb",
     borderBottom: "none"
+  };
+
+  const searchSection = {
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "center",
+    gap: isMobile ? "8px" : "16px",
+    flex: 1
   };
 
   const billNoBox = {
@@ -787,10 +816,10 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
 
   const tdStyle = {
     fontFamily: "'Segoe UI', 'Helvetica Neue', sans-serif",
-    fontSize: isMobile ? "12px" : "14px",
+    fontSize: isMobile ? "11px" : "13px",
     fontWeight: "500",
     lineHeight: "1.4",
-    padding: isMobile ? '10px 5px' : '14px 10px',
+    padding: isMobile ? '10px 5px' : '12px 8px',
     textAlign: 'center',
     border: '1px solid #e0e0e0',
     color: '#333',
@@ -814,9 +843,9 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
     backgroundColor: '#28a745',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
+    padding: isMobile ? '5px 8px' : '6px 12px',
     borderRadius: '4px',
-    fontSize: '11px',
+    fontSize: isMobile ? '10px' : '11px',
     cursor: 'pointer',
     fontWeight: '600',
     display: 'flex',
@@ -830,9 +859,9 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
     backgroundColor: '#dc3545',
     color: 'white',
     border: 'none',
-    padding: '6px 12px',
+    padding: isMobile ? '5px 8px' : '6px 12px',
     borderRadius: '4px',
-    fontSize: '11px',
+    fontSize: isMobile ? '10px' : '11px',
     cursor: 'pointer',
     fontWeight: '600',
     display: 'flex',
@@ -849,6 +878,11 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
         
         .print-btn:hover {
@@ -868,22 +902,37 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
         tr:hover td {
           background-color: #f5f9ff;
         }
+        
+        .loading-spinner {
+          border: 3px solid #f3f3f3;
+          border-top: 3px solid #1B91DA;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          animation: spin 1s linear infinite;
+        }
       `}</style>
 
       <div style={billNoContainer}>
-        <div style={{ fontWeight: "700", color: "#1f2937", fontSize: "17px" }}>Search Bill:</div>
-        <input 
-          type="text" 
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder="Search by bill no, customer name, or mobile"
-          style={isFocused ? billNoBoxFocus : billNoBox}
-        />
-        {searchInput !== debouncedSearch && (
-          <span style={{ color: '#666', fontSize: '12px' }}>Searching...</span>
-        )}
+        <div style={searchSection}>
+          <div style={{ fontWeight: "700", color: "#1f2937", fontSize: "17px" }}>Search Bill:</div>
+          <input 
+            type="text" 
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Search by bill no, customer name, or mobile"
+            style={isFocused ? billNoBoxFocus : billNoBox}
+          />
+          {searchInput !== debouncedSearch && (
+            <span style={{ color: '#666', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div className="loading-spinner" style={{ width: '14px', height: '14px' }}></div>
+              Searching...
+            </span>
+          )}
+        </div>
+        <PageSizeSelector pageSize={pageSize} onPageSizeChange={handlePageSizeChange} />
       </div>
 
       {printLoading && (
@@ -892,15 +941,20 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          backgroundColor: 'rgba(0,0,0,0.8)',
+          backgroundColor: 'rgba(0,0,0,0.85)',
           color: 'white',
           padding: '20px 30px',
-          borderRadius: '8px',
+          borderRadius: '12px',
           zIndex: 1000,
           fontSize: '16px',
           fontWeight: 'bold',
-          animation: 'fadeIn 0.3s'
+          animation: 'fadeIn 0.3s',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
         }}>
+          <div className="loading-spinner" style={{ width: '24px', height: '24px', borderWidth: '4px' }}></div>
           📄 Loading bill details for printing...
         </div>
       )}
@@ -909,13 +963,16 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
         {loading ? (
           <div style={{ 
             display: "flex", 
+            flexDirection: "column",
             justifyContent: "center", 
             alignItems: "center", 
-            height: "200px", 
+            height: "300px", 
             color: "#6b7280",
             fontSize: "16px",
-            fontWeight: "500"
+            fontWeight: "500",
+            gap: "20px"
           }}>
+            <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '4px' }}></div>
             <span>Loading bills...</span>
           </div>
         ) : bills.length === 0 ? (
@@ -923,16 +980,36 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
             display: "flex", 
             justifyContent: "center", 
             alignItems: "center", 
-            height: "200px", 
+            height: "300px", 
             color: "#6b7280",
             fontSize: "16px",
             fontWeight: "500",
             flexDirection: 'column',
-            gap: '10px'
+            gap: '15px'
           }}>
-            {debouncedSearch ? `No bills found for "${debouncedSearch}"` : "No bills found"}
+            <span style={{ fontSize: '48px', marginBottom: '10px' }}>📄</span>
+            {debouncedSearch ? (
+              <>
+                <div>No bills found for "{debouncedSearch}"</div>
+                <div style={{ fontSize: '14px', color: '#9ca3af' }}>Try searching with different keywords</div>
+              </>
+            ) : (
+              <>
+                <div>No bills found</div>
+                <div style={{ fontSize: '14px', color: '#9ca3af' }}>Start searching to view bills</div>
+              </>
+            )}
             {apiError && (
-              <div style={{ fontSize: '12px', color: '#dc3545', maxWidth: '80%', textAlign: 'center' }}>
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#dc3545', 
+                maxWidth: '80%', 
+                textAlign: 'center',
+                backgroundColor: '#fee',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                marginTop: '10px'
+              }}>
                 Error: {apiError}
               </div>
             )}
@@ -949,7 +1026,8 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
                 <th style={thStyle}>Mobile</th>
                 <th style={thStyle}>Items</th>
                 <th style={thStyle}>Qty</th>
-                <th style={thStyle}>Amount</th>
+                <th style={thStyle}>Gross Amt</th>
+                <th style={thStyle}>Net Amt</th>
                 <th style={thStyle}>Balance</th>
                 <th style={thStyle}>Print</th>
               </tr>
@@ -993,6 +1071,9 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
                     {row.totalQty || '0'}
                   </td>
                   <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
+                    ₹{Number(row.billAmount || 0).toLocaleString('en-IN')}
+                  </td>
+                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
                     <div style={{ fontWeight: "bold", color: "#28a745" }}>
                       ₹{Number(row.netAmount || 0).toLocaleString('en-IN')}
                     </div>
@@ -1003,9 +1084,11 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
                       color: row.balance > 0 ? '#dc3545' : '#28a745' 
                     }}>
                       ₹{Number(row.balance || 0).toLocaleString('en-IN')}
-                      <span style={{ fontSize: '10px', marginLeft: '2px' }}>
-                        {row.balanceType || ''}
-                      </span>
+                      {row.balanceType && (
+                        <span style={{ fontSize: '10px', marginLeft: '2px' }}>
+                          {row.balanceType}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
@@ -1019,6 +1102,7 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
                           }
                         }}
                         disabled={printLoading}
+                        className="print-btn"
                       >
                         🧾 Thermal
                       </button>
@@ -1031,6 +1115,7 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
                           }
                         }}
                         disabled={printLoading}
+                        className="print-btn"
                       >
                         📄 A4
                       </button>
@@ -1044,7 +1129,7 @@ const fetchBillDetails = useCallback(async (voucherNo) => {
       </div>
 
       {/* Pagination Controls */}
-      {bills.length > 0 && (
+      {bills.length > 0 && !loading && (
         <div style={{
           backgroundColor: 'white',
           padding: isMobile ? '12px 16px' : '16px 24px',
