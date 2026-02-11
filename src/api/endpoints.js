@@ -316,6 +316,12 @@ CATEGORY: {
     GET_LIVE_DRAWER: (date) => `BillCollector/GetLiveDrawer?date=${date}`,
      GET_ITEMS_DISCOUNT_FLAG: (voucherNo) =>
     `BillCollector/GetItemsDiscountFlag?voucherNo=${voucherNo}`,
+     // Endpoint to get list of bills (you might need to adjust this based on your actual API)
+    GET_BILLS: '/BillCollector/GetBillCollectorItems',
+    
+    // Endpoint to get specific bill details - IMPORTANT: Match your server endpoint
+    GET_PAYMENT_VOUCHER_DETAILS: (voucherNo) => 
+      `/BillCollector/GetPaymentVoucherDetails?voucherNo=${voucherNo}`,
     GET_CUSTOMER_LIST: (page, pageSize, search) =>
     `BillCollector/customerlist?page=${page}&pageSize=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
 
