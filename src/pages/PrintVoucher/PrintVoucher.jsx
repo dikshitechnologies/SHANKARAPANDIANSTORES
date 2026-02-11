@@ -424,13 +424,7 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
               }}
             />
           </div>
-          <div className="company-name">R.SANKARAPANDIAN STORE</div>
-          <div className="company-address">
-            51/179, HARIHARAN BAZAAR STREET<br />
-            PONNERI - 601204
-          </div>
-          <div className="contact">Customer Care: 044-27973611 / 72007 79217</div>
-          <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
+          <div className="company-name">R.SANKARAPANDIAN STORES</div>          
         </div>
 
         {/* Dynamic Content */}

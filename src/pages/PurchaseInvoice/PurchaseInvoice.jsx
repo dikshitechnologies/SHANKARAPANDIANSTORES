@@ -787,7 +787,9 @@ const PurchaseInvoice = () => {
       wsRate: '',
       amt: '',
       min: '',
-      max: ''
+      max: '',
+      parentCode: '',
+      parentName: ''
     }
   ]);
 
@@ -1162,7 +1164,8 @@ const PurchaseInvoice = () => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: ''
       }]);
       
       // Clear header fields
@@ -1271,7 +1274,8 @@ const PurchaseInvoice = () => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: ''
       }]);
       
       // Clear header fields
@@ -1391,6 +1395,8 @@ const PurchaseInvoice = () => {
         max: item.maxQty || '',
         min: item.minQty || '',
         type: item.type || '',
+        parentCode: item.parentcode || '',
+        parentName: item.parentItemName || '',
       })) : [];
       
       return items;
@@ -1504,7 +1510,9 @@ const PurchaseInvoice = () => {
             wsRate: item.wRate || '',
             amt: item.amount || '',
             min: '',
-            max: ''
+            max: '',
+            parentCode: item.parentCode || '',
+            parentName: item.parentName || ''
           }));
           
           console.log('Formatted items:', formattedItems);
@@ -1540,7 +1548,9 @@ const PurchaseInvoice = () => {
             wsRate: '',
             amt: '',
             min: '',
-            max: ''
+            max: '',
+            parentCode: '',
+            parentName: ''
           }]);
         }
 
@@ -1582,7 +1592,9 @@ const PurchaseInvoice = () => {
           wsRate: '',
           amt: '',
           min: '',
-          max: ''
+          max: '',
+          parentCode: '',
+          parentName: ''
         };
         
         // Add new row to items
@@ -1709,7 +1721,9 @@ const PurchaseInvoice = () => {
               ntCost: '',
               wsPercent: '',
               wsRate: '',
-              amt: ''
+              amt: '',
+              parentCode: selectedItem.parentCode || '',
+              parentName: selectedItem.parentName || ''
             };
             return calculateItem(updatedItem);
           }
@@ -1753,7 +1767,9 @@ const PurchaseInvoice = () => {
               wsRate: '',
               amt: '',
               min: '',
-              max: ''
+              max: '',
+              parentCode: selectedItem.parentCode || '',
+              parentName: selectedItem.parentName || ''
             };
             return calculateItem(updatedItem);
           }
@@ -1853,7 +1869,9 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: item.fparent || groupCode || '',
+        parentName: selectedItem.fItemName || ''
       };
     });
     
@@ -2171,7 +2189,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         wsRate: '',
         amt: '',
         min: '',
-        max: ''
+        max: '',
+        parentCode: '',
+        parentName: ''
       };
 
       // 🔑 Focus AFTER state update
@@ -2266,7 +2286,23 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
 
     const sRate = acost + (acost * profitPercent) / 100;
     const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
-    const wsRate = ntCost + (ntCost * wsPercent) / 100;
+    
+    // WS Rate calculation logic:
+    // If wsPercent has a value, calculate wsRate from wsPercent
+    // If wsPercent is empty, keep the manually entered wsRate value
+    let wsRate;
+    let shouldFormatWsRate = false;
+    
+    if (wsPercent > 0 || (item.wsPercent && item.wsPercent !== '' && item.wsPercent !== '0')) {
+      // Calculate wsRate from wsPercent
+      wsRate = ntCost + (ntCost * wsPercent) / 100;
+      shouldFormatWsRate = true;
+    } else {
+      // Keep the manually entered wsRate value as-is (don't format while typing)
+      wsRate = item.wsRate !== undefined && item.wsRate !== '' ? item.wsRate : ntCost;
+      // Only format if it's the default ntCost value
+      shouldFormatWsRate = (item.wsRate === undefined || item.wsRate === '');
+    }
 
     return {
       ...item,
@@ -2275,7 +2311,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       ntCost: ntCost.toFixed(2),
       sRate: sRate.toFixed(2),
       letProfPer: letProfPer.toFixed(2),
-      wsRate: wsRate.toFixed(2),
+      wsRate: shouldFormatWsRate ? Number(wsRate).toFixed(2) : wsRate,
       amt: amt.toFixed(2),
       profitPercent
     };
@@ -2290,7 +2326,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     setItems(prev =>
       prev.map(item => {
         if (item.id === id) {
-          const updatedItem = { ...item, [field]: value };
+          let updatedItem = { ...item, [field]: value };
+          
+          // If wsRate is manually changed, clear wsPercent to allow manual entry
+          if (field === 'wsRate' && value !== '' && value !== item.wsRate) {
+            updatedItem.wsPercent = '';
+          }
+          
+          // If wsPercent is changed, let calculateItem recalculate wsRate
+          // (no special handling needed, calculateItem will handle it)
+          
           return calculateItem(updatedItem);
         }
         return item;
@@ -2372,99 +2417,132 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   }, []);
 
   // Update the handleTableKeyDown function
-  const handleTableKeyDown = (e, currentRowIndex, currentField) => {
-    // Handle / key for item code search popup
-    if (e.key === '/') {
-      e.preventDefault();
-      // handleItemCodeSelect(items[currentRowIndex].id, items[currentRowIndex].name);
-      return;
+ const handleTableKeyDown = (e, currentRowIndex, currentField) => {
+  // Handle / key for item code search popup
+  if (e.key === '/') {
+    e.preventDefault();
+    return;
+  }
+
+  // Get current item's UOM
+  const currentItem = items[currentRowIndex];
+  const currentUom = (currentItem?.uom || '').toLowerCase();
+  
+  // Define which fields to skip based on UOM
+  const shouldSkipWeightFields = ['pcs', 'unit', 'each', 'piece', 'units', 'pc'].includes(currentUom);
+  
+  // Fields in the visual order
+  const fields = [
+    'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
+    'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
+    'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
+  ];
+
+  // Get next field with weight field skipping logic
+  const getNextField = (currentFieldIndex) => {
+    if (shouldSkipWeightFields && currentField === 'qty') {
+      // When moving from qty and UOM is pcs, skip to prate
+      return 'prate';
     }
+    
+    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
+      return fields[currentFieldIndex + 1];
+    }
+    return currentField;
+  };
 
-    // Fields in the visual order
-    const fields = [
-      'barcode', 'name', 'uom', 'stock', 'hsn', 'qty', 'ovrwt', 'avgwt',
-      'prate', 'intax', 'outtax', 'acost', 'sudo', 'profitPercent', 'preRT', 
-      'sRate', 'asRate', 'mrp', 'letProfPer', 'ntCost', 'wsPercent', 'wsRate', 'amt'
-    ];
+  // Get previous field with weight field skipping logic
+  const getPrevField = (currentFieldIndex) => {
+    if (shouldSkipWeightFields && currentField === 'prate') {
+      // When moving back from prate and UOM is pcs, go back to qty
+      return 'qty';
+    }
+    
+    if (currentFieldIndex > 0) {
+      return fields[currentFieldIndex - 1];
+    }
+    return currentField;
+  };
 
-    const currentFieldIndex = fields.indexOf(currentField);
+  const currentFieldIndex = fields.indexOf(currentField);
 
-    // Handle Right arrow - move to next field in the same row
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-        const nextField = fields[currentFieldIndex + 1];
-        
-        const nextInput = document.querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
-           select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
-        );
-        if (nextInput) {
-          nextInput.focus();
-          if (nextInput.tagName === 'INPUT') {
-            nextInput.select();
-          }
+  // Handle Right arrow - move to next field in the same row
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    const nextField = getNextField(currentFieldIndex);
+    
+    if (nextField !== currentField) {
+      const nextInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${nextField}"], 
+         select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
+      );
+      if (nextInput) {
+        nextInput.focus();
+        if (nextInput.tagName === 'INPUT') {
+          nextInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-    // Handle Left arrow - move to previous field in the same row
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      if (currentFieldIndex > 0) {
-        const prevField = fields[currentFieldIndex - 1];
-        const prevInput = document.querySelector(
-          `input[data-row="${currentRowIndex}"][data-field="${prevField}"], 
-           select[data-row="${currentRowIndex}"][data-field="${prevField}"]`
-        );
-        if (prevInput) {
-          prevInput.focus();
-          if (prevInput.tagName === 'INPUT') {
-            prevInput.select();
-          }
+  // Handle Left arrow - move to previous field in the same row
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const prevField = getPrevField(currentFieldIndex);
+    
+    if (prevField !== currentField) {
+      const prevInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="${prevField}"], 
+         select[data-row="${currentRowIndex}"][data-field="${prevField}"]`
+      );
+      if (prevInput) {
+        prevInput.focus();
+        if (prevInput.tagName === 'INPUT') {
+          prevInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-    // Handle Up arrow - move to the same field in the row above
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (currentRowIndex > 0) {
-        const prevRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], 
-           select[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
-        );
-        if (prevRowInput) {
-          prevRowInput.focus();
-          if (prevRowInput.tagName === 'INPUT') {
-            prevRowInput.select();
-          }
+  // Handle Up arrow - move to the same field in the row above
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (currentRowIndex > 0) {
+      const prevRowInput = document.querySelector(
+        `input[data-row="${currentRowIndex - 1}"][data-field="${currentField}"], 
+         select[data-row="${currentRowIndex - 1}"][data-field="${currentField}"]`
+      );
+      if (prevRowInput) {
+        prevRowInput.focus();
+        if (prevRowInput.tagName === 'INPUT') {
+          prevRowInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-    // Handle Down arrow - move to the same field in the row below
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (currentRowIndex < items.length - 1) {
-        const nextRowInput = document.querySelector(
-          `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], 
-           select[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
-        );
-        if (nextRowInput) {
-          nextRowInput.focus();
-          if (nextRowInput.tagName === 'INPUT') {
-            nextRowInput.select();
-          }
+  // Handle Down arrow - move to the same field in the row below
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (currentRowIndex < items.length - 1) {
+      const nextRowInput = document.querySelector(
+        `input[data-row="${currentRowIndex + 1}"][data-field="${currentField}"], 
+         select[data-row="${currentRowIndex + 1}"][data-field="${currentField}"]`
+      );
+      if (nextRowInput) {
+        nextRowInput.focus();
+        if (nextRowInput.tagName === 'INPUT') {
+          nextRowInput.select();
         }
       }
-      return;
     }
+    return;
+  }
 
-   if (e.key === 'Enter') {
+  if (e.key === 'Enter') {
     e.preventDefault();
     e.stopPropagation();
 
@@ -2503,9 +2581,21 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       return;
     }
 
-    // 👉 CASE 3: Normal fields → move RIGHT
-    if (currentFieldIndex >= 0 && currentFieldIndex < fields.length - 1) {
-      const nextField = fields[currentFieldIndex + 1];
+    // 👉 CASE 3: Special handling for qty when UOM is pcs
+    if (shouldSkipWeightFields && currentField === 'qty') {
+      const prateInput = document.querySelector(
+        `input[data-row="${currentRowIndex}"][data-field="prate"]`
+      );
+      if (prateInput) {
+        prateInput.focus();
+        prateInput.select();
+      }
+      return;
+    }
+
+    // 👉 CASE 4: Normal fields → move to next field
+    const nextField = getNextField(currentFieldIndex);
+    if (nextField !== currentField) {
       const nextInput = document.querySelector(
         `input[data-row="${currentRowIndex}"][data-field="${nextField}"],
          select[data-row="${currentRowIndex}"][data-field="${nextField}"]`
@@ -2517,7 +2607,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       }
     }
   }
-  };
+};
 
   const handleClear = () => {
     showConfirmation({
@@ -2682,6 +2772,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
             letProfPer: toNumber(it.letProfPer),
             ntCost: toNumber(it.ntCost),
             wsPer: toNumber(it.wsPercent),
+            parentCode: it.parentCode || '',
+            parentName: it.parentName || ''
           })),
       };
       
@@ -2812,7 +2904,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
               wsRate: '',
               amt: '',
               min: '',
-              max: ''
+              max: '',
+              parentCode: '',
+              parentName: ''
             }
           ]);
         },
@@ -3903,7 +3997,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                   }}
                   onFocus={() => setFocusedField(`name-${item.id}`)}
                   onBlur={() => setFocusedField('')}
-                  title="Click to select item from list"
+                  title={item.name}
                 />
                 <button
                   type="button"
@@ -4295,7 +4389,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 onChange={(e) => handleItemChange(item.id, 'wsPercent', handleNumericInput(e.target.value))}
                 onKeyDown={(e) => handleTableKeyDown(e, index, 'wsPercent')}
                 onFocus={() => setFocusedField(`wsPercent-${item.id}`)}
-                onBlur={() => setFocusedField('')}
+                onBlur={() => {
+                  setFocusedField('');
+                  // Format wsPercent to 2 decimal places on blur if it has a value
+                  if (item.wsPercent && item.wsPercent !== '') {
+                    const numValue = parseFloat(item.wsPercent);
+                    if (!isNaN(numValue)) {
+                      handleItemChange(item.id, 'wsPercent', numValue.toFixed(2));
+                    }
+                  }
+                }}
               />
             </td>                  
             
@@ -4310,7 +4413,16 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
                 onChange={(e) => handleItemChange(item.id, 'wsRate', handleNumericInput(e.target.value))}
                 onKeyDown={(e) => handleTableKeyDown(e, index, 'wsRate')}
                 onFocus={() => setFocusedField(`wsRate-${item.id}`)}
-                onBlur={() => setFocusedField('')}
+                onBlur={() => {
+                  setFocusedField('');
+                  // Format wsRate to 2 decimal places on blur if it has a value
+                  if (item.wsRate && item.wsRate !== '') {
+                    const numValue = parseFloat(item.wsRate);
+                    if (!isNaN(numValue)) {
+                      handleItemChange(item.id, 'wsRate', numValue.toFixed(2));
+                    }
+                  }
+                }}
               />
             </td>
             
@@ -4547,10 +4659,10 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         }}
         title="Select Item"
         fetchItems={(pageNum = 1, search = '') => fetchItemCodeList(search)}
-        displayFieldKeys={['name','barcode']}
-        headerNames={['Name','Barcode']}
-        searchFields={['name',' barcode']}
-        columnWidths={{ name: '50%',barcode : '50%' }}
+        displayFieldKeys={['name']}
+        headerNames={['Name']}
+        searchFields={['name']}
+        columnWidths={{ name: '50%' }}
         searchPlaceholder="Search by name or barcode..."
         initialSearch={itemSearchTerm}
         onSelect={handleItemCodeSelection}

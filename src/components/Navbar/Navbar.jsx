@@ -204,12 +204,12 @@ const Navbar = () => {
     { name: 'Tax Creation', path: '/masters/Tax-Creation', icon: <BuildOutlined />, permission: 'TAX_CREATION' },
 
      
-    {
-      name: "DayClose",
-      path: "/masters/DayClose",
-      icon: <BuildOutlined />,
-      permission: "DayClose",
-    },
+    // {
+    //   name: "DayClose",
+    //   path: "/masters/DayClose",
+    //   icon: <BuildOutlined />,
+    //   permission: "DayClose",
+    // },
   ];
 
   const transactionItems = [
@@ -290,6 +290,12 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "SCRAP_PROCUREMENT",
     },
+     {
+          name: "Bill Print",
+          path: "/transactions/bill-print",
+          icon: <MoneyCollectOutlined />,
+          permission: "BILL_PRINT",
+        },
     // {
     //   name: "Tag Print",
     //   path: "/transactions/Tag-Print",
@@ -569,8 +575,8 @@ const Navbar = () => {
         <div className={styles["nav-container"]}>
           {/* Left: Logo */}
           <Link to="/" className={styles["nav-logo"]} onClick={closeMobileMenu}>
-            <span className={styles["logo-text"]}>Sankarapandian</span>
-            <span className={styles["logo-subtext"]}>Store</span>
+            <span className={styles["logo-text"]}>R Sankarapandian</span>
+            <span className={styles["logo-subtext"]}>Stores</span>
           </Link>
           {!isMobile && (
             <div className={styles["nav-screen-title"]}>

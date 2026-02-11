@@ -4545,7 +4545,7 @@ const itemsData = validItems.map(item => {
             <DeleteButton buttonType="delete" disabled={!formPermissions.delete} />
           </ActionButtons>
         </div>
-         <div style={{
+         {/* <div style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',           
@@ -4590,7 +4590,7 @@ const itemsData = validItems.map(item => {
                 <span style={{ color: '#555' }}>A4 Format</span>
               </label>
             </div>
-          </div>
+          </div> */}
           
         <div style={styles.totalsContainer}>
           <div style={styles.totalItem}>
