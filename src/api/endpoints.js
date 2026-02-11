@@ -324,7 +324,8 @@ CATEGORY: {
       `/BillCollector/GetPaymentVoucherDetails?voucherNo=${voucherNo}`,
     GET_CUSTOMER_LIST: (page, pageSize, search) =>
     `BillCollector/customerlist?page=${page}&pageSize=${pageSize}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
-
+    GET_SALESPAYMENTVOUCHER_LIST: (compCode, page, pageSize) =>
+    `BillCollector/SalesPaymentVoucherlist?fCompCode=${compCode}&pageNumber=${page}&pageSize=${pageSize}`,
   },
 
   SALESRETURN: {
