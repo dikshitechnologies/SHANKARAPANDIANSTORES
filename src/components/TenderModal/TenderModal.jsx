@@ -1459,6 +1459,9 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           netAmount: parseFloat(formData.netAmount) || header?.billAmt || header?.fBillAmt || 0,
           upiBank: formData.upiBank || "",
           cardBank: formData.cardBank || "",
+          serviceChargePercent: parseFloat(formData.serviceChargePercent) || 0,
+          serviceChargeAmount: parseFloat(formData.serviceChargeAmount) || 0,
+          isServiceCharge: formData.isServiceCharge || false,
           denominations: {
             500: { receive: Number(denominations[500].collect) || 0, issue: Number(denominations[500].issue) || 0 },
             200: { receive: Number(denominations[200].collect) || 0, issue: Number(denominations[200].issue) || 0 },
