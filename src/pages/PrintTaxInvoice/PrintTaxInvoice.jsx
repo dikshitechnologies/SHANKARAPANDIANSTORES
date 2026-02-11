@@ -100,7 +100,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y += 7;
     doc.setFontSize(12);
     doc.text('R. SANKARAPANDIAN STORES', marginLeft, y);
-    doc.text(billData.customerName || 'N/A', pageWidth / 2, y + 5);
+    doc.text(billData.customerName || 'N/A', pageWidth / 2, y);
     y += 5;
 
     doc.setFontSize(9);
@@ -110,16 +110,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.text('Ponneri - 601204', marginLeft, y);
     y += 4;
     doc.text('GSTIN: 33ECCPR7067N1ZL', marginLeft, y);
-
-  /* ---------- CUSTOMER ---------- */
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Customer:', marginLeft, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(billData.customerName || 'N/A', marginLeft + 30, y);
-
     y += 8;
-  
 
     /* ---------- ITEMS TABLE ---------- */
 
@@ -132,7 +123,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     let x = marginLeft;
 
     headers.forEach((h, i) => {
-      doc.text(h, x + 1, y);
+      doc.text(h, x + 5, y);
       x += colWidths[i];
     });
 
