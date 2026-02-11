@@ -1662,7 +1662,7 @@ const PaymentVoucher = () => {
       narration: item.narration || '',
       amount: parseFloat(item.amount) || 0
     })),
-    
+    billTotalAmount: billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0)
   };
 };
 
