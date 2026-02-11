@@ -1662,7 +1662,10 @@ const PaymentVoucher = () => {
       narration: item.narration || '',
       amount: parseFloat(item.amount) || 0
     })),
-    billTotalAmount: billDetails.reduce((sum, bill) => sum + (parseFloat(bill.amount) || 0), 0)
+    billDetails: billDetails.filter(bill => bill.balanceAmount && parseFloat(bill.balanceAmount) > 0).map(bill => ({
+      balanceAmount: parseFloat(bill.balanceAmount) || 0
+    })),
+    billTotalAmount: billDetails.reduce((sum, bill) => sum + (parseFloat(bill.balanceAmount) || 0), 0)
   };
 };
 

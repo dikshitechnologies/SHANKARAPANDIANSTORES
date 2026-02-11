@@ -296,9 +296,16 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
               <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>{(billData.netAmount || 0).toFixed(2)}</td>
             </tr>
             {/* Balance Amount Row */}
-            <tr style={{ fontWeight: "bold", fontSize: "10pt" }}>
-              <td colSpan="2" style={{ textAlign: "right", paddingRight: "10pt" }}>Balance Amount:</td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>{(billData.billTotalAmount || 0).toFixed(2)}</td>
+            <tr style={{ fontWeight: "bold", fontSize: "9pt" }}>
+              <td style={{ textAlign: "right" }}>Balance Amt:</td>
+              <td style={{ textAlign: "right", fontWeight: "bold" }}>
+                {(() => {
+                  const billDetailsTotal = Array.isArray(billData.billDetails) 
+                    ? billData.billDetails.reduce((sum, bill) => sum + (parseFloat(bill.balanceAmount) || 0), 0)
+                    : 0;
+                  return billDetailsTotal.toFixed(2);
+                })()}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -390,9 +397,16 @@ const PrintVoucher = forwardRef(({ billData, mode = "payment-voucher" }, ref) =>
               <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>{(billData.netAmount || 0).toFixed(2)}</td>
             </tr>
             {/* Balance Amount Row */}
-            <tr style={{ fontWeight: "bold", fontSize: "10pt" }}>
-              <td colSpan="2" style={{ textAlign: "right", paddingRight: "10pt" }}>Balance Amount:</td>
-              <td style={{ textAlign: "right", fontWeight: "bold", fontSize: "15pt" }}>{(billData.billTotalAmount || 0).toFixed(2)}</td>
+            <tr style={{ fontWeight: "bold", fontSize: "9pt" }}>
+              <td style={{ textAlign: "right" }}>Balance Amt:</td>
+              <td style={{ textAlign: "right", fontWeight: "bold" }}>
+                {(() => {
+                  const billDetailsTotal = Array.isArray(billData.billDetails) 
+                    ? billData.billDetails.reduce((sum, bill) => sum + (parseFloat(bill.balanceAmount) || 0), 0)
+                    : 0;
+                  return billDetailsTotal.toFixed(2);
+                })()}
+              </td>
             </tr>
           </tbody>
         </table>
