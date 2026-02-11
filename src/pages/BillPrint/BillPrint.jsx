@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { usePermissions } from '../../hooks/usePermissions';
 import { PERMISSION_CODES } from '../../constants/permissions';
 import { getCompCode } from '../../utils/userUtils';
+import PrintInvoice from '../PrintInvoice/PrintInvoice';
+import { generateTenderA4PDF } from '../PrintTaxInvoice/PrintTaxInvoice';
+import { FaPrint, FaFile } from 'react-icons/fa';
 
 function BillCollector() {
   // ---------- Permissions ----------
@@ -29,9 +32,16 @@ function BillCollector() {
   const [loading, setLoading] = useState(false);
   const [printLoading, setPrintLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [apiError, setApiError] = useState(null);
+  
+  // Print management
+  const [printData, setPrintData] = useState(null);
+  const [printType, setPrintType] = useState(null); // 'thermal' or 'a4'
+  const printInvoiceRef = useRef(null);
+  const printTaxInvoiceRef = useRef(null);
+  
   const fCompCode = getCompCode();
 
   // ---------- Responsive Design ----------
@@ -209,17 +219,177 @@ function BillCollector() {
     setCurrentPage(1);
   }, []);
 
+  // ---------- Print Effect Hook ----------
+  useEffect(() => {
+    if (printData && printType === 'thermal' && printInvoiceRef.current) {
+      setTimeout(() => {
+        printInvoiceRef.current?.print();
+        setPrintData(null);
+        setPrintType(null);
+      }, 300);
+    }
+  }, [printData, printType]);
+
   // ---------- Print Handlers ----------
   const handleThermalPrint = useCallback(async (voucherNo) => {
     const details = await fetchBillDetails(voucherNo);
     if (!details) return;
-    printThermalReceipt(details, voucherNo);
+    
+    // Prepare bill data for PrintInvoice
+    const customer = details.customerDetails?.[0] || {};
+    
+    // Transform denominations: Initialize all denominations with default receive/issue structure
+    const transformedDenominations = {};
+    const denominationValues = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    
+    // Initialize all denominations with receive: 0, issue: 0
+    denominationValues.forEach(denom => {
+      transformedDenominations[denom] = { receive: 0, issue: 0 };
+    });
+    
+    // Calculate cash amount: sum of (receive count * denomination value)
+    let calculatedCashAmount = 0;
+    
+    // Map API denominations (with underscore prefix like _500) to numeric keys
+    if (details.denominations) {
+      Object.entries(details.denominations).forEach(([key, value]) => {
+        // Convert _500 to 500
+        const numericKey = parseInt(key.replace('_', ''), 10);
+        if (denominationValues.includes(numericKey)) {
+          const receiveCount = value?.receive || 0;
+          transformedDenominations[numericKey] = {
+            receive: receiveCount,
+            issue: value?.issue || 0
+          };
+          // Calculate cash: count * denomination value
+          calculatedCashAmount += receiveCount * numericKey;
+        }
+      });
+    }
+    
+    // Extract payment amounts from API response
+    const upiAmount = parseFloat(customer.upiBank) || 0;
+    const cardAmount = parseFloat(customer.cardBank) || 0;
+    const balanceAmount = parseFloat(customer.balanceAMT) || parseFloat(customer.creditaMT) || 0;
+    
+    // Prepare mode of payment array
+    const modeofPayment = [];
+    if (calculatedCashAmount > 0) {
+      modeofPayment.push({ method: 'CASH', amount: calculatedCashAmount });
+    }
+    if (upiAmount > 0) {
+      modeofPayment.push({ method: 'UPI', amount: upiAmount });
+    }
+    if (cardAmount > 0) {
+      modeofPayment.push({ method: 'CARD', amount: cardAmount });
+    }
+    if (balanceAmount > 0) {
+      modeofPayment.push({ method: 'BALANCE', amount: balanceAmount });
+    }
+    
+    const billData = {
+      voucherNo: customer.voucherNo || voucherNo,
+      voucherDate: customer.voucherDate,
+      customerName: customer.customerName,
+      customerMobile: customer.customerMobile,
+      salesmanName: customer.salesmanName,
+      billAmount: (customer.billAmount || 0) + (customer.discount || 0),
+      discount: customer.discount,
+      netAmount: customer.billAmount,
+      items: details.items || [],
+      modeofPayment: modeofPayment,
+      denominations: transformedDenominations,
+      servicechrgeAmt: customer.serviceChargeAmount || 0,
+    };
+    
+    // Set print data and trigger thermal print
+    setPrintData(billData);
+    setPrintType('thermal');
   }, [fetchBillDetails]);
 
   const handleA4Print = useCallback(async (voucherNo) => {
     const details = await fetchBillDetails(voucherNo);
     if (!details) return;
-    printA4Invoice(details, voucherNo);
+    
+    // Transform denominations: Initialize all denominations with default receive/issue structure
+    const transformedDenominations = {};
+    const denominationValues = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+    
+    // Initialize all denominations with receive: 0, issue: 0
+    denominationValues.forEach(denom => {
+      transformedDenominations[denom] = { receive: 0, issue: 0 };
+    });
+    
+    // Calculate cash amount: sum of (receive count * denomination value)
+    let calculatedCashAmount = 0;
+    
+    // Map API denominations (with underscore prefix like _500) to numeric keys
+    if (details.denominations) {
+      Object.entries(details.denominations).forEach(([key, value]) => {
+        // Convert _500 to 500
+        const numericKey = parseInt(key.replace('_', ''), 10);
+        if (denominationValues.includes(numericKey)) {
+          const receiveCount = value?.receive || 0;
+          transformedDenominations[numericKey] = {
+            receive: receiveCount,
+            issue: value?.issue || 0
+          };
+          // Calculate cash: count * denomination value
+          calculatedCashAmount += receiveCount * numericKey;
+        }
+      });
+    }
+    
+    // Extract payment amounts from API response
+    const customer = details.customerDetails?.[0] || {};
+    const upiAmount = parseFloat(customer.upiBank) || 0;
+    const cardAmount = parseFloat(customer.cardBank) || 0;
+    const balanceAmount = parseFloat(customer.balanceAMT) || parseFloat(customer.creditaMT) || 0;
+    
+    // Prepare mode of payment array with string amounts
+    const modeofPayment = [];
+    if (calculatedCashAmount > 0) {
+      modeofPayment.push({ method: 'CASH', amount: String(calculatedCashAmount) });
+    }
+    if (upiAmount > 0) {
+      modeofPayment.push({ method: 'UPI', amount: String(upiAmount) });
+    }
+    if (cardAmount > 0) {
+      modeofPayment.push({ method: 'CARD', amount: String(cardAmount) });
+    }
+    if (balanceAmount > 0) {
+      modeofPayment.push({ method: 'BALANCE', amount: String(balanceAmount) });
+    }
+    
+    // Prepare bill data with all values as strings where needed
+    const billData = {
+      voucherNo: String(customer.voucherNo || voucherNo),
+      voucherDate: customer.voucherDate,
+      customerName: customer.customerName || '',
+      customerMobile: customer.customerMobile || '',
+      salesmanName: customer.salesmanName || '',
+      billAmount: String(customer.billAmount || 0),
+      discount: String(customer.discount || 0),
+      netAmount: String(customer.netAmount || 0),
+      servicechrgeAmt: String(customer.serviceChargeAmount || 0),
+      items: (details.items || []).map(item => ({
+        itemName: item.itemName || '',
+        qty: String(item.qty || 0),
+        rate: String(item.rate || 0),
+        amount: String(item.amount || 0),
+        hsn: String(item.hsn || ''),
+        tax: String(item.tax || 0),
+        description: item.description || ''
+      })),
+      modeofPayment: modeofPayment,
+      denominations: transformedDenominations,
+    };
+    
+    // Trigger A4 print directly via PrintTaxInvoice component
+    generateTenderA4PDF({ billData }).catch(err => {
+      console.error('PDF generation error:', err);
+      alert('Failed to generate PDF');
+    });
   }, [fetchBillDetails]);
 
   // ---------- Thermal Receipt Print Function ----------
@@ -1104,7 +1274,7 @@ function BillCollector() {
                         disabled={printLoading}
                         className="print-btn"
                       >
-                        🧾 Thermal
+                        <FaPrint /> Thermal
                       </button>
                       <button 
                         style={printLoading ? {...a4Button, opacity: 0.6} : a4Button}
@@ -1117,7 +1287,7 @@ function BillCollector() {
                         disabled={printLoading}
                         className="print-btn"
                       >
-                        📄 A4
+                        <FaFile /> A4
                       </button>
                     </div>
                   </td>
@@ -1127,6 +1297,15 @@ function BillCollector() {
           </table>
         )}
       </div>
+
+      {/* Hidden Print Components */}
+      {printData && printType === 'thermal' && (
+        <PrintInvoice
+          ref={printInvoiceRef}
+          billData={printData}
+          mode="tax_invoice"
+        />
+      )}
 
       {/* Pagination Controls */}
       {bills.length > 0 && !loading && (

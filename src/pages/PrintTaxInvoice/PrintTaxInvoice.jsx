@@ -47,8 +47,8 @@ export const generateTenderA4PDF = async ({ billData }) => {
       0
     );
 
-    const netTotal = billData.netAmount || subTotal;
-    const netAmount = netTotal - (billData.discount || 0) + (billData.servicechrgeAmt || 0);
+    const netTotal = Number(billData.netAmount || subTotal);
+    const netAmount = netTotal - Number(billData.discount || 0) + Number(billData.servicechrgeAmt || 0);
 
     /* ---------- PDF SETUP ---------- */
 
