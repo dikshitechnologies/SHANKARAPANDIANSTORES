@@ -2284,11 +2284,15 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     if (ovrwt > 0) {
       avgwt = qty ? ovrwt / qty : 0;
       acost = (avgwt * prate) + chargePerItem;
+      // Add intax to acost
+      acost = acost + (acost * intax) / 100;
       ntCost = acost;
       amt = ovrwt * prate;
     } else {
       // 🔑 PRate-only calculation
       acost = prate + chargePerItem;
+      // Add intax to acost
+      acost = acost + (acost * intax) / 100;
       ntCost = prate;
       amt = qty * prate;
     }
