@@ -1,4 +1,4 @@
-const BASE_URL = 'https://dikshi.ddns.net/spstores/api';
+const BASE_URL = 'http://dikshiserver/spstorewebapi/api';
 
 export const API_ENDPOINTS = {
   // Item Group Creation

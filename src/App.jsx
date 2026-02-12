@@ -179,6 +179,7 @@ function App() {
           <Route path="/embed/masters/model-creation" element={<ModelCreation />} />
           <Route path="/embed/masters/size-creation" element={<SizeCreation />} />
           <Route path="/embed/masters/unit-creation" element={<UnitCreation />} />
+          <Route path="/embed/masters/color-creation" element={<ColorCreation />} />
 
 
 

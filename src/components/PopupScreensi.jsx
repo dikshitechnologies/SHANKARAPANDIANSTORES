@@ -1,6 +1,6 @@
 import React, { useState,useRef, useEffect } from 'react';
 import { FaPencilRuler, FaRecycle } from 'react-icons/fa';
-import { HiOutlineTag, HiOutlineViewGrid, HiOutlineCube, HiOutlineTemplate, HiOutlineAdjustments, HiOutlineScale } from 'react-icons/hi';
+import { HiOutlineTag, HiOutlineViewGrid, HiOutlineCube, HiOutlineTemplate, HiOutlineAdjustments, HiOutlineScale, HiOutlineColorSwatch, HiOutlineReceiptTax } from 'react-icons/hi';
 
 const BASE = '/SPSTORE/#/embed';
 
@@ -13,6 +13,9 @@ const screens = {
   model: { url: `${BASE}/masters/model-creation`, icon: <HiOutlineTemplate style={{ color: '#60A5FA' }} />, label: 'Model' },
   size: { url: `${BASE}/masters/size-creation`, icon: <HiOutlineAdjustments style={{ color: '#60A5FA' }} />, label: 'Size' },
   unit: { url: `${BASE}/masters/unit-creation`, icon: <HiOutlineScale style={{ color: '#60A5FA' }} />, label: 'Unit' },
+  color: { url: `${BASE}/masters/color-creation`, icon: <HiOutlineColorSwatch style={{ color: '#60A5FA' }} />, label: 'Color' },
+  tax: { url: `${BASE}/masters/Tax-Creation`, icon: <HiOutlineReceiptTax style={{ color: '#60A5FA' }} />, label: 'Tax' },
+
 }
 
 
