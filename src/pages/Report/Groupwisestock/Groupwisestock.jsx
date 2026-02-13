@@ -1201,7 +1201,7 @@ const handleExportClick = () => {
                   type="button" 
                   style={focusedField === 'company' ? styles.selectGroupBtnFocused : styles.selectGroupBtn}
                   onClick={() => {
-                   
+                    handleCompanyClick();
                     setFocusedField('company');
                   }}
                   onKeyDown={handleCompanyKeyDown}
