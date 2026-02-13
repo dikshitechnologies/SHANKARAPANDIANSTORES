@@ -376,7 +376,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   // api/bankApi.js
   const fetchBankList = async (page, search) => {
     const res = await fetch(
-      `http://dikshiserver/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ""}`,
+      `http://dikshiserver/REACTTEST/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ""}`,
     );
     const json = await res.json();
     return json?.data || [];
@@ -385,7 +385,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   // Fetch transport list from API
   const fetchTransportList = async (page, search) => {
     const res = await fetch(
-      `http://dikshiserver/spstorewebapi/api/transport/transport?search=${search || ""}&page=${page}&pageSize=10`,
+      `http://dikshiserver/REACTTEST/api/transport/transport?search=${search || ""}&page=${page}&pageSize=10`,
     );
     const json = await res.json();
     return json?.data || [];

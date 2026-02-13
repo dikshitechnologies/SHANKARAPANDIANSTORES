@@ -781,7 +781,7 @@ const { hasPrintPermission, checkPrintPermission } =
       display: 'flex',
       flexDirection: 'column',
       maxHeight: screenSize.isMobile ? '300px' : screenSize.isTablet ? '350px' : '400px',
-      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '90%',
+      minHeight: screenSize.isMobile ? '200px' : screenSize.isTablet ? '250px' : '80%',
     },
     table: {
       width: 'max-content',

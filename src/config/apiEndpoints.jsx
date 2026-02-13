@@ -1,4 +1,4 @@
-const BASE_URL = 'http://dikshiserver/spstorewebapi/api';
+const BASE_URL = 'http://dikshiserver/REACTTEST/api';
 
 export const API_ENDPOINTS = {
   // Item Group Creation

@@ -1884,15 +1884,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.salesEntryData.map((item, index) => (
                             <tr key={`sales-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty || 0}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Sales Entry Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.salesEntryData, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -1909,15 +1909,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.salesReturnData.map((item, index) => (
                             <tr key={`salesReturn-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty || 0}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Sales Return Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnData, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -1934,15 +1934,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.purchaseData.map((item, index) => (
                             <tr key={`purchase-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={styles.td}>{item.qty || 0}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Purchase Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseData, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -1959,15 +1959,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.purchaseReturnData.map((item, index) => (
                             <tr key={`purchaseReturn-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}  }>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={styles.td}>{item.qty || 0}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Purchase Return Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseReturnData, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -1984,15 +1984,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.scrapprocurement.map((item, index) => (
                             <tr key={`scrap-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty || 0}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Scrap Procurement Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.scrapprocurement, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -2009,15 +2009,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.paymentData.map((item, index) => (
                             <tr key={`payment-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.billAmount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Payment Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.paymentData, 'billAmount'))}</strong>
                             </td>
                           </tr>
@@ -2034,15 +2034,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.receiptData.map((item, index) => (
                             <tr key={`receipt-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.billAmount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.billAmount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Receipt Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.receiptData, 'billAmount'))}</strong>
                             </td>
                           </tr>
@@ -2088,15 +2088,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.salesEntrybalance.map((item, index) => (
                             <tr key={`salesBalance-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.cashAmt || item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.cashAmt || item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Sales Balance Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.salesEntrybalance, 'cashAmt') || calculateSectionTotal(reportData.salesEntrybalance, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -2113,15 +2113,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.salesReturnbalance.map((item, index) => (
                             <tr key={`salesReturnBalance-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Sales Return Balance Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnbalance, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -2138,15 +2138,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.purchasebalance.map((item, index) => (
                             <tr key={`purchaseBalance-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                               <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Purchase Balance Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.purchasebalance, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -2163,15 +2163,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.purchaseReturnbalance.map((item, index) => (
                             <tr key={`purchaseReturnBalance-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Purchase Return Balance Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseReturnbalance, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -2188,15 +2188,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.scrapbalance.map((item, index) => (
                             <tr key={`scrapBalance-${index}`}>
-                              <td style={styles.td}>{item.voucherNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>{item.qty || '-'}</td>
-                              <td style={styles.td}>{formatCurrency(item.amount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || '-'}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Scrap Balance Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.scrapbalance, 'amount'))}</strong>
                             </td>
                           </tr>
@@ -2213,15 +2213,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.paymnetcredit.map((item, index) => (
                             <tr key={`paymentCredit-${index}`}>
-                              <td style={styles.td}>{item.vouchNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.vouchNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.debitAMt || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.debitAMt || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Payment Credit Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.paymnetcredit, 'debitAMt'))}</strong>
                             </td>
                           </tr>
@@ -2238,15 +2238,15 @@ const DailyReport = () => {
                           </tr>
                           {reportData.receiptcredit.map((item, index) => (
                             <tr key={`receiptCredit-${index}`}>
-                              <td style={styles.td}>{item.vouchNo || 'N/A'}</td>
+                              <td style={{...styles.td, textAlign: 'left'}}>{item.vouchNo || 'N/A'}</td>
                               <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={styles.td}>-</td>
-                              <td style={styles.td}>{formatCurrency(item.creditAmount || 0)}</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
+                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.creditAmount || 0)}</td>
                             </tr>
                           ))}
                           <tr style={styles.totalRow}>
                             <td style={styles.td} colSpan={3}><strong>Receipt Credit Total</strong></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, textAlign: 'right'}}>
                               <strong>{formatCurrency(calculateSectionTotal(reportData.receiptcredit, 'creditAmount'))}</strong>
                             </td>
                           </tr>

@@ -876,18 +876,18 @@ const SalesReturnRegister = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, minWidth: '70px', width: '70px', maxWidth: '70px' }}>No.</th>
-                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px' }}>Sales Party</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill No.</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Bill Date</th>
-                <th style={{ ...styles.th }}>Qty</th>
-                <th style={{ ...styles.th }}>Sales Return</th>
-                <th style={{ ...styles.th }}>Freight Charge</th>
-                <th style={{ ...styles.th }}>Service Charge</th>
-                <th style={{ ...styles.th }}>Cash</th>
-                <th style={{ ...styles.th }}>UPI Amount</th>
-                <th style={{ ...styles.th }}>Card Amount</th>
-                <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px' }}>Bill Amount</th>
+                <th style={{ ...styles.th, minWidth: '70px', width: '70px', maxWidth: '70px', textAlign: 'center' }}>No.</th>
+                <th style={{ ...styles.th, minWidth: '200px', width: '200px', maxWidth: '200px', textAlign: 'left' }}>Sales Party</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'left' }}>Bill No.</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'left' }}>Bill Date</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Qty</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Sales Return</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Freight Charge</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Service Charge</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Cash</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>UPI Amount</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Card Amount</th>
+                <th style={{ ...styles.th, minWidth: '140px', width: '140px', maxWidth: '140px', textAlign: 'right' }}>Bill Amount</th>
               </tr>
             </thead>
           <tbody>
@@ -923,20 +923,20 @@ const SalesReturnRegister = () => {
             minWidth: '120px', 
             width: '120px', 
             maxWidth: '120px',
-            textAlign: 'center',
+            textAlign: 'left',
             color: row.isTotal ? '#1565c0' : '#333'
           }}>{row.billNo || ''}</td>
       <td style={{ ...styles.td, minWidth: '120px' }}>
   {row.isTotal ? '' : formatDateForDisplay(row.billDate)}
 </td>
 
-          <td style={{ ...styles.td }}>{row.qty || ''}</td>
-          <td style={{ ...styles.td }}>{row.salesReturn || ''}</td>
-          <td style={{ ...styles.td }}>{row.freightCharge || ''}</td>
-          <td style={{ ...styles.td }}>{row.serviceCharge || ''}</td>
-          <td style={{ ...styles.td }}>{row.cash || ''}</td>
-          <td style={{ ...styles.td }}>{row.upiAmount || ''}</td>
-          <td style={{ ...styles.td }}>{row.cardAmount || ''}</td>
+          <td style={{ ...styles.td, textAlign: 'right' }}>{row.qty || ''}</td>
+          <td style={{ ...styles.td, textAlign: 'right' }}>{row.salesReturn || ''}</td>
+          <td style={{ ...styles.td, textAlign: 'right' }}>{row.freightCharge || ''}</td>
+          <td style={{ ...styles.td, textAlign: 'right' }}>{row.serviceCharge || ''}</td>
+          <td style={{ ...styles.td, textAlign: 'right' }}>{row.cash || ''}</td>
+          <td style={{ ...styles.td, textAlign: 'right' }}>{row.upiAmount || ''}</td>
+          <td style={{ ...styles.td, textAlign: 'right' }}>{row.cardAmount || ''}</td>
           <td style={{ 
             ...styles.td, 
             minWidth: '140px', 
