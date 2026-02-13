@@ -573,7 +573,8 @@ const GroupwiseStock = () => {
       // Convert dates to DD/MM/YYYY format
       const apiFromDate = formatDateForAPI(fromDate);
       const apiToDate = formatDateForAPI(toDate);
-      
+      console.log(apiFromDate+"test");
+      console.log(apiToDate+"test");
       const response = await get(
         API_ENDPOINTS.GROUP_WISE_STOCK.BRANCH_WISE_STOCK(
           apiFromDate,
@@ -1200,12 +1201,15 @@ const handleExportClick = () => {
                   type="button" 
                   style={focusedField === 'company' ? styles.selectGroupBtnFocused : styles.selectGroupBtn}
                   onClick={() => {
-                    handleCompanyClick();
+                   
                     setFocusedField('company');
                   }}
                   onKeyDown={handleCompanyKeyDown}
                   onFocus={() => setFocusedField('company')}
-                  onBlur={() => setFocusedField('')}
+                  onBlur={() =>{
+                    setFocusedField('')
+                    handleCompanyClick();
+                  } }
                   tabIndex={0}
                 >
                   <span style={{ 
@@ -1542,12 +1546,12 @@ const handleExportClick = () => {
               {/* ALL Option */}
               {!companySearchText && (
                 <div 
-                  style={styles.modalCheckboxRow}
+                  style={{...styles.modalCheckboxRow, cursor: 'pointer'}} 
                   onClick={() => handleCompanySelect('ALL')}
                 >
                   <input
                     type="checkbox"
-                    style={styles.modalCheckbox}
+                    style={{...styles.modalCheckbox, cursor: 'pointer'}} 
                     checked={tempSelectedCompanyCode.length === allCompanies.length && allCompanies.length > 0}
                     onChange={() => handleCompanySelect('ALL')}
                   />
@@ -1573,12 +1577,12 @@ const handleExportClick = () => {
                     return (
                       <div 
                         key={companyItem.compCode} 
-                        style={styles.modalCheckboxRow}
+                        style={{...styles.modalCheckboxRow, cursor: 'pointer'}} 
                         onClick={() => handleCompanySelect(companyItem)}
                       >
                         <input
                           type="checkbox"
-                          style={styles.modalCheckbox}
+                          style={{...styles.modalCheckbox, cursor: 'pointer'}} 
                           checked={isSelected}
                           onChange={() => handleCompanySelect(companyItem)}
                         />
