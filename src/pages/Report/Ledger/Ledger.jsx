@@ -186,7 +186,17 @@ const { hasPrintPermission, checkPrintPermission } =
 
   const formatDateDDMMYYYY = (dateStr) => {
   if (!dateStr) return '';
+  
+  // Check if date is already in DD-MM-YYYY format (from API)
+  if (typeof dateStr === 'string' && dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+    // Already in DD-MM-YYYY format, just replace dashes with slashes
+    return dateStr.replace(/-/g, '/');
+  }
+  
+  // Handle ISO format (YYYY-MM-DD) or other standard formats
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr; // Return original if invalid
+  
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
@@ -536,7 +546,7 @@ const handleExportConfirm = () => {
                   <td>${row.type || ''}</td>
                   <td>${row.crDr || ''}</td>
                   <td>${row.billNo || ''}</td>
-                  <td>${row.billet || ''}</td>
+                  <td>${formatDateDDMMYYYY(row.billet)}</td>
                   <td class="text-right">₹${formatNumber(parseFloat(row.amount) || 0)}</td>
                 </tr>
               `).join('')}
@@ -578,7 +588,7 @@ const handleExportConfirm = () => {
       ledgerData.forEach((row, index) => {
         const amount = parseFloat(row.amount) || 0;
         csvContent += `${index + 1},${formatDateDDMMYYYY(row.date)}
-,"${row.name || ''}",${row.voucherNo || ''},${row.type || ''},${row.crDr || ''},${row.billNo || ''},${row.billet || ''},${amount.toFixed(2)}\n`;
+,"${row.name || ''}",${row.voucherNo || ''},${row.type || ''},${row.crDr || ''},${row.billNo || ''},${formatDateDDMMYYYY(row.billet)},${amount.toFixed(2)}\n`;
       });
       
       csvContent += `\n\n`;
@@ -1597,10 +1607,10 @@ const handleExportConfirm = () => {
                 <th style={{ ...styles.th, minWidth: '50px', width: '50px', maxWidth: '50px' }}>S.No</th>
                 <th style={styles.th}>Date</th>
                 <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Name</th>
-                <th style={styles.th}>Voucher No</th>
+                <th style={{ ...styles.th }}>Voucher No</th>
                 <th style={styles.th}>Type</th>
                 <th style={styles.th}>Cr/Dr</th>
-                <th style={styles.th}>Bill No</th>
+                {/* <th style={styles.th}>Bill No</th> */}
                 <th style={styles.th}>Bill Date</th>
                 <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Amount</th>
               </tr>
@@ -1613,12 +1623,12 @@ const handleExportConfirm = () => {
                       <td style={{ ...styles.td, minWidth: '50px', width: '50px', maxWidth: '50px' }}>{index + 1}</td>
                 <td style={styles.td}>{formatDateDDMMYYYY(row.date)}</td>
 
-                      <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px' }}>{row.name}</td>
-                      <td style={styles.td}>{row.voucherNo}</td>
+                      <td style={{ ...styles.td, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'left' }}>{row.name}</td>
+                      <td style={{ ...styles.td, textAlign: 'left' }}>{row.billNo}</td>
                       <td style={styles.td}>{row.type}</td>
                       <td style={styles.td}>{row.crDr}</td>
-                      <td style={styles.td}>{row.billNo}</td>
-                      <td style={styles.td}>{row.billet}</td>
+                      {/* <td style={styles.td}>{row.billNo}</td> */}
+                      <td style={styles.td}>{formatDateDDMMYYYY(row.billet)}</td>
                       <td style={{ ...styles.td, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'right', fontWeight: 'bold', color: '#1565c0' }}>
                         ₹{parseFloat(row.amount || 0).toLocaleString('en-IN', {
                           minimumFractionDigits: 2,
