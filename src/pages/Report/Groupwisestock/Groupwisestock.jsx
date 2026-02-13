@@ -10,7 +10,7 @@ import { usePrintPermission } from '../../../hooks/usePrintPermission';
 // Helper function to convert YYYY-MM-DD to DD/MM/YYYY for API
 const formatDateForAPI = (dateString) => {
   const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
+  return `${month}/${day}/${year}`;
 };
 
 const GroupwiseStock = () => {
