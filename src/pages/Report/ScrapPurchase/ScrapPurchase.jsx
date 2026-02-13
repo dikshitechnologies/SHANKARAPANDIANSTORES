@@ -1066,12 +1066,12 @@ const handlePrintConfirm = () => {
             <thead>
               <tr>
                 <th style={{...styles.th, minWidth: '40px'}}>No</th>
-                <th style={{...styles.th, minWidth: '120px'}}>Party Name</th>
-                <th style={styles.th}>Invoice</th>
+                <th style={{...styles.th, minWidth: '120px', textAlign: 'left'}}>Party Name</th>
+                <th style={{...styles.th, textAlign: 'left'}}>Invoice</th>
                 <th style={styles.th}>Voucher Date</th>
-                <th style={styles.th}>Salesman</th>
+                <th style={{...styles.th, textAlign: 'left'}}>Salesman</th>
                 <th style={styles.th}>Qty</th>
-                <th style={styles.th}>Amount</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1089,14 +1089,14 @@ const handlePrintConfirm = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8ff'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                     >
-                      <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
-                      <td style={{...styles.td, minWidth: '120px'}}>{row.name || ''}</td>
-                      <td style={styles.td}>{row.invoice || ''}</td>
+                      <td style={{...styles.td, minWidth: '40px',}}>{index + 1}</td>
+                      <td style={{...styles.td, minWidth: '120px',textAlign: 'left',}}>{row.name || ''}</td>
+                      <td style={{...styles.td, textAlign: 'left'}}>{row.invoice || ''}</td>
                  <td style={styles.td}>{formatDateForDisplay(row.voucherDate)}</td>
 
-                      <td style={styles.td}>{row.salesman || ''}</td>
+                      <td style={{...styles.td, textAlign: 'left'}}>{row.salesman || ''}</td>
                       <td style={styles.td}>{row.qty || ''}</td>
-                      <td style={styles.td}>{row.amount ? formatNumber(row.amount) : '0.00'}</td>
+                      <td style={{...styles.td, textAlign: 'right'}}>{row.amount ? formatNumber(row.amount) : '0.00'}</td>
                     </tr>
                   ))}
                   
