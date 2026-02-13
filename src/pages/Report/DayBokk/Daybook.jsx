@@ -38,10 +38,10 @@ const formatDate = (date) => {
 // Helper function to format date as DD/MM/YYYY for API
 const formatDateForAPI = (date) => {
   const d = new Date(date);
-  const year = d.getFullYear().toString().slice(-2); // Get last 2 digits of year
+  const year = d.getFullYear().toString();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${day}/${month}/${year}`;
+  return `${month}/${day}/${year}`;
 };
 
 const DayBook = () => {
