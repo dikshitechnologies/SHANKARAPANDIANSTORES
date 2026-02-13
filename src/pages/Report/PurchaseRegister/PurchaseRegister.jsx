@@ -432,20 +432,20 @@ const { hasPrintPermission, checkPrintPermission } =
             <tbody>
               ${data.length === 0 ? `
                 <tr><td colspan="10" style="text-align:center;color:#888;padding:24px;"></td></tr>
-                <tr><td>1</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
               ` : data.map((row, index) => `
                 <tr>
                   <td>${index + 1}</td>
-                  <td>${safeDisplay(row.name)}</td>
-                 <td>${formatDateForDisplay(row.voucherDate)}</td>
+                  <td style="text-align:left;">${safeDisplay(row.name)}</td>
+                 <td style="text-align:left;">${formatDateForDisplay(row.voucherDate)}</td>
 
-                  <td>${safeDisplay(row.invoice)}</td>
-                  <td>${safeDisplay(row.bill)}</td>
-                  <td>${safeFormatNumber(row.freight)}</td>
-                  <td>${safeFormatNumber(row.subTotal)}</td>
-                  <td>${safeFormatNumber(row.less)}</td>
-                  <td>${safeDisplayNumber(row.qty)}</td>
-                  <td>${safeFormatNumber(row.netAmount)}</td>
+                  <td style="text-align:left;">${safeDisplay(row.invoice)}</td>
+                  <td style="text-align:left;">${safeDisplay(row.bill)}</td>
+                  <td style="text-align:right;">${safeFormatNumber(row.freight)}</td>
+                  <td style="text-align:right;">${safeFormatNumber(row.subTotal)}</td>
+                  <td style="text-align:right;">${safeFormatNumber(row.less)}</td>
+                  <td style="text-align:right;">${safeDisplayNumber(row.qty)}</td>
+                  <td style="text-align:right;">${safeFormatNumber(row.netAmount)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1108,15 +1108,15 @@ const { hasPrintPermission, checkPrintPermission } =
             <thead>
               <tr>
                 <th style={{...styles.th, minWidth: '40px'}}>No</th>
-                <th style={{...styles.th, minWidth: '120px'}}>Party Name</th>
-                <th style={styles.th}>Voucher Date</th>
-                <th style={styles.th}>Ref No</th>
-                <th style={styles.th}>Bill No</th>
-                <th style={styles.th}>Freight</th>
-                <th style={styles.th}>Sub Total</th>
-                <th style={styles.th}>Less</th>
-                <th style={styles.th}>Qty</th>
-                <th style={styles.th}>Amount</th>
+                <th style={{...styles.th, minWidth: '120px', textAlign: 'left'}}>Party Name</th>
+                <th style={{...styles.th, textAlign: 'left'}}>Voucher Date</th>
+                <th style={{...styles.th, textAlign: 'left'}}>Ref No</th>
+                <th style={{...styles.th, textAlign: 'left'}}>Bill No</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Freight</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Sub Total</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Less</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Qty</th>
+                <th style={{...styles.th, textAlign: 'right'}}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1129,7 +1129,7 @@ const { hasPrintPermission, checkPrintPermission } =
               ) : null}
               {data.length === 0 ? (
                 <tr>
-                  <td>1</td>
+                  <td ></td>
                   <td></td>
                   <td></td>
                   <td></td>
@@ -1153,16 +1153,16 @@ const { hasPrintPermission, checkPrintPermission } =
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff'}
                 >
                   <td style={{...styles.td, minWidth: '40px'}}>{index + 1}</td>
-                  <td style={{...styles.td, minWidth: '120px'}}>{safeDisplay(row.name)}</td>
-                <td style={styles.td}>{formatDateForDisplay(row.voucherDate)}</td>
+                  <td style={{...styles.td, minWidth: '120px', textAlign: 'left'}}>{safeDisplay(row.name)}</td>
+                <td style={{...styles.td, textAlign: 'left'}}>{formatDateForDisplay(row.voucherDate)}</td>
 
-                  <td style={styles.td}>{safeDisplay(row.invoice)}</td>
-                  <td style={styles.td}>{safeDisplay(row.bill)}</td>
-                  <td style={styles.td}>{safeFormatNumber(row.freight)}</td>
-                  <td style={styles.td}>{safeFormatNumber(row.subTotal)}</td>
-                  <td style={styles.td}>{safeFormatNumber(row.less)}</td>
-                  <td style={styles.td}>{safeDisplayNumber(row.qty)}</td>
-                  <td style={styles.td}>{safeFormatNumber(row.netAmount)}</td>
+                  <td style={{...styles.td, textAlign: 'left'}}>{safeDisplay(row.invoice)}</td>
+                  <td style={{...styles.td, textAlign: 'left'}}>{safeDisplay(row.bill)}</td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{safeFormatNumber(row.freight)}</td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{safeFormatNumber(row.subTotal)}</td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{safeFormatNumber(row.less)}</td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{safeDisplayNumber(row.qty)}</td>
+                  <td style={{...styles.td, textAlign: 'right'}}>{safeFormatNumber(row.netAmount)}</td>
                 </tr>
               ))}
             </tbody>
