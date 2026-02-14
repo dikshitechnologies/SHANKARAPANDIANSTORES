@@ -312,7 +312,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     // Calculate total payment received (cash + upi + card + credit)
     const cardTotal = formData.isServiceCharge
       ? (Number(formData.card) || 0) +
-        (Number(formData.serviceChargeAmount) || 0)
+      (Number(formData.serviceChargeAmount) || 0)
       : Number(formData.card) || 0;
 
     const totalPaymentReceived = totalCollectedCash + upiAmount + cardTotal + creditAmount;
@@ -376,7 +376,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   // api/bankApi.js
   const fetchBankList = async (page, search) => {
     const res = await fetch(
-      `http://dikshiserver/spstorewebapi/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ""}`,
+      `http://dikshiserver/reacttest/api/BillCollector/Getbankdetails?pageNumber=${page}&pageSize=200&search=${search || ""}`,
     );
     const json = await res.json();
     return json?.data || [];
@@ -385,7 +385,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
   // Fetch transport list from API
   const fetchTransportList = async (page, search) => {
     const res = await fetch(
-      `http://dikshiserver/spstorewebapi/api/transport/transport?search=${search || ""}&page=${page}&pageSize=10`,
+      `http://dikshiserver/reacttest/api/transport/transport?search=${search || ""}&page=${page}&pageSize=10`,
     );
     const json = await res.json();
     return json?.data || [];
@@ -1173,7 +1173,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
     );
     const cardTotal = formData.isServiceCharge
       ? (Number(formData.card) || 0) +
-        (Number(formData.serviceChargeAmount) || 0)
+      (Number(formData.serviceChargeAmount) || 0)
       : Number(formData.card) || 0;
 
     const calculatedNetAmount =
@@ -1204,7 +1204,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
       const creditAmount = Number(formData.creditAmount) || 0;
       const cardTotal = formData.isServiceCharge
         ? (Number(formData.card) || 0) +
-          (Number(formData.serviceChargeAmount) || 0)
+        (Number(formData.serviceChargeAmount) || 0)
         : Number(formData.card) || 0;
       const totalIssuedCash = Object.entries(denominations).reduce(
         (sum, [denom, data]) => {
@@ -1308,12 +1308,12 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         },
       };
       console.log(JSON.stringify(payload));
- 
+
       const response = await apiService.post(
         "BillCollector/InsertTender",
         payload,
       );
-    
+
       if (response) {
         setConfirmSaveOpen(false);
 
@@ -1415,7 +1415,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         setConfirmSaveOpen(false);
         alert(
           "Failed to save tender details: " +
-            (response.data?.message || "Unknown error"),
+          (response.data?.message || "Unknown error"),
         );
       }
     } catch (error) {
@@ -1423,9 +1423,9 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
       setConfirmSaveOpen(false);
       alert(
         "Error: " +
-          (error.response?.data?.message ||
-            error.message ||
-            "Failed to save tender"),
+        (error.response?.data?.message ||
+          error.message ||
+          "Failed to save tender"),
       );
     } finally {
       setIsSaving(false);
@@ -1472,7 +1472,14 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         const cardAmount = parseFloat(formData.card) || 0;
         const creditAmount = parseFloat(formData.creditAmount) || 0;
         const balanceAmount = creditAmount || parseFloat(formData.balance) || 0;
+        const roudOff = parseFloat(formData.roudOff) || 0;
+        const Frieght = parseFloat(formData.fFreight) || 0;
+        const transportCharge = parseFloat(formData.fTRans) || 0;
+        const scrap = parseFloat(formData.fscrapAMT) || 0;
+        const salesReturn = parseFloat(formData.fSalesAMT) || 0;
 
+
+        
         // Build modeofPayment array - Always include all payment methods
         const modeOfPaymentData = [
           { method: "CASH", amount: cashAmount },
@@ -1487,20 +1494,39 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
             header?.voucherDate ||
             header?.fVoucherDate ||
             new Date().toISOString(),
+
+
+          freightCharge: formData.freightCharge || 0,
+          roudOff: parseFloat(formData.roudOff) || 0,
+          serviceChargeAmount: parseFloat(formData.serviceCharge) || 0,
+          serviceChargePercent: formData.serviceChargePercent || 0,
+          servicechrgeAmt: formData.serviceCharge || 0,
+          isServiceCharge: formData.isServiceCharge || false,
+          transportCharge: parseFloat(formData.transport) || 0,
+          salesReturnAmount: formData.salesReturn || 0,
+          scrapAmount: formData.scrapAmount || 0,
+
+
+          fTransport: formData.transport,
+          transportNo: formData.transportAmount,
+          servicechrg: formData.serviceChargeAmount,
+          servicechrgper: formData.serviceChargePercent,
+          
+
+
+
+
           customerName: header?.customerName || header?.fCustNme || "",
           customerCode: header?.customerCode || header?.fCustCode || "",
           customerMobile: header?.fMobileno || header?.mobileNO || header?.mobile || "",
           salesmanName: header?.sManName || header?.fSalesmanName || "",
-          salesCode: header?.sManCode || header?.fSalesmanCode || "",
+
           billAmount: header?.billAmt || header?.fBillAmt || 0,
           discount: (formData.billDiscAmt).toString() || "",
+          discountPercent: (formData.billDiscountPercent).toString() || "",
           netAmount: parseFloat(formData.netAmount) || header?.billAmt || header?.fBillAmt || 0,
           upiBank: formData.upiBank || "",
           cardBank: formData.cardBank || "",
-          serviceChargePercent: parseFloat(formData.serviceChargePercent) || 0,
-          serviceChargeAmount: formData.serviceChargeAmount || "",
-          servicechrgeAmt: parseFloat(formData.serviceCharge) || 0,
-          isServiceCharge: formData.isServiceCharge || false,
           denominations: {
             500: { receive: Number(denominations[500].collect) || 0, issue: Number(denominations[500].issue) || 0 },
             200: { receive: Number(denominations[200].collect) || 0, issue: Number(denominations[200].issue) || 0 },
@@ -1520,8 +1546,10 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
               qty: parseFloat(item.fTotQty || item.qty) || 0,
               amount: parseFloat(item.fAmount || item.amount) || 0,
               tax: parseFloat(item.fTax || item.tax) || 0,
+              taxrs: parseFloat(item.ftaxrs1) || 0,
               hsn: item.fHSN || item.hsn || "",
               description: item.fdesc || item.description || "",
+              mrp: item.mrp || " "
             })) || [],
           modeofPayment: modeOfPaymentData,
         };
@@ -1731,8 +1759,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                     <input
                       type="number"
                       value={formData.billDiscAmt}
-                      readOnly
-                      className={`${styles.inputField} ${styles.readonlyField}`}
+                      onChange={e => handleInputChange("billDiscAmt", e.target.value)}
+                      className={`${styles.inputField} `}
                     />
                   </div>
                 </div>
@@ -1886,7 +1914,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                       className={`${styles.inputField} ${styles.readonlyField}`}
                     />
                   </div>
-                </div>                
+                </div>
               </div>
 
               {/* Net Amount Row */}
@@ -2165,9 +2193,9 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                         value={
                           formData.isServiceCharge
                             ? (
-                                (parseFloat(formData.card) || 0) +
-                                (parseFloat(formData.serviceChargeAmount) || 0)
-                              ).toFixed(2)
+                              (parseFloat(formData.card) || 0) +
+                              (parseFloat(formData.serviceChargeAmount) || 0)
+                            ).toFixed(2)
                             : formData.card
                         }
                         onChange={(e) => handleCardAmountChange(e.target.value)}
@@ -2246,7 +2274,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                           type="number"
                           value={
                             formData.serviceChargeAmount === "0.00" ||
-                            formData.serviceChargeAmount === "0"
+                              formData.serviceChargeAmount === "0"
                               ? ""
                               : formData.serviceChargeAmount
                           }
@@ -2331,7 +2359,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                               type="text"
                               value={
                                 formData.transportAmount === "0.00" ||
-                                formData.transportAmount === "0"
+                                  formData.transportAmount === "0"
                                   ? ""
                                   : formData.transportAmount
                               }
@@ -2377,7 +2405,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                               alignItems: "flex-start",
                             }}
                           >
-                            
+
                             <input
                               type="text"
                               value={formData.creditCustomer}
@@ -2404,12 +2432,12 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                               alignItems: "flex-start",
                             }}
                           >
-                           
+
                             <input
                               type="number"
                               value={
                                 formData.creditAmount === "0.00" ||
-                                formData.creditAmount === "0"
+                                  formData.creditAmount === "0"
                                   ? ""
                                   : formData.creditAmount
                               }
@@ -2448,42 +2476,134 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                   onButtonClick={(type) => setActiveFooterAction(type)}
                 />
               </div>
-              
+
               {/* Print Type Toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>Print:</span>
-                <button
-                  onClick={() => setPrintType("thermal")}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    backgroundColor: printType === "thermal" ? '#4CAF50' : '#fff',
-                    color: printType === "thermal" ? '#fff' : '#333',
-                    fontWeight: printType === "thermal" ? '600' : '400',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  Thermal
-                </button>
-                <button
-                  onClick={() => setPrintType("a4")}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    backgroundColor: printType === "a4" ? '#4CAF50' : '#fff',
-                    color: printType === "a4" ? '#fff' : '#333',
-                    fontWeight: printType === "a4" ? '600' : '400',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  A4
-                </button>
+              {/* Print Type Toggle - Modern Minimalist with Thermal/A4 Colors */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'white',
+                padding: '6px 16px',
+                borderRadius: '100px',
+                border: '1px solid #e0e0e0',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="#1f1f1f">
+                    <path d="M640-640v-120H320v120h-80v-200h480v200h-80Zm-480 80h640-640Zm560 100q17 0 28.5-11.5T760-500q0-17-11.5-28.5T720-540q-17 0-28.5 11.5T680-500q0 17 11.5 28.5T720-460Zm-80 260v-160H320v160h320Zm80 80H240v-160H80v-240q0-51 35-85.5t85-34.5h560q51 0 85.5 34.5T880-520v240H720v160Zm80-240v-160q0-17-11.5-28.5T760-560H200q-17 0-28.5 11.5T160-520v160h80v-80h480v80h80Z" />
+                  </svg>
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    color: '#333',
+                    letterSpacing: '0.5px',
+                    padding: '4px 12px',
+                  }}>
+                    PRINT:
+                  </span>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  background: '#f1f3f4',
+                  borderRadius: '100px',
+                  padding: '3px',
+                  position: 'relative',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
+                  border: '1px solid #0a5faa',
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    width: printType === "thermal" ? 'calc(60% + 3px)' : 'calc(50% - 3px)',
+                    height: 'calc(100% - 6px)',
+                    background: printType === "thermal"
+                      ? 'linear-gradient(145deg, #4CAF50, #45a049)'
+                      : 'linear-gradient(145deg, #2196F3, #1e88e5)',
+                    borderRadius: '100px',
+                    boxShadow: printType === "thermal"
+                      ? '0 4px 8px rgba(76, 175, 80, 0.3), 0 2px 4px rgba(0,0,0,0.1)'
+                      : '0 4px 8px rgba(33, 150, 243, 0.3), 0 2px 4px rgba(0,0,0,0.1)',
+                    left: printType === "thermal" ? '3px' : 'calc(50% - 3px)',
+                    top: '3px',
+                    transition: 'left 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease',
+                    pointerEvents: 'none',
+                  }} />
+
+                  <button
+                    onClick={() => setPrintType("thermal")}
+                    style={{
+                      padding: '8px 24px',
+                      fontSize: '15px',
+                      fontWeight: printType === "thermal" ? '800' : '500',
+                      border: 'none',
+                      borderRadius: '100px',
+                      cursor: 'pointer',
+                      background: 'transparent',
+                      color: printType === "thermal" ? '#fff' : '#555',
+                      position: 'relative',
+                      zIndex: 1,
+                      transition: 'color 0.2s ease, transform 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      letterSpacing: '0.3px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (printType !== "thermal") {
+                        e.target.style.color = '#2c3e50';
+                        e.target.style.transform = 'scale(1.02)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (printType !== "thermal") {
+                        e.target.style.color = '#555';
+                        e.target.style.transform = 'scale(1)';
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>🖨️</span>
+                    Thermal
+                  </button>
+
+                  <button
+                    onClick={() => setPrintType("a4")}
+                    style={{
+                      padding: '8px 24px',
+                      fontSize: '15px',
+                      fontWeight: printType === "a4" ? '800' : '500',
+                      border: 'none',
+                      borderRadius: '100px',
+                      cursor: 'pointer',
+                      background: 'transparent',
+                      color: printType === "a4" ? '#fff' : '#555',
+                      position: 'relative',
+                      zIndex: 1,
+                      transition: 'color 0.2s ease, transform 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      letterSpacing: '0.3px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (printType !== "a4") {
+                        e.target.style.color = '#2c3e50';
+                        e.target.style.transform = 'scale(1.02)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (printType !== "a4") {
+                        e.target.style.color = '#555';
+                        e.target.style.transform = 'scale(1)';
+                      }
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>📄</span>
+                    A4
+                  </button>
+                </div>
               </div>
             </div>
           </div>
