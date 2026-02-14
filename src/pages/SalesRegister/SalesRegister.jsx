@@ -92,108 +92,7 @@ const { hasPrintPermission, checkPrintPermission } =
   const searchButtonRef = useRef(null);
 
   // Mock sales register data (matching your image)
-  const mockSalesData = [
-    {
-      id: 1,
-      no: 1,
-      salesParty: 'AMT FASHION',
-      billNo: 'COX01AA',
-      billDate: '27-09-2025',
-      billAmount: '29,400.00',
-      qty: '15.00',
-      time: '095212 AM'
-    },
-    {
-      id: 2,
-      no: 2,
-      salesParty: 'CASH A/C',
-      billNo: 'COX02AA',
-      billDate: '10-12-2025',
-      billAmount: '380.00',
-      qty: '10.00',
-      time: '124920 PM'
-    },
-    {
-      id: 3,
-      no: 3,
-      salesParty: 'JOHN TRADERS',
-      billNo: 'COX03AA',
-      billDate: '15-01-2025',
-      billAmount: '12,460.00',
-      qty: '25.50',
-      time: '021545 PM'
-    },
-    {
-      id: 4,
-      no: 4,
-      salesParty: 'SMITH ENTERPRISES',
-      billNo: 'COX04AA',
-      billDate: '22-03-2025',
-      billAmount: '8,760.00',
-      qty: '18.75',
-      time: '103010 AM'
-    },
-    {
-      id: 5,
-      no: 5,
-      salesParty: 'GLOBAL FASHION',
-      billNo: 'COX05AA',
-      billDate: '05-05-2025',
-      billAmount: '45,200.00',
-      qty: '32.00',
-      time: '044530 PM'
-    },
-    {
-      id: 6,
-      no: 6,
-      salesParty: 'PREMIUM TEXTILES',
-      billNo: 'COX06AA',
-      billDate: '18-07-2025',
-      billAmount: '23,120.00',
-      qty: '28.50',
-      time: '112015 AM'
-    },
-    {
-      id: 7,
-      no: 7,
-      salesParty: 'AMT FASHION',
-      billNo: 'COX07AA',
-      billDate: '30-08-2025',
-      billAmount: '17,650.00',
-      qty: '22.25',
-      time: '081040 PM'
-    },
-    {
-      id: 8,
-      no: 8,
-      salesParty: 'CASH A/C',
-      billNo: 'COX08AA',
-      billDate: '12-10-2025',
-      billAmount: '8,630.00',
-      qty: '12.50',
-      time: '014555 PM'
-    },
-    {
-      id: 9,
-      no: 9,
-      salesParty: 'JOHN TRADERS',
-      billNo: 'COX09AA',
-      billDate: '25-11-2025',
-      billAmount: '31,750.00',
-      qty: '35.00',
-      time: '081525 AM'
-    },
-    {
-      id: 10,
-      no: 10,
-      salesParty: 'SMITH ENTERPRISES',
-      billNo: 'COX10AA',
-      billDate: '08-12-2025',
-      billAmount: '14,400.00',
-      qty: '13.50',
-      time: '053020 PM'
-    }
-  ];
+
 
   // --- HANDLERS ---
   const handleFromDateChange = (e) => {
@@ -1054,18 +953,18 @@ const handlePrintClick = () => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, minWidth: '60px', width: '60px', maxWidth: '60px' }}>No</th>
-                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px' }}>Sales Party</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill No</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Date</th>
-                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px' }}>Qty</th>
-                <th style={{ ...styles.th }}>Sales Return</th>
-                <th style={{ ...styles.th }}>Freight Charge</th>
-                <th style={{ ...styles.th }}>Service Charge</th>
-                <th style={{ ...styles.th }}>Cash</th>
-                <th style={{ ...styles.th }}>UPI Amount</th>
-                <th style={{ ...styles.th }}>Card Amount</th>
-                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px' }}>Bill Amount</th>
+                <th style={{ ...styles.th, minWidth: '60px', width: '60px', maxWidth: '60px', textAlign: 'center' }}>No</th>
+                <th style={{ ...styles.th, minWidth: '120px', width: '120px', maxWidth: '120px', textAlign: 'left' }}>Sales Party</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'left' }}>Bill No</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'left' }}>Bill Date</th>
+                <th style={{ ...styles.th, minWidth: '80px', width: '80px', maxWidth: '80px', textAlign: 'right' }}>Qty</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Sales Return</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Freight Charge</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Service Charge</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Cash</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>UPI Amount</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Card Amount</th>
+                <th style={{ ...styles.th, minWidth: '100px', width: '100px', maxWidth: '100px', textAlign: 'right' }}>Bill Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -1076,6 +975,7 @@ const handlePrintClick = () => {
                       key={row.id} 
                       style={{ 
                         backgroundColor: rowIndex % 2 === 0 ? '#f9f9f9' : '#ffffff',
+                        textAlign: 'center',
                       }}
                       onClick={() => {
                         const colNames = ['no', 'salesParty', 'billNo', 'billDate', 'billAmount', 'qty', 'time'];
@@ -1083,41 +983,41 @@ const handlePrintClick = () => {
                         setSelectedCell({ row: rowIndex, col: colIndex });
                       }}
                     >
-                      <td style={getCellStyle(rowIndex, 'no')}>
+                      <td style={{...getCellStyle(rowIndex, 'no'), textAlign: 'center'}}>
                         {row.no}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'salesParty')}>
+                      <td style={{...getCellStyle(rowIndex, 'salesParty'), textAlign: 'left'}}>
                         {row.salesParty}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'billNo')}>
+                      <td style={{...getCellStyle(rowIndex, 'billNo'), textAlign: 'left'}}>
                         {row.billNo}
                       </td>
-                    <td style={getCellStyle(rowIndex, 'billDate')}>
+                    <td style={{...getCellStyle(rowIndex, 'billDate'), textAlign: 'left'}}>
   {formatDateForDisplay(row.billDate)}
 </td>
 
-                      <td style={getCellStyle(rowIndex, 'qty')}>
+                      <td style={{...getCellStyle(rowIndex, 'qty'), textAlign: 'right'}}>
                         {row.qty}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'salesReturn')}>
+                      <td style={{...getCellStyle(rowIndex, 'salesReturn'), textAlign: 'right'}}>
                         {row.salesReturn}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'freightCharge')}>
+                      <td style={{...getCellStyle(rowIndex, 'freightCharge'), textAlign: 'right'}}>
                         {row.freightCharge}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'serviceCharge')}>
+                      <td style={{...getCellStyle(rowIndex, 'serviceCharge'), textAlign: 'right'}}>
                         {row.serviceCharge}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'cash')}>
+                      <td style={{...getCellStyle(rowIndex, 'cash'), textAlign: 'right'}}>
                         {row.cash}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'upiAmount')}>
+                      <td style={{...getCellStyle(rowIndex, 'upiAmount'), textAlign: 'right'}}>
                         {row.upiAmount}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'cardAmount')}>
+                      <td style={{...getCellStyle(rowIndex, 'cardAmount'), textAlign: 'right'}}>
                         {row.cardAmount}
                       </td>
-                      <td style={getCellStyle(rowIndex, 'billAmount')}>
+                      <td style={{...getCellStyle(rowIndex, 'billAmount'), textAlign: 'right'}}>
                         {row.billAmount}
                       </td>
                     </tr>
