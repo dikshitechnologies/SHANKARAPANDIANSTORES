@@ -272,7 +272,7 @@ const [taxList, setTaxList] = useState([]);
   const roundedTotalAmount = totalAmount; // Keep full decimal value
   
   // ✅ Net Amount - rounded off for final display
-  const netAmountRounded = Math.round(totalAmount); // Round off for net amount
+  const netAmountRounded =totalAmount; // Round off for net amount
   const roundOffValue = (netAmountRounded - totalAmount).toFixed(2); // Round-off value
 
   // 5. Data state
