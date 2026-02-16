@@ -1330,7 +1330,7 @@ const PurchaseInvoice = () => {
     }
     
     try {
-      const compCode = userData?.companyCode || '001';
+      const compCode = userData?.companyCode || '';
       const response = await axiosInstance.get(
         API_ENDPOINTS.PURCHASE_INVOICE.GET_BILL_LIST(compCode)
       );
@@ -1408,7 +1408,7 @@ const PurchaseInvoice = () => {
   // Fetch purchase details for editing
   const fetchPurchaseDetails = async (voucherNo) => {
     try {
-      const compCode = userData?.companyCode || '001';
+      const compCode = userData?.companyCode || '';
       
       console.log('Fetching purchase details for:', voucherNo, 'compCode:', compCode);
       
@@ -1422,6 +1422,7 @@ const PurchaseInvoice = () => {
       console.log('Purchase details response:', response.data);
       
       const data = response.data;
+      
       
       if (data) {
         const bledger = data.bledger || {};
@@ -1857,6 +1858,7 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
         name: item.itemName || '',
         stock: item.stock || 0,
         intax: item.tax || '',
+        outtax:item.tax || '',
         uom: item.units || '',
         hsn: item.hsn || '',
         preRT: prate.toString(),
@@ -1868,8 +1870,7 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
         rate: '',
         qty: qty.toString(),
         ovrwt: '',
-        avgwt: '',
-        outtax: '',
+        avgwt: '',       
         acost: '',
         sudo: '',
         profitPercent: '',
@@ -1877,7 +1878,7 @@ const handleGroupItemCodeSelection = async (selectedItem) => {
         asRate: '',
         letProfPer: '',
         ntCost: '',
-        wsPercent: '',
+        wsPercent: item.wsper || '',
         wsRate: '',
         amt: '',
         min: '',
@@ -2221,7 +2222,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
   const calculateItem = (item) => {
     const qty       = Number(item.qty) || 0;
     const ovrwt     = Number(item.ovrwt) || 0;
-    const prate     = Number(item.prate) || 0;
+    let prate     = Number(item.prate) || 0;
     const asRate    = Number(item.asRate) || 0;
     const intax     = Number(item.intax) || 0;
     const wsPercent = Number(item.wsPercent) || 0;
@@ -2280,20 +2281,25 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
 
     /* ---------- CORE ---------- */
     let avgwt = 0;
+    
 
     if (ovrwt > 0) {
-      avgwt = qty ? ovrwt / qty : 0;
-      acost = (avgwt * prate) + chargePerItem;
-      // Add intax to acost
+      
+      avgwt = qty ? Math.floor((ovrwt / qty) * 10000) / 10000 : 0;
+      prate=prate+chargePerItem;
+
+      acost = (avgwt * prate);      
+      
       acost = acost + (acost * intax) / 100;
       ntCost = acost;
       amt = ovrwt * prate;
-    } else {
-      // 🔑 PRate-only calculation
-      acost = prate + chargePerItem;
-      // Add intax to acost
+
+      
+    } 
+    else {     
+      acost = prate + chargePerItem;      
       acost = acost + (acost * intax) / 100;
-      ntCost = prate;
+      ntCost = acost;
       amt = qty * prate;
     }
 
@@ -2301,7 +2307,19 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     amt = amt + (amt * intax) / 100;
 
     const sRate = acost + (acost * profitPercent) / 100;
-    const letProfPer = acost ? ((asRate - acost) / acost) * 100 : 0;
+    // Round sRate to nearest 5 for asRate (e.g., 149.63 → 150, 133.65 → 135)
+    const calculatedAsRate = Math.round(sRate / 5) * 5;
+    
+    // AsRate calculation logic:
+    // If asRate was manually set, preserve it; otherwise use calculated value
+    let finalAsRate;
+    if (item.asRateManuallySet && item.asRate) {
+      finalAsRate = Number(item.asRate);
+    } else {
+      finalAsRate = calculatedAsRate;
+    }
+    
+    const letProfPer = acost ? ((finalAsRate - acost) / acost) * 100 : 0;
     
     // WS Rate calculation logic:
     // 1. If wsPercent has a value, calculate wsRate from wsPercent
@@ -2330,6 +2348,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       acost: acost.toFixed(2),
       ntCost: ntCost.toFixed(2),
       sRate: sRate.toFixed(2),
+      asRate: item.asRateManuallySet ? item.asRate : finalAsRate.toFixed(2),
       letProfPer: letProfPer.toFixed(2),
       wsRate: shouldFormatWsRate ? Number(wsRate).toFixed(2) : wsRate,
       amt: amt.toFixed(2),
@@ -2347,6 +2366,21 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       prev.map(item => {
         if (item.id === id) {
           let updatedItem = { ...item, [field]: value };
+          
+          // If asRate is manually changed, mark as manually set
+          if (field === 'asRate') {
+            if (value !== '' && value !== item.asRate) {
+              updatedItem.asRateManuallySet = true;
+            } else if (value === '') {
+              // If cleared, remove manual flag to allow auto-calculation
+              updatedItem.asRateManuallySet = false;
+            }
+          }
+          
+          // If sudo is changed, reset asRate manual flag to recalculate from new profit%
+          if (field === 'sudo') {
+            updatedItem.asRateManuallySet = false;
+          }
           
           // If wsRate is manually changed, clear wsPercent and mark as manually set
           if (field === 'wsRate') {
@@ -3298,9 +3332,9 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
       lineHeight: TYPOGRAPHY.lineHeight.normal,
       textAlign: 'left',
       paddingLeft: screenSize.isMobile ? '6px' : screenSize.isTablet ? '10px' : '15px',
-      minWidth: screenSize.isMobile ? '100px' : screenSize.isTablet ? '150px' : '200px',
-      width: screenSize.isMobile ? '100px' : screenSize.isTablet ? '150px' : '200px',
-      maxWidth: screenSize.isMobile ? '100px' : screenSize.isTablet ? '150px' : '200px',
+      minWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '210px' : '260px',
+      width: screenSize.isMobile ? '150px' : screenSize.isTablet ? '210px' : '260px',
+      maxWidth: screenSize.isMobile ? '150px' : screenSize.isTablet ? '210px' : '260px',
     },
     footerSection: {
       position: 'fixed',
@@ -3921,7 +3955,6 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
           <th style={styles.th}>Barcode</th>
           <th style={{ ...styles.th, ...styles.itemNameContainer, textAlign: 'left' }}>Particulars</th>
           <th style={styles.th}>UOM</th>
-          <th style={styles.th}>Stock</th>
           <th style={styles.th}>HSN</th>
           <th style={styles.th}>Qty</th>
           <th style={styles.th}>OvrWt</th>
@@ -4081,22 +4114,6 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
             </td>
             
             {/* Numeric fields with right alignment */}
-            <td style={styles.td}>
-              <input
-                style={focusedField === `stock-${item.id}` ? 
-                  { ...styles.editableInputFocused, textAlign: 'right' } : 
-                  { ...styles.editableInput, textAlign: 'right' }}
-                value={item.stock}
-                data-row={index}
-                data-field="stock"
-                readOnly
-                onChange={(e) => handleItemChange(item.id, 'stock', parseFloat(e.target.value) || 0)}
-                onKeyDown={(e) => handleTableKeyDown(e, index, 'stock')}
-                onFocus={() => setFocusedField(`stock-${item.id}`)}
-                onBlur={() => setFocusedField('')}
-              />
-            </td>
-            
             <td style={styles.td}>
               <input
                 style={focusedField === `hsn-${item.id}` ? 

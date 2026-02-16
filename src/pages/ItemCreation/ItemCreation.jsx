@@ -313,6 +313,7 @@ const ItemCreation = ({ onCreated }) => {
     unitCode: "",
     discount: "N",
     color: "",
+    wsPercent: "",
   });
 
   // Store codes separately (for backend) and names for display
@@ -371,6 +372,7 @@ const ItemCreation = ({ onCreated }) => {
   const costPriceRef = useRef(null);
   const unitRef = useRef(null);
   const colorRef = useRef(null);
+  const wsPercentRef = useRef(null);
   const discountRef = useRef(null);
   const isInitialFocusRef = useRef(true);
   const manualPrefixCheckboxRef = useRef(null);
@@ -1034,6 +1036,7 @@ const ItemCreation = ({ onCreated }) => {
           sizes: sizesArray,
           discount: formData.discount === "Y" ? "Y" : "N",
           fcolor: fieldCodes.colorCode || "",
+          fwsper: formData.wsPercent || "",
         };
       } else {
         const brand = formData.brand || "";
@@ -1091,6 +1094,7 @@ const ItemCreation = ({ onCreated }) => {
           fUnits: formData.unit || "",
           discount: formData.discount === "Y" ? "Y" : "N",
           fcolor: fieldCodes.colorCode || "",
+          fwsper: formData.wsPercent || "",
         };
       }
       console.log("Submitting data:", JSON.stringify(requestData));
@@ -1258,6 +1262,7 @@ const ItemCreation = ({ onCreated }) => {
           gstcheckbox: it.gstcheckbox || (it.ftax ? "Y" : "N"),
           color: it.color || "",
           colorName: it.colorName || "",
+          fwsper: it.fwsper || "",
         };
       });
     } catch (err) {
@@ -1687,6 +1692,7 @@ const ItemCreation = ({ onCreated }) => {
       unit: "",
       unitCode: "",
       color: "",
+      wsPercent: "",
     });
     setFieldCodes({
       brandCode: "",
@@ -3321,7 +3327,7 @@ const ItemCreation = ({ onCreated }) => {
                   )}
                 </div>
 
-                {/* Short Name and Color fields side by side */}
+                {/* Short Name, Color, and WS% fields side by side */}
                 <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
                   <div className="field" style={{ flex: 1, minWidth: "150px" }}>
                     <label className="field-label">Short Name</label>
@@ -3407,6 +3413,44 @@ const ItemCreation = ({ onCreated }) => {
                       )}
                       <div className="input-search-icon">
                         <Icon.Search size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="field" style={{ flex: 1, minWidth: "150px" }}>
+                    <label className="field-label">WS%</label>
+                    <div className="input-with-search">
+                      <div
+                        style={{
+                          display: "flex",
+                          flex: 1,
+                          border: "1px solid rgba(15,23,42,0.06)",
+                          borderRadius: "10px",
+                          overflow: "hidden",
+                          background: "linear-gradient(180deg, #fff, #fbfdff)",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                        }}
+                      >
+                        <input
+                          ref={wsPercentRef}
+                          className="input"
+                          type="number"
+                          value={formData.wsPercent}
+                          onChange={(e) =>
+                            handleChange("wsPercent", e.target.value)
+                          }
+                          disabled={isSubmitting || isDeleteMode}
+                          aria-label="WS Percent"
+                          placeholder="Enter WS%"
+                          style={{
+                            flex: 1,
+                            border: "none",
+                            borderRadius: 0,
+                            padding: "10px 12px",
+                            minWidth: "120px",
+                            fontSize: "14px",
+                            outline: "none",
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -4412,6 +4456,7 @@ const ItemCreation = ({ onCreated }) => {
             unitCode: item.funitcode || "",
             discount: item.discount || "N",
             color: item.colorName || "",
+            wsPercent: item.fwsper || "",
           }));
           setFieldCodes((prev) => ({
             ...prev,
