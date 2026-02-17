@@ -1011,7 +1011,7 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
       mrp: item.mrp || 0,
       fUnit: item.fUnit || item.uom || '',
       fHSN: item.fHSN || item.hsn || '',
-      inTax: item.inTax || item.tax || 0,
+      inTax: item.outTax || 0,
       wRate: item.wRate || 0,
       rRate: item.rRate || 0,
       

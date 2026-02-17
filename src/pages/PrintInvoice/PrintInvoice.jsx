@@ -61,7 +61,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         <title>Sales Invoice Receipt</title>
         <style>
           @page {
-            size: 110mm auto;
+            size: 112mm;
             margin: 0;
             padding: 0;
           }
@@ -77,19 +77,29 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
             margin: 0;
             padding: 0;
             font-size: 10pt;
-            width: 110mm;
+            width: 112mm;
             font-family: Arial, sans-serif;
             font-size: 13px;
             font-weight: 500;
             letter-spacing: 0.3px;
             text-shadow: 0.3px 0 #000;
+            
           }
 
-          .receipt {
-            padding: 2mm 1mm;
-            width: 100%;
-            max-width: 110mm;
-          }
+        .receipt {
+          width: 108mm;            
+          max-width: 108mm;
+          margin: 0 auto;          
+          padding: 1mm 1mm;         
+          border: 1px solid #000;  
+          box-sizing: border-box;   
+          background: #fff;   
+          page-break-inside: avoid;      
+        }
+
+            div {
+              page-break-inside: avoid;
+            }
 
           .header {
             text-align: center;
@@ -104,26 +114,30 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
           }
 
           .company-name {
-            font-size: 13pt;
+            font-size: 15pt;
             font-weight: bold;
             letter-spacing: 0.5pt;
             margin: 1mm 0;
           }
 
           .company-address {
-            font-size: 8pt;
+            font-size: 9pt;
             line-height: 1.2;
             margin-bottom: 1mm;
           }
 
+          table, tr, td, div {
+            page-break-inside: avoid !important;
+          }
+
           .gst-number {
-            font-size: 9pt;
+            font-size: 10pt;
             font-weight: bold;
             margin-bottom: 1mm;
           }
 
           .contact {
-            font-size: 8pt;
+            font-size: 9pt;
             margin-bottom: 1mm;
           }
 
@@ -410,7 +424,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               <React.Fragment key={index}>
                 <tr>
                   <td colSpan="6" style={{ textAlign: "left", fontWeight: "bold", paddingTop: "2mm" }}>
-                    {index + 1}. {item.itemName || 'N/A'}
+                    {index + 1}. {item.itemName || ' '}
                   </td>
                 </tr>
                 {item.description && (
@@ -428,14 +442,15 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
                   <td style={{ textAlign: "right" }}>{(item.qty || 0)}</td>
                   <td style={{ textAlign: "right" }}>{Number(item.amount || 0).toFixed(2)}</td>
                 </tr>
-              </React.Fragment>
-            ))}
 
-            <tr>
-              <td colSpan="6">
-                <hr className="dashed" style={{ margin: "2mm 0" }} />
-              </td>
-            </tr>
+                <tr>
+                  <td colSpan="6">
+                    <hr className="dashed" style={{ margin: "2mm 0" }} />
+                  </td>
+                </tr>
+
+              </React.Fragment>
+            ))}           
 
             <tr>
               <td colSpan="6">
@@ -623,10 +638,10 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
             <SummaryRow label={`Dis ${billData.discountPercent || ''}%`} value={Number(billData.discount || 0).toFixed(2)} />
             <SummaryRow label="Round Off" value={Number(billData.roudOff || 0).toFixed(2)} />
             <SummaryRow label="Sub Total" value={subTotal.toFixed(2)} />
-            <SummaryRow label="Sales Return" value={Number(billData.salesReturnAmount || totalAmount).toFixed(2)} />
-            <SummaryRow label="Scrap Amt" value={Number(billData.scrapAmount || totalAmount).toFixed(2)} />
+            <SummaryRow label="Sales Return" value={Number(billData.salesReturnAmount || 0).toFixed(2)} />
+            <SummaryRow label="Scrap Amt" value={Number(billData.scrapAmount ||  0).toFixed(2)} />
             <SummaryRow label="Sub Total(2)" value={subTotal2.toFixed(2)} />
-            <SummaryRow label="Freight chrg" value={Number(billData.freightCharge || totalAmount).toFixed(2)} />
+            <SummaryRow label="Freight chrg" value={Number(billData.freightCharge || 0).toFixed(2)} />
             <SummaryRow label="Service chrg" value={Number(billData.serviceChargeAmount || 0).toFixed(2)} />
           </div>
         </div>
@@ -724,8 +739,8 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               src={logo}
               alt="Logo"
               style={{
-                width: 100,
-                height: 100,
+                width: 120,
+                height: 120,
                 objectFit: "contain",
                 display: "inline-block",
               }}
