@@ -1640,94 +1640,95 @@ setTimeout(() => {
 
   const createSalesReturn = async () => {
   try {
-   
-    
     // Check if we have items to create
     const validItems = items.filter(item => item.itemName && parseFloat(item.qty) > 0);
     if (validItems.length === 0) {
       toast.warning("No valid items to create. Please add items");
+      return;
     }
 
-   
-    
     setLoading(true);
     setError("");
+
+    // Fetch the latest voucher number directly before POST
+    let latestVoucherNo = billDetails.billNo;
+    try {
+      const companyCode = userData?.companyCode;
+      if (companyCode) {
+        const response = await apiService.get(API_ENDPOINTS.sales_return.getMaxVoucherNo(companyCode));
+        if (response && response.maxVoucherNo) {
+          latestVoucherNo = response.maxVoucherNo;
+        } else if (response && response.voucherNo) {
+          latestVoucherNo = response.voucherNo;
+        }
+      }
+    } catch (fetchErr) {
+      // fallback: keep previous billNo if fetch fails
+    }
+
     // Calculate net amount for each item
     const totalDiscountAmount = parseFloat(discountAmount || 0);
     const totalAmountValue = parseFloat(totalAmount || 0);
-    
+
     // Calculate proportional discount for each item
     const itemDiscounts = validItems.map(item => {
       const itemAmount = parseFloat(item.amount || 0);
       const discountRatio = totalAmountValue > 0 ? itemAmount / totalAmountValue : 0;
       return discountRatio * totalDiscountAmount;
     });
-    
+
     // Prepare request data
-const requestData = {
-  header: {
-    voucherNo: billDetails.billNo.toString(),
-    voucherDate: billDetails.billDate.toString(),
-    mobileNo: (billDetails.mobileNo || "").toString(),
-    customerCode: (billDetails.customerCode || "").toString(),
-    customerName: (billDetails.custName || "").toString(),
-    salesMansName: (billDetails.salesman || "").toString(),
-    salesMansCode: (billDetails.salesmanCode || "").toString(),
-    compCode: (userData?.companyCode || "").toString(),
-    userCode: (userData?.userCode || "001").toString(),
-    billAMT: netAmount.toFixed(2).toString(),
-    refNo: (billDetails.newBillNo || "").toString(),
-    discount: discountPercent.toString(),
-    discountAMT: parseFloat(discountAmount || 0).toFixed(2).toString(),
-    roundoff: (roundOffValue || 0).toString(),
-
-    // ✅ EXACT FIELD NAME
-    gstRrate: gstMode === "Inclusive" ? "I" : "E"
-  },
-
-  items: validItems.map((item, index) => {
-    const qtyVal = parseFloat(item.qty || 0);
-    const sRateVal = parseFloat(item.sRate || item.rate || 0);
-    const taxPercent = parseFloat(item.tax || 0);
-
-    const baseAmount = qtyVal * sRateVal;
-    const taxAmt = (baseAmount * taxPercent) / 100;
-
-    return {
-      barcode: (item.barcode || "").toString(),
-      itemName: (item.itemName || "").toString(),
-      itemCode: (item.itemCode || `0000${index + 1}`).toString(),
-      stock: (item.stock ?? 0).toString(),
-      mrp: (item.mrp ?? sRateVal).toString(),
-      uom: (item.uom || "").toString(),
-      hsn: /^\d+$/.test(item.hsn) ? item.hsn : "",
-      tax: taxPercent.toString(),
-      srate: sRateVal.toString(),
-      qty: qtyVal.toString(),
-
-      // ✅ BASE AMOUNT ONLY
-      amount: baseAmount.toFixed(2),
-
-      // ✅ NUMBER
-      taxamt: parseFloat(taxAmt.toFixed(2)),
-
-      // ✅ NULL instead of 0
-      fSlNo: item.fserialno ? parseInt(item.fserialno, 10) : null,
-      desc: (item.fdesc || "").toString()
+    const requestData = {
+      header: {
+        voucherNo: latestVoucherNo ? latestVoucherNo.toString() : '',
+        voucherDate: billDetails.billDate.toString(),
+        mobileNo: (billDetails.mobileNo || "").toString(),
+        customerCode: (billDetails.customerCode || "").toString(),
+        customerName: (billDetails.custName || "").toString(),
+        salesMansName: (billDetails.salesman || "").toString(),
+        salesMansCode: (billDetails.salesmanCode || "").toString(),
+        compCode: (userData?.companyCode || "").toString(),
+        userCode: (userData?.userCode || "001").toString(),
+        billAMT: netAmount.toFixed(2).toString(),
+        refNo: (billDetails.newBillNo || "").toString(),
+        discount: discountPercent.toString(),
+        discountAMT: parseFloat(discountAmount || 0).toFixed(2).toString(),
+        roundoff: (roundOffValue || 0).toString(),
+        gstRrate: gstMode === "Inclusive" ? "I" : "E"
+      },
+      items: validItems.map((item, index) => {
+        const qtyVal = parseFloat(item.qty || 0);
+        const sRateVal = parseFloat(item.sRate || item.rate || 0);
+        const taxPercent = parseFloat(item.tax || 0);
+        const baseAmount = qtyVal * sRateVal;
+        const taxAmt = (baseAmount * taxPercent) / 100;
+        return {
+          barcode: (item.barcode || "").toString(),
+          itemName: (item.itemName || "").toString(),
+          itemCode: (item.itemCode || `0000${index + 1}`).toString(),
+          stock: (item.stock ?? 0).toString(),
+          mrp: (item.mrp ?? sRateVal).toString(),
+          uom: (item.uom || "").toString(),
+          hsn: /^\d+$/.test(item.hsn) ? item.hsn : "",
+          tax: taxPercent.toString(),
+          srate: sRateVal.toString(),
+          qty: qtyVal.toString(),
+          amount: baseAmount.toFixed(2),
+          taxamt: parseFloat(taxAmt.toFixed(2)),
+          fSlNo: item.fserialno ? parseInt(item.fserialno, 10) : null,
+          desc: (item.fdesc || "").toString()
+        };
+      })
     };
-  })
-};
-
-
 
     console.log("Creating sales return with data:", JSON.stringify(requestData, null, 2));
-    
+
     const endpoint = "SalesReturn/SalesReturnCreate?SelectType=true";
     const response = await apiService.post(endpoint, requestData);
-    
+
     if (response && response.success) {
       // 🔥 NEW: Save discount in local storage for this voucher
-      const voucherNo = response.voucherNo || billDetails.billNo;
+      const voucherNo = response.voucherNo || latestVoucherNo;
       const discountData = {
         discountPercent,
         discountAmount
@@ -1736,16 +1737,12 @@ const requestData = {
       setDiscountPercent(0);
       setDiscountAmount(0);
       setRoundOffValue(0);
-     
       setDiscount("");
-      
       // Save discount data to localStorage with voucher number as key
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
-      
       // Build bill data for printing
       const billDataForPrint = buildBillData();
       setPrintBillData(billDataForPrint);
-      
       // Show print confirmation after successful save
       setTimeout(() => {
         console.log('Showing print confirmation popup');
@@ -1783,7 +1780,6 @@ const requestData = {
           }
         });
       }, 100);
-      
       return response;
     } else {
       const errorMessage = response?.message || 
@@ -1792,15 +1788,11 @@ const requestData = {
                           "Failed to create sales return";
       throw new Error(errorMessage);
     }
-    
   } catch (err) {
     console.error("API Error in createSalesReturn:", err);
-    
-    // Error handling remains the same
     if (err.response) {
       // ... error handling code
     }
-    
     throw err;
   } finally {
     setLoading(false);
