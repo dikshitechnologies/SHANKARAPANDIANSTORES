@@ -2684,7 +2684,7 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
       console.log('Saving purchase invoice for company:', compCode);
@@ -2771,12 +2771,39 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
         };
       };
 
+  let finalVoucherNo = voucherNo;
+
+// 🔥 Always fetch fresh voucher number in ADD mode
+if (!isEditMode) {
+  try {
+    const url = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(userData.companyCode);
+    const nextVoucherResponse = await axiosInstance.get(url);
+    finalVoucherNo =
+      nextVoucherResponse?.data?.nextCode||
+      nextVoucherResponse?.nextCode;
+
+    if (!finalVoucherNo) {
+      throw new Error("Failed to generate voucher number");
+    }
+
+  } catch (err) {
+    console.error("Error fetching voucher number:", err);
+    setIsSaving(false);
+    setIsLoading(false);
+    toast.error("Failed to generate voucher number");
+    return;
+  }
+}
+
+
+
+
       const nextBarcode = createBarcodeGenerator(autoBarcode);
 
       const payload = {
         bledger: {
           customerCode: billDetails.partyCode || '',
-          voucherNo: voucherNo,
+          voucherNo: finalVoucherNo,
           voucherDate: voucherDateISO,
           billAmount: totals.net + (parseFloat(chargesAmount) || 0),
           balanceAmount: totals.net + (parseFloat(chargesAmount) || 0),

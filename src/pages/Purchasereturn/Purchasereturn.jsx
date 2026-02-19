@@ -1987,7 +1987,7 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
     return null;
   }
 };
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       const compCode = (userData && userData.companyCode) ? userData.companyCode : '001';
       const username = (userData && userData.username) ? userData.username : '';
@@ -2093,12 +2093,37 @@ const getPurchaseStockDetailsByBarcode = async (barcode) => {
         };
       };
 
+
+       let finalVoucherNo = voucherNo;
+
+// 🔥 Always fetch fresh voucher number in ADD mode
+if (!isEditMode) {
+  try {
+    const url = API_ENDPOINTS.PURCHASE_RETURN.GET_PURCHASE_RETURNS(compCode);
+    const nextVoucherResponse = await axiosInstance.get(url);
+    finalVoucherNo =
+      nextVoucherResponse?.data?.voucherNo||
+      nextVoucherResponse?.nextCode;
+
+    if (!finalVoucherNo) {
+      throw new Error("Failed to generate voucher number");
+    }
+
+  } catch (err) {
+    console.error("Error fetching voucher number:", err);
+    setIsSaving(false);
+    setIsLoading(false);
+    toast.error("Failed to generate voucher number");
+    return;
+  }
+}
+
       const nextBarcode = createBarcodeGenerator(autoBarcode);
 
       const payload = {
         bledger: {
           customerCode: billDetails.partyCode || '',
-          voucherNo: voucherNo,
+          voucherNo: finalVoucherNo,
           voucherDate: voucherDateISO,
           billAmount: totals.net,
           balanceAmount: totals.net,
@@ -2228,7 +2253,7 @@ const [savedBillDetailsForPrint, setSavedBillDetailsForPrint] = useState({});
  const handlePrint = () => {
   const payload = {
     billDetails: {
-      billNo: billDetails?.billNo,
+      billNo: finalVoucherNo,
       billDate: billDetails?.billDate,
       customerName: billDetails?.customerName,
       mobile: billDetails?.mobile,
