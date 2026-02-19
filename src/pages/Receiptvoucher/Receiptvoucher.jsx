@@ -1920,8 +1920,34 @@ const ReceiptVoucher = () => {
         setParticulars(updatedParticulars);
       }
 
+     let finalVoucherNo = voucherDetails.voucherNo;
+
+// 🔥 Always fetch fresh voucher number in ADD mode
+if (!isEditing) {
+  try {
+    const url = API_ENDPOINTS.RECEIPTVOUCHER.GETNEXTVNUMBER(userData.companyCode);
+    const nextVoucherResponse = await apiService.get(url);
+
+    finalVoucherNo =
+      nextVoucherResponse?.voucherNo ||
+      nextVoucherResponse?.nextVoucher;
+
+    if (!finalVoucherNo) {
+      throw new Error("Failed to generate voucher number");
+    }
+
+  } catch (err) {
+    console.error("Error fetching voucher number:", err);
+    setIsSaving(false);
+    setIsLoading(false);
+    toast.error("Failed to generate voucher number");
+    return;
+  }
+}
+
+
       const payload = {
-        voucherNo: voucherDetails.voucherNo,
+        voucherNo: finalVoucherNo,
         voucherDate: formatDateToYYYYMMDD(voucherDetails.date),
         customerCode: voucherDetails.accountCode,
         customerName: voucherDetails.accountName,
@@ -1978,7 +2004,8 @@ const ReceiptVoucher = () => {
 
       if (response?.data) {
         const message = response.data.message || `Voucher ${isEditing ? 'updated' : 'saved'} successfully`;
-        const savedVoucherNo = response.data.voucherNo || voucherDetails.voucherNo;
+        const savedVoucherNo = response.data.voucherNo || finalVoucherNo;
+
 
         setError(null);
         
@@ -2037,7 +2064,8 @@ const ReceiptVoucher = () => {
       
       setError(errorMsg);
       alert(`Error: ${errorMsg}`);
-      console.error('Error saving voucher:', err);
+          // Fetch new voucher number only if action is 'add'
+          
     } finally {
       setIsLoading(false);
       setIsSaving(false);
@@ -2093,7 +2121,8 @@ const ReceiptVoucher = () => {
     } else {
       // No CASH payments, proceed directly to save
       setSaveConfirmation(true);
-    }
+    }      
+      
   };
 
   // Function to show save confirmation popup

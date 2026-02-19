@@ -1744,6 +1744,9 @@ const PaymentVoucher = () => {
       
       const balanceGiven = givenTotal - totalAmount;
 
+
+
+      
       const payload = {
         voucherNo: voucherDetails.voucherNo,
         voucherDate: formatDateToYYYYMMDD(voucherDetails.date),
@@ -1942,6 +1945,18 @@ const PaymentVoucher = () => {
       showSaveConfirmation();
     } else {
       setSaveConfirmation(true);
+    }
+
+    // Fetch new voucher number after saving if action is 'add'
+    if (action === 'add') {
+      try {
+        const response = await apiService.get(API_ENDPOINTS.PAYMENTVOUCHER.GETNEXTVNUMBER(userData.companyCode));
+        if (response && response.voucherNo) {
+          setVoucherDetails(prev => ({ ...prev, voucherNo: response.voucherNo }));
+        }
+      } catch (err) {
+        console.error('Error fetching new voucher number:', err);
+      }
     }
   };
 
