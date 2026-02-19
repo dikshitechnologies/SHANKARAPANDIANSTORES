@@ -60,11 +60,13 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         <meta charset="UTF-8" />
         <title>Sales Invoice Receipt</title>
         <style>
-          @page {
-            size: 112mm;
-            margin: 0;
-            padding: 0;
-          }
+          @media print {
+              @page {
+                size: 112mm auto;
+                margin: 0;
+              }
+            }
+
 
           * {
             margin: 0;
@@ -74,10 +76,10 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
           }
 
           body {
-            margin: 0;
+            margin: 0.5px auto !important;            
             padding: 0;
             font-size: 10pt;
-            width: 112mm;
+            width: 100mm;
             font-family: Arial, sans-serif;
             font-size: 13px;
             font-weight: 500;
@@ -86,19 +88,18 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
             
           }
 
-        .receipt {
-          width: 108mm;            
-          max-width: 108mm;
-          margin: 0 auto;          
-          padding: 1mm 1mm;         
-          border: 1px solid #000;  
-          box-sizing: border-box;   
-          background: #fff;   
-          page-break-inside: avoid;      
-        }
+          .receipt {                   
+            max-width: 100mm;
+            margin: 0 auto;          
+            padding: 1mm 1mm;         
+            border: 1px solid #000;  
+            box-sizing: border-box;   
+            background: #fff;   
+            page-break-inside: avoid;      
+          }
 
             div {
-              page-break-inside: avoid;
+              page-break-inside: avoid !important;
             }
 
           .header {
@@ -341,6 +342,29 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
 
     return (
       <div>
+
+         <div className="header">
+          <div style={{ textAlign: "center" }}>
+            <img
+              src={logo}
+              alt="Logo"
+              style={{
+                width: 120,
+                height: 120,
+                objectFit: "contain",
+                display: "inline-block",
+              }}
+            />
+          </div>
+          <div className="company-name">R.SANKARAPANDIAN STORES</div>
+          <div className="company-address">
+            51/179, HARIHARAN BAZAAR <br />
+            STREET PONNERI - 601204
+          </div>
+          <div className="company-address">Tamil Nadu/ Tiruvallur</div>
+          <div className="contact">Mobile No: 044-27973611 / 72007 79217</div>
+          <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
+        </div>
         <hr className="dashed" style={{ margin: 0, width: "100%" }} />
 
         {/* Bill number and date */}
@@ -731,32 +755,8 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
 
   return (
     <div ref={printRef} style={{ display: "none" }}>
-      <div className="receipt">
-        {/* Header with Logo */}
-        <div className="header">
-          <div style={{ textAlign: "center" }}>
-            <img
-              src={logo}
-              alt="Logo"
-              style={{
-                width: 120,
-                height: 120,
-                objectFit: "contain",
-                display: "inline-block",
-              }}
-            />
-          </div>
-          <div className="company-name">R.SANKARAPANDIAN STORES</div>
-          <div className="company-address">
-            51/179, HARIHARAN BAZAAR <br />
-            STREET PONNERI - 601204
-          </div>
-          <div className="company-address">Tamil Nadu/ Tiruvallur</div>
-          <div className="contact">Mobile No: 044-27973611 / 72007 79217</div>
-          <div className="gst-number">GST No: 33ECCPR7067N1ZL</div>
-        </div>
-
-        {/* Dynamic Content */}
+      <div className="receipt">     
+       
         {mode === "tax_invoice" && renderSalesInvoice()}
       </div>
     </div>

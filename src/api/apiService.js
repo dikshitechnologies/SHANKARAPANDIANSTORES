@@ -4,7 +4,7 @@ import axios from "axios";
 // Axios Instance
 // ---------------------
 const apiService = axios.create({
-  baseURL: "http://dikshiserver/REACTTEST/api/",
+  baseURL: "http://dikshiserver/reacttest/api/",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -19,7 +19,7 @@ apiService.interceptors.response.use(
 // ---------------------
 // API BASE
 // ---------------------
-export const API_BASE = "http://dikshiserver/REACTTEST/api/";
+export const API_BASE = "http://dikshiserver/reacttest/api/";
 
 // ---------------------
 // Request Wrapper (NO ALERTS)

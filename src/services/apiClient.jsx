@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://dikshiserver/REACTTEST/api';
+const API_BASE_URL = 'http://dikshiserver/reacttest/api';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
