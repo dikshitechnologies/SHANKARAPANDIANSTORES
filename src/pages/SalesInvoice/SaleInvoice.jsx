@@ -2714,7 +2714,7 @@ const handleConfirmedRowDelete = () => {
         const savedBillNo = response.data.voucherNo || latestVoucherNo;
 
         // Build print data for printing
-        const billDataForPrint = buildBillData();
+        const billDataForPrint = buildBillData(savedBillNo);
         setPrintBillData(billDataForPrint);
 
         // Show print confirmation popup
@@ -2898,14 +2898,14 @@ const handleConfirmedRowDelete = () => {
   };
 
   // Build billData for printing
-  const buildBillData = () => {
+  const buildBillData = (voucherNoParam) => {
     const validItems = items.filter(item => 
       item.itemName && item.itemName.trim() !== '' && 
       item.itemCode && item.itemCode.trim() !== ''
     );
     
     return {
-      voucherNo: billDetails.billNo,
+      voucherNo: voucherNoParam,
       voucherDate: billDetails.billDate,
       salesmanName: billDetails.salesman,
       customercode: billDetails.custCode || '',

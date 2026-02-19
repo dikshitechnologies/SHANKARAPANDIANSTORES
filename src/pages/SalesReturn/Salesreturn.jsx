@@ -677,14 +677,14 @@ useEffect(() => {
     }, [activeTopAction]);
 
 // Build billData object for printing
-const buildBillData = () => {
+// Accept voucherNo as parameter for print data
+const buildBillData = (voucherNoParam) => {
   const validItems = items.filter(item => 
     item.itemName && item.itemName.trim() !== '' && 
     item.itemCode && item.itemCode.trim() !== ''
   );
-  
   return {
-    voucherNo: billDetails.billNo,
+    voucherNo: voucherNoParam,
     voucherDate: billDetails.billDate,
     salesmanName: billDetails.salesman,
     customercode: billDetails.customerCode || '',
@@ -1741,7 +1741,7 @@ setTimeout(() => {
       // Save discount data to localStorage with voucher number as key
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       // Build bill data for printing
-      const billDataForPrint = buildBillData();
+      const billDataForPrint = buildBillData(voucherNo);
       setPrintBillData(billDataForPrint);
       // Show print confirmation after successful save
       setTimeout(() => {
@@ -1905,7 +1905,7 @@ const requestData = {
       localStorage.setItem(`sales_return_discount_${voucherNo}`, JSON.stringify(discountData));
       
       // Build bill data for printing
-      const billDataForPrint = buildBillData();
+      const billDataForPrint = buildBillData(billDetails.billNo);
       setPrintBillData(billDataForPrint);
       
       // Show print confirmation after successful update

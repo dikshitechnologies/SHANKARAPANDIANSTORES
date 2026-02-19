@@ -1442,14 +1442,14 @@ const clearFormData = async () => {
 };
 
   // Build billData object for printing
-  const buildBillData = () => {
+  // Accept voucherNo as parameter for print data
+  const buildBillData = (voucherNoParam) => {
     const validItems = items.filter(item => 
       item.itemName && item.itemName.trim() !== '' && 
       item.itemCode && item.itemCode.trim() !== ''
     );
-    
     return {
-      voucherNo: billDetails.billNo,
+      voucherNo: voucherNoParam,
       voucherDate: billDetails.billDate,
       salesmanName: billDetails.salesman,
       customercode: billDetails.custCode || '',
@@ -1531,7 +1531,7 @@ const clearFormData = async () => {
         ignoreNextEnterRef.current = false;
 
         // Build bill data for printing BEFORE clearing form
-        const billDataForPrint = buildBillData();
+        const billDataForPrint = buildBillData(latestVoucherNo);
         console.log('billDataForPrint:', billDataForPrint);
 
         // Store the bill data in state for PrintReceipt component
