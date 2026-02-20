@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
 import TenderModal from '../../components/TenderModal/TenderModal';
+import CashCounter from '../../components/Navbar/CashCounter/CashCounter';
 import apiService from '../../api/apiService';
 import { API_ENDPOINTS } from '../../api/endpoints';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -29,6 +30,9 @@ function BillCollector() {
   // Tender Modal state
   const [isTenderModalOpen, setIsTenderModalOpen] = useState(false);
   const [selectedBillData, setSelectedBillData] = useState(null);
+  
+  // Cash Counter state
+  const [isCashCounterOpen, setIsCashCounterOpen] = useState(false);
   
   // API and data management
   const [bills, setBills] = useState([]);
@@ -66,6 +70,17 @@ function BillCollector() {
       setLoading(false);
     }
   };
+
+  const handleViewCashCounter = () => {
+  setIsCashCounterOpen(true);
+};
+
+// Add this handler for save callback
+const handleCashCounterSave = (data) => {
+  console.log('Cash counter saved:', data);
+  // You can refresh the data or handle the saved data as needed
+  setIsCashCounterOpen(false);
+};
 
   // Handle row click to open Tender Modal
   const handleRowClick = async (billRow) => {
@@ -173,12 +188,18 @@ const container = {
     borderRadius: isMobile ? "6px 6px 0 0" : "6px 6px 0 0",
     boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
     display: "flex",
-    flexDirection: isMobile ? "column" : "row",
+    flexDirection: "space-between",
     alignItems: isMobile ? "stretch" : "center",
     gap: isMobile ? "12px" : "16px",
     border: "1px solid #e5e7eb",
     borderBottom: "none"
 
+  };
+  const billContainer = {
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    alignItems: isMobile ? "stretch" : "center",
+    gap: isMobile ? "12px" : "16px",
   };
 
   const billNoBox = {
@@ -631,6 +652,7 @@ const container = {
   
 
       <div style={billNoContainer}>
+        <div style={billContainer}>
         <div style={{ fontWeight: "700", color: "#1f2937", fontSize: "17px" }}>Search Bill:</div>
         <input 
           type="text" 
@@ -641,6 +663,7 @@ const container = {
           onBlur={() => setIsFocused(false)}
           style={isFocused ? billNoBoxFocus : billNoBox}
         />
+        </div>
         {/* <div style={{ marginLeft: "auto", display: "flex", gap: "12px" }}>
           <div style={statCard}>
             <div style={statValue}>{totalCount}</div>
@@ -651,6 +674,14 @@ const container = {
             <div style={statLabel}>Total Amount</div>
           </div>
         </div> */}
+        <div>
+        <button 
+          style={viewBtn} 
+          onClick={handleViewCashCounter}
+        >
+          View
+        </button>
+        </div>
       </div>
 
       <div style={tableContainer}>
@@ -739,7 +770,11 @@ const container = {
         </table>
         )}
       </div>
-
+        <CashCounter 
+  isOpen={isCashCounterOpen}
+  onClose={() => setIsCashCounterOpen(false)}
+  onSave={handleCashCounterSave}
+/>
       {/* Print Confirmation Modal */}
      
 
