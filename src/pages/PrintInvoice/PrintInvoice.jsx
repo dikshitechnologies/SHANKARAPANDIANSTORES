@@ -62,7 +62,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
         <style>
           @media print {
               @page {
-                size: 112mm auto;
+                size: 101mm auto;
                 margin: 0;
               }
             }
@@ -76,7 +76,6 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
           }
 
           body {
-            margin: 0.5px auto !important;            
             padding: 0;
             font-size: 10pt;
             width: 100mm;
@@ -89,8 +88,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
           }
 
           .receipt {                   
-            max-width: 100mm;
-            margin: 0 auto;          
+            max-width: 98mm;
             padding: 1mm 1mm;         
             border: 1px solid #000;  
             box-sizing: border-box;   
