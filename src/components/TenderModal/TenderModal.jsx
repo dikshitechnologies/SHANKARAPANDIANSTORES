@@ -1520,6 +1520,11 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           customerCode: header?.customerCode || header?.fCustCode || "",
           customerMobile: header?.fMobileno || header?.mobileNO || header?.mobile || "",
           salesmanName: header?.sManName || header?.fSalesmanName || "",
+          customerAddress1: header?.street || "",
+          customerAddress2: header?.area || "",
+          customerAddress3: header?.city + ", " + header?.pincode || "",
+          customerGst : header?.gstno || "",
+          Type: header?.salesType || "",
 
           billAmount: header?.billAmt || header?.fBillAmt || 0,
           discount: (formData.billDiscAmt).toString() || "",

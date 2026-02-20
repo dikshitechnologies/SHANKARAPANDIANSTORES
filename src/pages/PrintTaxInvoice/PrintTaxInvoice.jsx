@@ -24,6 +24,7 @@ const formatCurrency = (val) => {
   const num = Number(val || 0);
   return num.toFixed(2);
 };
+
 const formatCurrencyq = (val) => {
   const num = Number(val || 0);
   return num.toFixed(0);
@@ -42,13 +43,28 @@ export const generateTenderA4PDF = async ({ billData }) => {
 
     const items = billData.items;
 
-    const subTotal = items.reduce(
+    const totalAmount = items.reduce(
       (sum, i) => sum + Number(i.amount || (i.qty * i.rate) || 0),
       0
     );
 
-    const netTotal = Number(billData.netAmount || subTotal);
-    const netAmount = netTotal - Number(billData.discount || 0) + Number(billData.servicechrgeAmt || 0);
+    const totalQty = items.reduce((sum, item) => sum + (item.qty || 0), 0);
+
+    const discount = Number(billData.discount || 0);
+    const roundOff = Number(billData.roudOff || 0);
+    const salesReturn = Number(billData.salesReturnAmount || 0);
+    const scrapAmt = Number(billData.scrapAmount || 0);
+    const freightCharge = Number(billData.freightCharge || 0);
+    const serviceCharge = Number(billData.serviceChargeAmount || 0);
+    
+    // Sub Total = Grand Total - Discount + Round Off
+    const subTotal = totalAmount - discount + roundOff;
+    
+    // Sub Total(2) = Sub Total - (Sales Return + Scrap Amt)
+    const subTotal2 = subTotal - (salesReturn + scrapAmt);
+    
+    // Net Amount = Sub Total(2) + Freight Charge + Service Charge
+    const netAmount = subTotal2 + freightCharge + serviceCharge;
 
     /* ---------- PDF SETUP ---------- */
 
@@ -63,6 +79,10 @@ export const generateTenderA4PDF = async ({ billData }) => {
     const marginLeft = 10;
     const marginRight = 10;
     let y = 10;
+
+    // Add overall border
+    doc.setLineWidth(0.5);
+    doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
 
     /* ---------- LOGO ---------- */
 
@@ -94,7 +114,12 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y += 5;
     doc.text('Date : ', marginLeft, y);
     doc.text(formatDate(billData.voucherDate), marginLeft + 10, y);
-    y += 10;
+    
+    // Add line below No and Date
+    y += 2;
+    doc.setLineWidth(0.2);
+    doc.line(marginLeft, y, pageWidth - marginRight, y);
+    y += 8;
 
     /* ---------- COMPANY ---------- */
 
@@ -117,6 +142,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y += 4;
     doc.text('Tamil Nadu, India - 601204', marginLeft, y);
     y += 4;
+    
     // GSTIN
     doc.setFont('helvetica', 'bold');
     doc.text('GSTIN: ', marginLeft, y);
@@ -143,12 +169,31 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.text('Phone: ', marginLeft, y);
     doc.setFont('helvetica', 'normal');
     doc.text('+91 72007 79217', marginLeft + 12, y);
-    y += 10;
+  
+    // Add vertical lines
+    doc.setLineWidth(0.2);
+    // First vertical line between Billed By and Billed To
+    doc.line(pageWidth / 2 - 10, y - 45, pageWidth / 2 - 10, y - 5);
+    // Second vertical line after Billed To
+    doc.line(pageWidth / 2 + 70, y - 45, pageWidth / 2 + 70, y - 5);
 
-    /* ---------- ITEMS TABLE (Updated with PrintPDF style) ---------- */
+    /* ---------- QR CODE ---------- */
+    const qr = await QRCode.toDataURL(billData.voucherNo || 'N/A');
+    const qrWidth = 25;
+    const qrHeight = 25;
+    doc.addImage(qr, 'PNG', pageWidth - marginRight - qrWidth, 10 + imgHeight + 2, qrWidth, qrHeight);
+    
+    y += 20;
+    
+    // Add line below Billed To section
+    y += 5;
+    doc.setLineWidth(0.2);
+    doc.line(marginLeft, y - 20, pageWidth - marginRight, y - 20);
+    
+    /* ---------- ITEMS TABLE ---------- */
 
-    // Table Header with blue background
-    doc.setFillColor(27, 145, 218); // #1B91DA color from PrintPDF
+    // Table Header with blue background (matching item table color)
+    doc.setFillColor(27, 145, 218);
     doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, 7, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
@@ -161,10 +206,8 @@ export const generateTenderA4PDF = async ({ billData }) => {
     
     headers.forEach((h, i) => {
       if (h === 'Qty' || h === 'Rate' || h === 'Amount') {
-        // Center align inside column
         doc.text(h, x + (colWidths[i] / 2), y + 4.5, { align: 'center' });
       } else {
-        // Left align for other columns
         const offset = h === 'S.No' ? colWidths[i] / 2 : 2;
         const align = h === 'S.No' ? 'center' : 'left';
         doc.text(h, x + offset, y + 4.5, { align: align });
@@ -173,127 +216,318 @@ export const generateTenderA4PDF = async ({ billData }) => {
     });
     
     y += 9;
-    doc.setTextColor(0, 0, 0); // Reset to black
+    doc.setTextColor(0, 0, 0);
     
     // Items Rows
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     
     items.forEach((item, idx) => {
-      // Calculate row height based on item name
       const nameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-      const rowHeight = Math.max(6, nameLines.length * 2.5); // 3.5 is line height, +2 for padding
+      const rowHeight = Math.max(6, nameLines.length * 2.5);
       
       // Alternating row background (light blue for even rows)
       if (idx % 2 === 0) {
-        doc.setFillColor(240, 248, 255); // Light blue from PrintPDF
+        doc.setFillColor(240, 248, 255);
         doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, rowHeight, 'F');
       }
       
       x = marginLeft;
       
-      // S.No
       doc.text(String(idx + 1), x + (colWidths[0] / 2), y + rowHeight / 2, { align: 'center' });
       x += colWidths[0];
       
-      // Item Name
       doc.text(nameLines, x + 2, y + 2, { maxWidth: colWidths[1] - 4 });
       x += colWidths[1];
       
-      // HSN
       doc.text(item.hsn || '-', x + (colWidths[2] / 2), y + rowHeight / 2, { align: 'center' });
       x += colWidths[2];
       
-      // Qty
-      doc.text(formatCurrencyq(item.qty), x + (colWidths[3] / 2), y  + rowHeight / 2, { align: 'right' });
+      doc.text(formatCurrencyq(item.qty), x + (colWidths[3] / 2), y + rowHeight / 2, { align: 'right' });
       x += colWidths[3];
       
-      // Rate
       doc.text(formatCurrency(item.rate), x + (colWidths[4] / 2), y + rowHeight / 2, { align: 'right' });
       x += colWidths[4];
       
-      // Amount
       doc.text(formatCurrency(item.amount || (item.qty * item.rate)), 
-               x + (colWidths[5] / 2)+4, y + rowHeight / 2, { align: 'right' });
+               x + (colWidths[5] / 2) + 4, y + rowHeight / 2, { align: 'right' });
       
       y += rowHeight;
     });
     
-    y += 8;
+    // Add line below the table
+    y += 2;
+    doc.setLineWidth(0.2);
+    doc.line(marginLeft, y, pageWidth - marginRight, y);
+    y += 5;
 
-    /* ---------- BANK DETAILS ---------- */
+    // Total Items, Total Qty, Grand Total in a single row (2:1 ratio)
+    const summaryWidth = pageWidth - marginLeft - marginRight;
+    const leftWidth = summaryWidth * 0.66; // 2/3 of the width
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Items: ${items.length}`, marginLeft, y);
+    doc.text(`Total Qty: ${totalQty}`, marginLeft + 50, y);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(`Grand Total: ${formatCurrency(totalAmount)}`, marginLeft + leftWidth, y);
+    
+    y += 15;
+
+    /* ---------- ROW 1: Three columns (1:1:1 ratio) ---------- */
+    
+    const colWidth = (summaryWidth - 20) / 3; // 20mm for gaps between columns
+    
+    // Column 1: Payment Mode
+    const col1X = marginLeft;
+    
+    // Payment Mode Table with matching colors
+    doc.setFillColor(27, 145, 218);
+    doc.rect(col1X, y - 2, colWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('Bank Details:', marginLeft, y);
-    doc.text('Grand Total:', pageWidth - 70, y);
-    doc.text(formatCurrency(netTotal), pageWidth - marginRight, y, {
-      align: 'right',
-    });
-    y += 5;
+    doc.text('PAYMENT MODE', col1X + 2, y + 2);
+    doc.setTextColor(0, 0, 0);
+    
+    // Payment Table
+    let paymentY = y + 8;
+    doc.setFontSize(9);
+    
+    // Payment Table Header with light blue background
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col1X, paymentY - 3, colWidth, 5, 'F');
+    doc.setFont('helvetica', 'bold');
+    const paymentColWidth = colWidth / 4;
+    doc.text('Cash', col1X + paymentColWidth/2, paymentY);
+    doc.text('UPI', col1X + paymentColWidth*1.5, paymentY);
+    doc.text('Card', col1X + paymentColWidth*2.5, paymentY);
+    doc.text('Bal', col1X + paymentColWidth*3.5, paymentY);
+    paymentY += 4;
+    
+    // Payment Table Values
+    const cashAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'CASH')?.amount || 0;
+    const upiAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'UPI')?.amount || 0;
+    const cardAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'CARD')?.amount || 0;
+    const balanceAmount = billData.modeofPayment?.find(p => p.method?.toUpperCase() === 'BALANCE')?.amount || 0;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatCurrency(cashAmount), col1X + paymentColWidth/2, paymentY);
+    doc.text(formatCurrency(upiAmount), col1X + paymentColWidth*1.5, paymentY);
+    doc.text(formatCurrency(cardAmount), col1X + paymentColWidth*2.5, paymentY);
+    doc.text(formatCurrency(balanceAmount), col1X + paymentColWidth*3.5, paymentY);
+    
+    // Column 2: Transport Details
+    const col2X = col1X + colWidth + 10;
+    
+    doc.setFillColor(27, 145, 218);
+    doc.rect(col2X, y - 2, colWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('TRANSPORT DETAILS', col2X + 2, y + 2);
+    doc.setTextColor(0, 0, 0);
+    
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    // Account Name
+    let transportY = y + 8;
+    
+    // Transport details with alternating background
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col2X, transportY - 3, colWidth, 5, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.text('Account Name: ', marginLeft, y);
+    doc.text('Transport Name:', col2X + 2, transportY);
+    transportY += 4;
     doc.setFont('helvetica', 'normal');
-    doc.text('R. SANKARAPANDIAN', marginLeft + 28, y);
-    y += 4;
-    doc.text('STORES', marginLeft + 28, y);
-    doc.text('Discount:', pageWidth - 70, y);
-    doc.text(billData.discount || '0', pageWidth - marginRight, y, {
-      align: 'right',
-    });
-    y += 4;
-    // Account Number
+    doc.text(billData.fTransport || '', col2X + 2, transportY);
+    transportY += 5;
+    
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col2X, transportY - 3, colWidth, 5, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.text('Account Number: ', marginLeft, y);
+    doc.text('Vehicle No:', col2X + 2, transportY);
+    transportY += 4;
     doc.setFont('helvetica', 'normal');
-    doc.text('743605000713', marginLeft + 28, y);
-    y += 4;
-
-    // IFSC
+    doc.text(billData.transportNo || '', col2X + 2, transportY);
+    transportY += 5;
+    
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col2X, transportY - 3, colWidth, 5, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.text('IFSC: ', marginLeft, y);
+    doc.text(`Card chrg ${billData.servicechrgper || ''}%:`, col2X + 2, transportY);
+    transportY += 4;
     doc.setFont('helvetica', 'normal');
-    doc.text('ICIC0007436', marginLeft + 28, y);
-    doc.text('Charges:', pageWidth - 70, y);
-    doc.text(formatCurrency(billData.servicechrgeAmt), pageWidth - marginRight, y, {
-      align: 'right',
-    });
-    y += 4;
+    doc.text(formatCurrency(billData.servicechrg || 0), col2X + 2, transportY);
+    
+    // Column 3: Reserved for Summary (will be filled after row 2)
+    const col3X = col2X + colWidth + 10;
+    
+    y = Math.max(paymentY, transportY) + 15;
 
-    // Account Type
+    /* ---------- ROW 2: Three columns (1:1:1 ratio) ---------- */
+    
+    // Column 1: Cash Note
+    const row2Y = y;
+    
+    doc.setFillColor(27, 145, 218);
+    doc.rect(col1X, row2Y - 2, colWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('Account Type: ', marginLeft, y);
+    doc.setFontSize(10);
+    doc.text('CASH NOTE', col1X + 2, row2Y + 2);
+    doc.setTextColor(0, 0, 0);
+    
+    let cashNoteY = row2Y + 8;
     doc.setFont('helvetica', 'normal');
-    doc.text('Current', marginLeft + 28, y);
-    y += 4;
-
-    // Bank
+    doc.setFontSize(7);
+    
+    if (billData.denominations) {
+      const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+      
+      // Header row with light blue background
+      doc.setFillColor(240, 248, 255);
+      doc.rect(col1X, cashNoteY - 3, colWidth, 4, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.text('CA', col1X + 2, cashNoteY);
+      denominations.forEach((denom, i) => {
+        doc.text(denom.toString(), col1X + 10 + (i * 6), cashNoteY);
+      });
+      cashNoteY += 3;
+      
+      // Receive row
+      doc.setFillColor(255, 255, 255);
+      doc.rect(col1X, cashNoteY - 3, colWidth, 4, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.text('RE', col1X + 2, cashNoteY);
+      denominations.forEach((denom, i) => {
+        doc.text((billData.denominations[denom]?.receive || '').toString(), col1X + 10 + (i * 6), cashNoteY);
+      });
+      cashNoteY += 3;
+      
+      // Issue row with light blue background
+      doc.setFillColor(240, 248, 255);
+      doc.rect(col1X, cashNoteY - 3, colWidth, 4, 'F');
+      doc.text('IS', col1X + 2, cashNoteY);
+      denominations.forEach((denom, i) => {
+        doc.text((billData.denominations[denom]?.issue || '').toString(), col1X + 10 + (i * 6), cashNoteY);
+      });
+    }
+    
+    // Column 2: Terms and Conditions
+    doc.setFillColor(27, 145, 218);
+    doc.rect(col2X, row2Y - 2, colWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('Bank: ', marginLeft, y);
+    doc.setFontSize(10);
+    doc.text('TERMS AND CONDITIONS', col2X + 2, row2Y + 2);
+    doc.setTextColor(0, 0, 0);
+    
     doc.setFont('helvetica', 'normal');
-    doc.text('ICIC Bank', marginLeft + 28, y);
-    doc.setFontSize(15);
+    doc.setFontSize(8);
+    let termsY = row2Y + 8;
+    
+    // Terms with alternating background
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('1. Without bill there is No Exchange', col2X + 2, termsY);
+    termsY += 4;
+    
+    doc.setFillColor(255, 255, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('   Available.', col2X + 2, termsY);
+    termsY += 4;
+    
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('2. The exchange will be done in the', col2X + 2, termsY);
+    termsY += 4;
+    
+    doc.setFillColor(255, 255, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('   afternoon from 2 PM to 5 PM.', col2X + 2, termsY);
+    termsY += 4;
+    
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('3. Goods can be exchanged within', col2X + 2, termsY);
+    termsY += 4;
+    
+    doc.setFillColor(255, 255, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('   2 days of purchase.', col2X + 2, termsY);
+    termsY += 4;
+    
+    doc.setFillColor(240, 248, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('4. NO RETURN ON SERVICE', col2X + 2, termsY);
+    termsY += 4;
+    
+    doc.setFillColor(255, 255, 255);
+    doc.rect(col2X, termsY - 3, colWidth, 4, 'F');
+    doc.text('   PRODUCTS ***', col2X + 2, termsY);
+
+    /* ---------- SUMMARY SECTION (Right side - covering both rows) ---------- */
+    
+    // Summary section with matching colors
+    doc.setFillColor(27, 145, 218);
+    doc.rect(col3X, row2Y - 30 - 2, colWidth, 6, 'F'); // Header spanning both rows
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('Net Amount:', pageWidth - 70, y);
-    doc.text(formatCurrency(netAmount), pageWidth - marginRight, y, {
-      align: 'right',
-    });
-    y += 20;
-
-    /* ---------- QR CODE ---------- */
-
-    const qr = await QRCode.toDataURL(billData.voucherNo || 'N/A');
-    doc.addImage(qr, 'PNG', marginLeft, y - 10, 25, 25);
-
-    /* ---------- FOOTER ---------- */
-
-    y = pageHeight - 30;
+    doc.setFontSize(10);
+    doc.text('SUMMARY', col3X + 2, row2Y - 30);
+    doc.setTextColor(0, 0, 0);
+    
+    let summaryY = row2Y - 30 + 8;
+    let summaryRow = 0;
+    
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text('For R. SANKARAPANDIAN STORES', pageWidth - 80, y);
-    doc.text('Authorised Signatory', pageWidth - 70, y + 12);
+    
+    // Summary items with alternating background
+    const summaryItems = [
+      { label: `Dis ${billData.discountPercent || ''}%`, value: discount },
+      { label: 'Round Off', value: roundOff },
+      { label: 'Sub Total', value: subTotal },
+      { label: 'Sales Return', value: salesReturn },
+      { label: 'Scrap Amt', value: scrapAmt },
+      { label: 'Sub Total(2)', value: subTotal2 },
+      { label: 'Freight chrg', value: freightCharge },
+      { label: 'Service chrg', value: serviceCharge }
+    ];
+    
+    summaryItems.forEach((item, index) => {
+      // Alternating background
+      if (index % 2 === 0) {
+        doc.setFillColor(240, 248, 255);
+        doc.rect(col3X, summaryY - 3, colWidth, 5, 'F');
+      }
+      
+      doc.text(item.label, col3X + 2, summaryY);
+      doc.text(formatCurrency(item.value), col3X + colWidth - 5, summaryY, { align: 'right' });
+      summaryY += 5;
+    });
+    
+    // Net Amount (bold and larger, with blue background)
+    summaryY += 2;
+    doc.setFillColor(27, 145, 218);
+    doc.rect(col3X, summaryY - 3, colWidth, 6, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Net Amt', col3X + 2, summaryY);
+    doc.text(formatCurrency(netAmount), col3X + colWidth - 5, summaryY, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    
+    y = Math.max(cashNoteY, termsY, summaryY) + 15;
+
+    /* ---------- THANK YOU MESSAGE ---------- */
+    
+    y = pageHeight - 15;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('*** Thank You Visit Again! ***', pageWidth / 2, y, { align: 'center' });
 
     /* ---------- PRINT ---------- */
 
