@@ -2588,13 +2588,10 @@ const handleConfirmedRowDelete = () => {
     }
 
     try {
-     
-
-    // 🔒 FINAL SAFETY VALIDATION
-if (!billDetails.custName || billDetails.custName.trim() === "") {
-  throw new Error("Customer is required");
-}
-
+      // 🔒 FINAL SAFETY VALIDATION
+      if (!billDetails.custName || billDetails.custName.trim() === "") {
+        throw new Error("Customer is required");
+      }
 
       const validItems = items.filter(
         item =>
@@ -2607,16 +2604,37 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         throw new Error("At least one item is required");
       }
 
-
-
       setIsSaving(true);
       setIsLoading(true);
       setError(null);
+
+      // Fetch the latest voucherNo directly before POST
+      let latestVoucherNo = billDetails.billNo;
+      if (!isEditing) {
+        try {
+          const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getNextBillNo(compCode);
+          const response = await axiosInstance.get(endpoint);
+          if (response) {
+            if (typeof response === 'object' && response.nextCode) {
+              latestVoucherNo = response.nextCode;
+            } else if (typeof response === 'string') {
+              latestVoucherNo = response;
+            } else if (response.data && typeof response.data === 'string') {
+              latestVoucherNo = response.data;
+            } else if (response.data && response.data.nextCode) {
+              latestVoucherNo = response.data.nextCode;
+            }
+          }
+        } catch (fetchErr) {
+          // fallback: keep previous billNo if fetch fails
+        }
+      }
+
       // Format date to yyyy-MM-dd (without time)
       const voucherDate = formatDateToYYYYMMDD(billDetails.billDate);
 
       const headerData = {
-        voucherNo: billDetails.billNo || "",
+        voucherNo: latestVoucherNo || "",
         billDate: voucherDate,      // ✅ CORRECT FIELD
         voucherDate: voucherDate,   // ✅ KEEP BOTH (SAFE)
         mobileNumber: billDetails.mobileNo || "",
@@ -2634,85 +2652,85 @@ if (!billDetails.custName || billDetails.custName.trim() === "") {
         ftaxrs: gstRate || "18"  // ✅ ADD GST RATE FIELD
       };
 
-     // Prepare items data
-const itemsData = validItems.map(item => {
-  // Calculate tax amount based on gstMode
-  let taxAmount = 0;
-  if (item.tax) {
-    const qty = Number(item.qty) || 0;
-    const rate = Number(item.sRate) || 0;
-    const tax = Number(item.tax) || 0;
-    
-    if (gstMode === 'Inclusive') {
-      const total = qty * rate;
-      taxAmount = tax === 0 ? 0 : (total * tax) / (100 + tax);
-    } else {
-      const base = qty * rate;
-      taxAmount = (base * tax) / 100;
-    }
-  }
-  
-  return {
-    barcode: item.barcode || "", // Make sure barcode is included
-    itemName: item.itemName || "",
-    itemcode: item.itemCode || "",
-    mrp: (Number(item.mrp) || 0).toFixed(2),
-    stock: (item.stock ?? "0").toString(),
-    uom: item.uom || "pcs",
-    hsn: item.hsn || "",
-    tax: Number(item.tax) || 0,
-    rate: Number(item.sRate) || 0,
-    qty: Number(item.qty) || 0,
-    amount: Number(item.amount) || 0,
-    fdesc: item.fdesc || "" ,
-    fSlNo: item.fserialno || "",
-    ftaxamt: taxAmount.toFixed(2)  // ✅ ADD TAX AMOUNT
-  };
-});
-      
+      // Prepare items data
+      const itemsData = validItems.map(item => {
+        // Calculate tax amount based on gstMode
+        let taxAmount = 0;
+        if (item.tax) {
+          const qty = Number(item.qty) || 0;
+          const rate = Number(item.sRate) || 0;
+          const tax = Number(item.tax) || 0;
+
+          if (gstMode === 'Inclusive') {
+            const total = qty * rate;
+            taxAmount = tax === 0 ? 0 : (total * tax) / (100 + tax);
+          } else {
+            const base = qty * rate;
+            taxAmount = (base * tax) / 100;
+          }
+        }
+
+        return {
+          barcode: item.barcode || "", // Make sure barcode is included
+          itemName: item.itemName || "",
+          itemcode: item.itemCode || "",
+          mrp: (Number(item.mrp) || 0).toFixed(2),
+          stock: (item.stock ?? "0").toString(),
+          uom: item.uom || "pcs",
+          hsn: item.hsn || "",
+          tax: Number(item.tax) || 0,
+          rate: Number(item.sRate) || 0,
+          qty: Number(item.qty) || 0,
+          amount: Number(item.amount) || 0,
+          fdesc: item.fdesc || "" ,
+          fSlNo: item.fserialno || "",
+          ftaxamt: taxAmount.toFixed(2)  // ✅ ADD TAX AMOUNT
+        };
+      });
+
       const requestData = {
         header: headerData,
         items: itemsData
       };
       console.log("Request Data:", JSON.stringify(requestData));
-      
+
       // Determine if this is an insert or update
       const isInsert = !isEditing;
-      
+
       // Use the correct endpoint based on insert/update
-      const endpoint = isInsert 
+      const endpoint = isInsert
         ? API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.CREATE_SALES
         : API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.UPDATE_SALES;
-      
+
       const response = await axiosInstance.post(endpoint, requestData, {
         headers: {
           'Content-Type': 'application/json'
         },
         timeout: 30000
       });
-      
+
       if (response && response.data) {
         const message = response.data.message || `Invoice ${isEditing ? 'updated' : 'saved'} successfully`;
-        const savedBillNo = response.data.voucherNo || billDetails.billNo;
-        
+        const savedBillNo = response.data.voucherNo || latestVoucherNo;
+
         // Build print data for printing
-        const billDataForPrint = buildBillData();
+        const billDataForPrint = buildBillData(savedBillNo);
         setPrintBillData(billDataForPrint);
-        
+
         // Show print confirmation popup
         setPrintConfirmationOpen(true);
-        
+
         // Refresh saved invoices list
         await fetchSavedInvoices(1, '');
-        
+
         // Don't reset form yet - wait for print confirmation
         // resetForm();
-        
+
         return response.data;
       }
     } catch (err) {
       let errorMsg = `Failed to ${isEditing ? 'update' : 'save'} sales invoice`;
-      
+
       if (err.response) {
         console.error("Server error response:", err.response);
         if (err.response.data) {
@@ -2733,16 +2751,16 @@ const itemsData = validItems.map(item => {
       } else {
         errorMsg = err.message || errorMsg;
       }
-      
+
       if (errorMsg.toLowerCase().includes('duplicate') || errorMsg.toLowerCase().includes('already exists')) {
-        errorMsg = `Invoice number ${billDetails.billNo} already exists. Please use a different number or edit the existing invoice.`;
+        errorMsg = `Invoice number ${latestVoucherNo} already exists. Please use a different number or edit the existing invoice.`;
       }
-      
+
       setError(errorMsg);
       toast.error(errorMsg, {
-  position: "top-right",
-  autoClose: 5000,
-});
+        position: "top-right",
+        autoClose: 5000,
+      });
 
     } finally {
       setIsLoading(false);
@@ -2880,14 +2898,14 @@ const itemsData = validItems.map(item => {
   };
 
   // Build billData for printing
-  const buildBillData = () => {
+  const buildBillData = (voucherNoParam) => {
     const validItems = items.filter(item => 
       item.itemName && item.itemName.trim() !== '' && 
       item.itemCode && item.itemCode.trim() !== ''
     );
     
     return {
-      voucherNo: billDetails.billNo,
+      voucherNo: voucherNoParam,
       voucherDate: billDetails.billDate,
       salesmanName: billDetails.salesman,
       customercode: billDetails.custCode || '',

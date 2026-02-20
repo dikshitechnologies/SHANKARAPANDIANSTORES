@@ -1442,14 +1442,14 @@ const clearFormData = async () => {
 };
 
   // Build billData object for printing
-  const buildBillData = () => {
+  // Accept voucherNo as parameter for print data
+  const buildBillData = (voucherNoParam) => {
     const validItems = items.filter(item => 
       item.itemName && item.itemName.trim() !== '' && 
       item.itemCode && item.itemCode.trim() !== ''
     );
-    
     return {
-      voucherNo: billDetails.billNo,
+      voucherNo: voucherNoParam,
       voucherDate: billDetails.billDate,
       salesmanName: billDetails.salesman,
       customercode: billDetails.custCode || '',
@@ -1468,12 +1468,26 @@ const clearFormData = async () => {
   const performSave = async () => {
     try {
       const isCreate = !isEditMode;
-      
+
       const validItems = items.filter(item => 
         item.itemName && item.itemName.trim() !== '' && 
         item.itemCode && item.itemCode.trim() !== ''
       );
-      
+
+      // Fetch the latest voucher number directly before POST
+      let latestVoucherNo = billDetails.billNo;
+      if (isCreate) {
+        try {
+          const response = await axiosInstance.get(API_ENDPOINTS.Scrap_Procurement.GET_VOUCHER_NO(fCompCode));
+          const voucherNo = response?.data?.voucherNo;
+          if (voucherNo) {
+            latestVoucherNo = voucherNo;
+          }
+        } catch (fetchErr) {
+          // fallback: keep previous billNo if fetch fails
+        }
+      }
+
       const itemsForAPI = validItems.map(item => ({
         itemCode: item.itemCode || '',
         itemName: item.itemName || '',
@@ -1484,13 +1498,13 @@ const clearFormData = async () => {
         uom: item.uom || 'KG',
         barcode: ''
       }));
-      
+
       const firstScrapItem = items.find(item => item.itemName && item.itemName.trim() !== '');
-      
+
       const payload = {
         compCode: userData?.companyCode || '001',
         usercode: userData?.userCode || '001',
-        voucherNo: billDetails.billNo,
+        voucherNo: latestVoucherNo,
         voucherDate: billDetails.billDate,
         salesmanName: billDetails.salesman,
         salesmancode: billDetails.salesmanCode || '',
@@ -1510,19 +1524,19 @@ const clearFormData = async () => {
         API_ENDPOINTS.Scrap_Procurement.SAVE_SCRAP_PROCUREMENT(isCreate),
         payload
       );
-      
+
       if (response.status === 200 || response.status === 201) {
         const mode = isCreate ? 'created' : 'updated';
-        
+
         ignoreNextEnterRef.current = false;
-        
+
         // Build bill data for printing BEFORE clearing form
-        const billDataForPrint = buildBillData();
+        const billDataForPrint = buildBillData(latestVoucherNo);
         console.log('billDataForPrint:', billDataForPrint);
-        
+
         // Store the bill data in state for PrintReceipt component
         setPrintBillData(billDataForPrint);
-        
+
         // Show print confirmation after successful save
         // Use setTimeout to ensure state updates have been processed
         setTimeout(() => {
