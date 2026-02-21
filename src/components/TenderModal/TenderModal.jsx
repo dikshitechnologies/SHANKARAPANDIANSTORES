@@ -1724,6 +1724,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
                       type="text"
                       value={formData.billAmount}
                       readOnly
+                      disabled={billData?.isDiscountAllowed === false}
                       className={`${styles.inputField} ${styles.billAmountField}`}
                     />
                   </div>
