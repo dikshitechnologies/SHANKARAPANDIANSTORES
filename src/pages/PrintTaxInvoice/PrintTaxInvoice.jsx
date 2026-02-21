@@ -8,13 +8,20 @@ import { toast } from 'react-toastify';
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
+
   try {
-    const date = new Date(dateString);
+    // Expected format: "21-02-2026 00:00:00"
+    const [datePart] = dateString.split(' ');
+    const [day, month, year] = datePart.split('-');
+
+    const date = new Date(`${year}-${month}-${day}`);
+
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
+
   } catch {
     return 'N/A';
   }
@@ -104,7 +111,10 @@ export const generateTenderA4PDF = async ({ billData }) => {
       0
     );
 
-    const totalQty = items.reduce((sum, item) => sum + (item.qty || 0), 0);
+    const totalQty = items.reduce(
+    (sum, item) => sum + parseFloat(item.qty || 0),
+    0
+  );
 
     const discount = Number(billData.discount || 0);
     const roundOff = Number(billData.roudOff || 0);
@@ -263,7 +273,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFontSize(9);
     
     const colWidths = [10, 70, 15, 15, 15, 15, 20, 30];
-    const headers = ['S.No', 'Item Name', 'HSN', 'MRP', 'Qty', 'Rate', 'Tax', 'Amount'];
+    const headers = ['S.No', 'Item Name', 'HSN', 'MRP', 'Qty', 'SRate', 'Tax', 'Amount'];
     
     let x = marginLeft;
     
@@ -358,58 +368,81 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setTextColor(0, 0, 0);
     
     // Tax Box Table
-    let taxY = y + 8;
-    doc.setFontSize(8);
-    
-    const taxColWidth = colWidth / 4;
-    let taxX = col1X;
-    
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.1);
-    
-    doc.rect(taxX, taxY - 3, taxColWidth * 4, 5);
-    doc.line(taxX + (2 * taxColWidth), taxY - 3, taxX + (2 * taxColWidth), taxY + 2);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('CGST', taxX + taxColWidth, taxY, { align: 'center' });
-    doc.text('SGST', taxX + taxColWidth * 3, taxY, { align: 'center' });
-    taxY += 4;
-    
-    doc.setFont('helvetica', 'normal');
-    for (let i = 1; i < 4; i++) {
-      doc.line(taxX + (i * taxColWidth), taxY - 3, taxX + (i * taxColWidth), taxY + 2);
-    }
-    
-    const taxRows = Object.entries(taxSummary)
-      .filter(([tax]) => Number(tax) > 0)
-      .map(([tax, sumTaxrs]) => {
-        const halfTax = Number(tax) / 2;
-        const halfTaxrs = sumTaxrs / 2;
-        return { halfTax, halfTaxrs };
-      });
-    
-    if (taxRows.length > 0) {
-      taxRows.forEach((row) => {
-        taxX = col1X;
-        doc.rect(taxX, taxY - 3, taxColWidth * 4, 4);
-        for (let i = 1; i < 4; i++) {
-          doc.line(taxX + (i * taxColWidth), taxY - 3, taxX + (i * taxColWidth), taxY + 1);
-        }
-        doc.text(`${row.halfTax}%`, taxX + taxColWidth / 2, taxY, { align: 'center' });
-        taxX += taxColWidth;
-        doc.text(formatCurrency(row.halfTaxrs), taxX + taxColWidth / 2, taxY, { align: 'center' });
-        taxX += taxColWidth;
-        doc.text(`${row.halfTax}%`, taxX + taxColWidth / 2, taxY, { align: 'center' });
-        taxX += taxColWidth;
-        doc.text(formatCurrency(row.halfTaxrs), taxX + taxColWidth / 2, taxY, { align: 'center' });
-        taxY += 4;
-      });
-    } else {
-      doc.rect(col1X, taxY - 3, colWidth, 4);
-      doc.text('No Tax Data', col1X + colWidth / 2, taxY, { align: 'center' });
-      taxY += 4;
-    }
-    
+    // Tax Box Table
+let taxY = y + 8;
+doc.setFontSize(8);
+
+const taxColWidth = colWidth / 4;
+let taxX = col1X;
+
+doc.setDrawColor(0, 0, 0);
+doc.setLineWidth(0.1);
+
+// ===== HEADER ROW =====
+const headerTopY = taxY - 3;
+
+// Draw header outer border
+doc.rect(col1X, headerTopY, taxColWidth * 4, 5);
+
+// Vertical center divider
+doc.line(col1X + (2 * taxColWidth), headerTopY, col1X + (2 * taxColWidth), headerTopY + 5);
+
+// Header text
+doc.setFont('helvetica', 'bold');
+doc.text('CGST', col1X + taxColWidth, taxY, { align: 'center' });
+doc.text('SGST', col1X + taxColWidth * 3, taxY, { align: 'center' });
+
+taxY += 5;
+
+// ===== DATA ROWS =====
+doc.setFont('helvetica', 'normal');
+
+const taxRows = Object.entries(taxSummary)
+  .filter(([tax]) => Number(tax) > 0)
+  .map(([tax, sumTaxrs]) => ({
+    halfTax: Number(tax) / 2,
+    halfTaxrs: sumTaxrs / 2
+  }));
+
+taxRows.forEach((row) => {
+
+  // Draw row top line ONLY (not full rectangle)
+  doc.line(col1X, taxY - 3, col1X + taxColWidth * 4, taxY - 3);
+
+  // Vertical lines
+  for (let i = 1; i < 4; i++) {
+    doc.line(
+      col1X + (i * taxColWidth),
+      taxY - 3,
+      col1X + (i * taxColWidth),
+      taxY + 1
+    );
+  }
+
+  // Row values
+  doc.text(`${row.halfTax}%`, col1X + taxColWidth / 2, taxY, { align: 'center' });
+  doc.text(formatCurrency(row.halfTaxrs), col1X + taxColWidth * 1.5, taxY, { align: 'center' });
+  doc.text(`${row.halfTax}%`, col1X + taxColWidth * 2.5, taxY, { align: 'center' });
+  doc.text(formatCurrency(row.halfTaxrs), col1X + taxColWidth * 3.5, taxY, { align: 'center' });
+
+  taxY += 4;
+});
+
+// Bottom border of table
+doc.line(col1X, taxY - 3, col1X + taxColWidth * 4, taxY - 3);
+// Bottom border
+doc.line(col1X, taxY - 3, col1X + taxColWidth * 4, taxY - 3);
+
+// OUTER BORDER
+const tableTopY = headerTopY;
+const tableHeight = taxY - headerTopY - 3;
+
+doc.rect(
+  col1X,
+  tableTopY,
+  taxColWidth * 4,
+  tableHeight
+);
     // Column 2: Transport Details
     const col2X = col1X + colWidth + 10;
     
@@ -474,6 +507,24 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y = Math.max(taxY, transportY, summaryY + 5) + 5;
 
     /* ---------- ROW 2: Payment Mode and Cash Note ---------- */
+
+
+    /* ---------- PAGE BREAK CHECK ---------- */
+
+    // Estimate required height for remaining sections
+    const estimatedHeightNeeded = 80; // adjust if needed (approx footer + payment + summary)
+
+    // If content crosses page height
+    if (y + estimatedHeightNeeded > pageHeight - 15) {
+      doc.addPage();
+
+      // Reset Y position for new page
+      y = 15;
+
+      // Optional: redraw border on new page
+      doc.setLineWidth(0.5);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+    }
     
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
@@ -488,22 +539,34 @@ export const generateTenderA4PDF = async ({ billData }) => {
     
     const paymentColWidth = colWidth / 4;
     
-    doc.rect(col2X, paymentY - 3, paymentColWidth * 4, 5);
-    for (let i = 1; i < 4; i++) {
-      doc.line(col2X + (i * paymentColWidth), paymentY - 3, col2X + (i * paymentColWidth), paymentY + 2);
-    }
+   // Draw ONLY outer box once
+doc.rect(col2X, paymentY - 3, paymentColWidth * 4, 10);
+
+// Draw vertical lines once
+for (let i = 1; i < 4; i++) {
+  doc.line(
+    col2X + (i * paymentColWidth),
+    paymentY - 3,
+    col2X + (i * paymentColWidth),
+    paymentY + 7
+  );
+}
+
+// Draw middle horizontal separator
+doc.line(
+  col2X,
+  paymentY + 2,
+  col2X + paymentColWidth * 4,
+  paymentY + 2
+);
     
     doc.setFont('helvetica', 'bold');
     doc.text('Cash', col2X + paymentColWidth/2, paymentY, { align: 'center' });
     doc.text('UPI', col2X + paymentColWidth*1.5, paymentY, { align: 'center' });
     doc.text('Card', col2X + paymentColWidth*2.5, paymentY, { align: 'center' });
     doc.text('Bal', col2X + paymentColWidth*3.5, paymentY, { align: 'center' });
-    paymentY += 4;
-    
-    doc.rect(col2X, paymentY - 3, paymentColWidth * 4, 5);
-    for (let i = 1; i < 4; i++) {
-      doc.line(col2X + (i * paymentColWidth), paymentY - 3, col2X + (i * paymentColWidth), paymentY + 2);
-    }
+    paymentY += 5;
+   
     
     doc.setFont('helvetica', 'normal');
     doc.text(formatWithoutDecimals(cashAmount), col2X + paymentColWidth/2, paymentY, { align: 'center' });
@@ -521,48 +584,77 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFontSize(7);
     
     if (billData.denominations) {
-      const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-      const cashColWidth = colWidth / 10;
-      
-      doc.rect(col2X, cashNoteY - 3, cashColWidth * 10, 4);
-      for (let i = 1; i < 10; i++) {
-        doc.line(col2X + (i * cashColWidth), cashNoteY - 3, col2X + (i * cashColWidth), cashNoteY + 1);
-      }
-      
-      doc.setFont('helvetica', 'bold');
-      doc.text('CA', col2X + cashColWidth/2, cashNoteY, { align: 'center' });
-      denominations.forEach((denom, i) => {
-        const xPos = col2X + cashColWidth * (i + 1) + cashColWidth/2;
-        doc.text(denom.toString(), xPos, cashNoteY, { align: 'center' });
-      });
-      cashNoteY += 3;
-      
-      doc.rect(col2X, cashNoteY - 3, cashColWidth * 10, 4);
-      for (let i = 1; i < 10; i++) {
-        doc.line(col2X + (i * cashColWidth), cashNoteY - 3, col2X + (i * cashColWidth), cashNoteY + 1);
-      }
-      
-      doc.setFont('helvetica', 'normal');
-      doc.text('RE', col2X + cashColWidth/2, cashNoteY, { align: 'center' });
-      denominations.forEach((denom, i) => {
-        const xPos = col2X + cashColWidth * (i + 1) + cashColWidth/2;
-        doc.text((billData.denominations[denom]?.receive || '').toString(), xPos, cashNoteY, { align: 'center' });
-      });
-      cashNoteY += 3;
-      
-      doc.rect(col2X, cashNoteY - 3, cashColWidth * 10, 4);
-      for (let i = 1; i < 10; i++) {
-        doc.line(col2X + (i * cashColWidth), cashNoteY - 3, col2X + (i * cashColWidth), cashNoteY + 1);
-      }
-      
-      doc.text('IS', col2X + cashColWidth/2, cashNoteY, { align: 'center' });
-      denominations.forEach((denom, i) => {
-        const xPos = col2X + cashColWidth * (i + 1) + cashColWidth/2;
-        doc.text((billData.denominations[denom]?.issue || '').toString(), xPos, cashNoteY, { align: 'center' });
-      });
-    }
+  const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+  const cashColWidth = colWidth / 10;
+
+  const rowHeight = 4;
+  const totalHeight = rowHeight * 3;
+
+  const tableTop = cashNoteY - 3;
+
+  // ✅ Draw outer border ONLY ONCE
+  doc.rect(col2X, tableTop, cashColWidth * 10, totalHeight);
+
+  // ✅ Draw horizontal separators
+  doc.line(col2X, tableTop + rowHeight, col2X + cashColWidth * 10, tableTop + rowHeight);
+  doc.line(col2X, tableTop + rowHeight * 2, col2X + cashColWidth * 10, tableTop + rowHeight * 2);
+
+  // ✅ Draw vertical lines
+  for (let i = 1; i < 10; i++) {
+    doc.line(
+      col2X + i * cashColWidth,
+      tableTop,
+      col2X + i * cashColWidth,
+      tableTop + totalHeight
+    );
+  }
+
+  // ================= TEXT =================
+
+  let textY = cashNoteY;
+
+  // Row 1: CA
+  doc.setFont('helvetica', 'bold');
+  doc.text('CA', col2X + cashColWidth / 2, textY, { align: 'center' });
+
+  denominations.forEach((denom, i) => {
+    const xPos = col2X + cashColWidth * (i + 1) + cashColWidth / 2;
+    doc.text(denom.toString(), xPos, textY, { align: 'center' });
+  });
+
+  textY += rowHeight;
+
+  // Row 2: RE
+  doc.setFont('helvetica', 'normal');
+  doc.text('RE', col2X + cashColWidth / 2, textY, { align: 'center' });
+
+  denominations.forEach((denom, i) => {
+    const xPos = col2X + cashColWidth * (i + 1) + cashColWidth / 2;
+    doc.text(
+      (billData.denominations[denom]?.receive || '').toString(),
+      xPos,
+      textY,
+      { align: 'center' }
+    );
+  });
+
+  textY += rowHeight;
+
+  // Row 3: IS
+  doc.text('IS', col2X + cashColWidth / 2, textY, { align: 'center' });
+
+  denominations.forEach((denom, i) => {
+    const xPos = col2X + cashColWidth * (i + 1) + cashColWidth / 2;
+    doc.text(
+      (billData.denominations[denom]?.issue || '').toString(),
+      xPos,
+      textY,
+      { align: 'center' }
+    );
+  });
+}
     
-    y = Math.max(paymentY, cashNoteY) + 5;
+    y = Math.max(paymentY, cashNoteY) + 15;
 
     /* ---------- ROW 3: Amount Received, Balance, Net Amount ---------- */
     
@@ -663,8 +755,8 @@ export const generateTenderA4PDF = async ({ billData }) => {
     
     doc.setFont('helvetica', 'bold');
     doc.text('For R. SANKARAPANDIAN STORES', col3X + 2, wordsY);
-    wordsY += 5;
-    doc.text('Authorised Signatory', col3X + 2, wordsY);
+    wordsY += 10;
+    doc.text('Authorised Signatory', col3X + 10, wordsY);
     
     y = Math.max(termsY, bankY, wordsY) + 10;
 
