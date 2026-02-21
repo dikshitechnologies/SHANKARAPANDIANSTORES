@@ -364,7 +364,7 @@ function BillCollector() {
             itemName: item.itemName || "",
             qty: Number(item.qty || 0),
             rate: Number(item.rate || 0),
-            amount: amount,
+            amount: Number(amount.toFixed(2)),
             hsn: item.hsn || "",
             tax: taxPercent,
 
@@ -458,27 +458,23 @@ function BillCollector() {
         fTransport: customer.transportName || "",
         transportNo: customer.transportNo || "",
          items: (details.items || []).map((item) => {
-          const taxPercent = Number(item.tax || 0);
-          const amount = Number(item.amount || 0);
+        const taxPercent = Number(item.tax || 0);
+        const amount = Number(item.amount || 0);
+        const taxrs = amount - amount / (1 + taxPercent / 100);
 
-          const taxrs = amount - amount / (1 + taxPercent / 100);
-
-          return {
-            itemName: item.itemName || "",
-            qty: Number(item.qty || 0),
-            rate: Number(item.rate || 0),
-            amount: amount,
-            hsn: item.hsn || "",
-            tax: taxPercent,
-
-            // ✅ Calculated GST (Inclusive Method)
-            taxrs: Number(taxrs.toFixed(2)),
-
-            description: item.description || "",
-            mrp: Number(item.rate || 0),
-          };
-        }),
-        modeofPayment,
+        return {
+          itemName: item.itemName || "",
+          qty: String(item.qty || 0),            // ✅ string
+          rate: String(item.rate || 0),          // ✅ string
+          amount: String(amount),                // ✅ string
+          hsn: item.hsn || "",
+          tax: String(taxPercent),               // ✅ string
+          taxrs: taxrs.toFixed(2),               // ✅ already string
+          description: item.description || "",
+          mrp: String(item.rate || 0),           // ✅ string
+        };
+      }),
+              modeofPayment,
         denominations: transformedDenominations,
         calculatedCashAmount: String(calculatedCashAmount),
       };
