@@ -435,7 +435,7 @@ const PrintInvoice = forwardRef(({ billData, mode = "tax_invoice" }, ref) => {
               <th style={{ textAlign: "left", width: "15%" }}>HSN</th>
               <th style={{ textAlign: "left", width: "15%" }}>MRP</th>
               <th style={{ textAlign: "left", width: "15%" }}>TAX</th>
-              <th style={{ textAlign: "right", width: "15%" }}>SRATE</th>
+              <th style={{ textAlign: "right", width: "15%" }}>{billData?.Type == 'R'? 'SRATE' : 'WRATE' }</th>
               <th style={{ textAlign: "right", width: "20%" }}>QTY</th>
               <th style={{ textAlign: "right", width: "20%" }}>AMOUNT</th>
             </tr>
