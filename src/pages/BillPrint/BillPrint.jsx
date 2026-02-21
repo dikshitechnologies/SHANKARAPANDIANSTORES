@@ -1,23 +1,33 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { ActionButtons1 } from '../../components/Buttons/ActionButtons';
-import apiService from '../../api/apiService';
-import { API_ENDPOINTS } from '../../api/endpoints';
-import { usePermissions } from '../../hooks/usePermissions';
-import { PERMISSION_CODES } from '../../constants/permissions';
-import { getCompCode } from '../../utils/userUtils';
-import PrintInvoice from '../PrintInvoice/PrintInvoice';
-import { generateTenderA4PDF } from '../PrintTaxInvoice/PrintTaxInvoice';
-import { FaPrint, FaFile } from 'react-icons/fa';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
+import { ActionButtons1 } from "../../components/Buttons/ActionButtons";
+import apiService from "../../api/apiService";
+import { API_ENDPOINTS } from "../../api/endpoints";
+import { usePermissions } from "../../hooks/usePermissions";
+import { PERMISSION_CODES } from "../../constants/permissions";
+import { getCompCode } from "../../utils/userUtils";
+import PrintInvoice from "../PrintInvoice/PrintInvoice";
+import { generateTenderA4PDF } from "../PrintTaxInvoice/PrintTaxInvoice";
+import { FaPrint, FaFile } from "react-icons/fa";
 
 function BillCollector() {
   // ---------- Permissions ----------
-  const { hasAddPermission, hasModifyPermission, hasDeletePermission } = usePermissions();
-  
-  const formPermissions = useMemo(() => ({
-    add: hasAddPermission(PERMISSION_CODES.BILL_COLLECTOR),
-    edit: hasModifyPermission(PERMISSION_CODES.BILL_COLLECTOR),
-    delete: hasDeletePermission(PERMISSION_CODES.BILL_COLLECTOR)
-  }), [hasAddPermission, hasModifyPermission, hasDeletePermission]);
+  const { hasAddPermission, hasModifyPermission, hasDeletePermission } =
+    usePermissions();
+
+  const formPermissions = useMemo(
+    () => ({
+      add: hasAddPermission(PERMISSION_CODES.BILL_COLLECTOR),
+      edit: hasModifyPermission(PERMISSION_CODES.BILL_COLLECTOR),
+      delete: hasDeletePermission(PERMISSION_CODES.BILL_COLLECTOR),
+    }),
+    [hasAddPermission, hasModifyPermission, hasDeletePermission],
+  );
 
   // ---------- State Management ----------
   const [selectedRow, setSelectedRow] = useState(null);
@@ -25,7 +35,7 @@ function BillCollector() {
   const [isFocused, setIsFocused] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  
+
   // API and data management
   const [bills, setBills] = useState([]);
   const [billDetails, setBillDetails] = useState(null);
@@ -35,13 +45,13 @@ function BillCollector() {
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [apiError, setApiError] = useState(null);
-  
+
   // Print management
   const [printData, setPrintData] = useState(null);
   const [printType, setPrintType] = useState(null); // 'thermal' or 'a4'
   const printInvoiceRef = useRef(null);
   const printTaxInvoiceRef = useRef(null);
-  
+
   const fCompCode = getCompCode();
 
   // ---------- Responsive Design ----------
@@ -49,8 +59,8 @@ function BillCollector() {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // ---------- Debounced Search ----------
@@ -63,140 +73,150 @@ function BillCollector() {
   }, [searchInput]);
 
   // ---------- API Integration - Fetch Bills List ----------
-  const fetchBills = useCallback(async (page = 1, search = "") => {
-    try {
-      setLoading(true);
-      setApiError(null);
-      
-      // Get the endpoint with company code, page number, and page size
-      let endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_SALESPAYMENTVOUCHER_LIST(fCompCode, page, pageSize);
-      
-      // If search is provided, append it to the URL
-      if (search.trim()) {
-        endpoint = `${endpoint}&search=${encodeURIComponent(search.trim())}`;
-      }
+  const fetchBills = useCallback(
+    async (page = 1, search = "") => {
+      try {
+        setLoading(true);
+        setApiError(null);
 
-      console.log("Fetching bills from:", endpoint);
+        // Get the endpoint with company code, page number, and page size
+        let endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_SALESPAYMENTVOUCHER_LIST(
+          fCompCode,
+          page,
+          pageSize,
+        );
 
-      // Call the API
-      const response = await apiService.get(endpoint);
-
-      console.log("Bills API Response:", response);
-
-      if (response && response.data) {
-        // Handle response structure based on the API response
-        let responseData = [];
-        let total = 0;
-        
-        if (response.data.data && Array.isArray(response.data.data)) {
-          // Structure: { data: { data: [...] } }
-          responseData = response.data.data;
-          total = response.data.totalCount || response.data.data.length || 0;
-        } else if (Array.isArray(response.data)) {
-          // Structure: { data: [...] }
-          responseData = response.data;
-          total = response.data.length;
-        } else {
-          responseData = [];
-          total = 0;
+        // If search is provided, append it to the URL
+        if (search.trim()) {
+          endpoint = `${endpoint}&search=${encodeURIComponent(search.trim())}`;
         }
-        
-        // Map API response to table format
-        const mappedBills = responseData.map((bill, index) => ({
-          id: index,
-          voucherNo: bill.billNo || bill.voucherNo || '',
-          voucherDate: bill.date || bill.voucherDate || '',
-          customerName: bill.customer || bill.customerName || '',
-          customerCode: bill.customercode || bill.customerCode || '',
-          salesmanName: bill.salesman || bill.salesmanName || '',
-          customerMobile: bill.mobile || bill.customerMobile || '',
-          billAmount: bill.grossAmt || bill.billAmount || 0,
-          netAmount: bill.amount || bill.netAmount || 0,
-          itemCount: bill.items || bill.itemCount || 0,
-          totalQty: bill.qty || bill.totalQty || 0,
-          balance: bill.balance || 0,
-          balanceType: bill.balanceType || 'Dr'
-        }));
 
-        setBills(mappedBills);
-        setTotalCount(total || mappedBills.length);
-        setCurrentPage(page);
-      } else {
+        console.log("Fetching bills from:", endpoint);
+
+        // Call the API
+        const response = await apiService.get(endpoint);
+
+        console.log("Bills API Response:", response);
+
+        if (response && response.data) {
+          // Handle response structure based on the API response
+          let responseData = [];
+          let total = 0;
+
+          if (response.data.data && Array.isArray(response.data.data)) {
+            // Structure: { data: { data: [...] } }
+            responseData = response.data.data;
+            total = response.data.totalCount || response.data.data.length || 0;
+          } else if (Array.isArray(response.data)) {
+            // Structure: { data: [...] }
+            responseData = response.data;
+            total = response.data.length;
+          } else {
+            responseData = [];
+            total = 0;
+          }
+
+          // Map API response to table format
+          const mappedBills = responseData.map((bill, index) => ({
+            id: index,
+            voucherNo: bill.billNo || bill.voucherNo || "",
+            voucherDate: bill.date || bill.voucherDate || "",
+            customerName: bill.customer || bill.customerName || "",
+            customerCode: bill.customercode || bill.customerCode || "",
+            salesmanName: bill.salesman || bill.salesmanName || "",
+            customerMobile: bill.mobile || bill.customerMobile || "",
+            billAmount: bill.grossAmt || bill.billAmount || 0,
+            netAmount: bill.amount || bill.netAmount || 0,
+            itemCount: bill.items || bill.itemCount || 0,
+            totalQty: bill.qty || bill.totalQty || 0,
+            balance: bill.balance || 0,
+            balanceType: bill.balanceType || "Dr",
+          }));
+
+          setBills(mappedBills);
+          setTotalCount(total || mappedBills.length);
+          setCurrentPage(page);
+        } else {
+          setBills([]);
+          setTotalCount(0);
+        }
+      } catch (error) {
+        console.error("Error fetching bills:", error);
         setBills([]);
         setTotalCount(0);
+        setApiError(error.message || "Failed to fetch bills");
+
+        // Show user-friendly error message
+        if (error.response) {
+          alert(
+            `Failed to fetch bills: ${error.response.status} - ${error.response.statusText || "Server error"}`,
+          );
+        } else if (error.request) {
+          alert(
+            "Failed to fetch bills: No response from server. Please check your network connection.",
+          );
+        } else {
+          alert(`Failed to fetch bills: ${error.message || "Network error"}`);
+        }
+      } finally {
+        setLoading(false);
       }
-      
-    } catch (error) {
-      console.error("Error fetching bills:", error);
-      setBills([]);
-      setTotalCount(0);
-      setApiError(error.message || 'Failed to fetch bills');
-      
-      // Show user-friendly error message
-      if (error.response) {
-        alert(`Failed to fetch bills: ${error.response.status} - ${error.response.statusText || 'Server error'}`);
-      } else if (error.request) {
-        alert('Failed to fetch bills: No response from server. Please check your network connection.');
-      } else {
-        alert(`Failed to fetch bills: ${error.message || 'Network error'}`);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [fCompCode, pageSize]);
+    },
+    [fCompCode, pageSize],
+  );
 
   // ---------- API Integration - Fetch Bill Details for Printing ----------
   const fetchBillDetails = useCallback(async (voucherNo) => {
     if (!voucherNo) {
-      alert('Invalid bill number');
+      alert("Invalid bill number");
       return null;
     }
-    
+
     try {
       setPrintLoading(true);
-      
+
       console.log("Fetching details for voucher:", voucherNo);
-      
-      // Get the endpoint for payment voucher details
-      const endpoint = API_ENDPOINTS.BILLCOLLECTOR.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
-      
+      const endpoint =
+        API_ENDPOINTS.BILLCOLLECTOR.GET_PAYMENT_VOUCHER_DETAILS(voucherNo);
       console.log("Details endpoint:", endpoint);
-      
+
       // Call the API
       const response = await apiService.get(endpoint);
-      
-      console.log("Bill details response:", response);
-      
+      console.log("Bill details response (raw):", response);
       if (response && response.data) {
-        // Handle the response structure
+        // Log the actual structure for debugging
+        console.log("Bill details response.data:", response.data);
         let detailsData = {};
-        
         if (response.data.success && response.data.data) {
-          // Structure: { success: true, data: { ... } }
+          console.log("Bill details success/data:", response.data.data);
           detailsData = response.data.data;
         } else if (response.data.data) {
-          // Structure: { data: { ... } }
+          console.log("Bill details data:", response.data.data);
           detailsData = response.data.data;
         } else {
-          // Structure: { ... }
+          console.log("Bill details fallback:", response.data);
           detailsData = response.data;
         }
-        
         setBillDetails(detailsData);
         return detailsData;
       } else {
-        throw new Error(response?.message || 'Failed to fetch bill details');
+        console.error("Bill details response missing data:", response);
+        throw new Error(response?.message || "Failed to fetch bill details");
       }
-      
     } catch (error) {
       console.error("Error fetching bill details:", error);
-      
       if (error.response) {
-        alert(`Failed to load bill details: ${error.response.status} - ${error.response.statusText || 'Server error'}`);
+        alert(
+          `Failed to load bill details: ${error.response.status} - ${error.response.statusText || "Server error"}`,
+        );
       } else if (error.request) {
-        alert('Failed to load bill details: No response from server. Please check your network connection.');
+        alert(
+          "Failed to load bill details: No response from server. Please check your network connection.",
+        );
       } else {
-        alert(`Failed to load bill details: ${error.message || 'Network error'}`);
+        alert(
+          `Failed to load bill details: ${error.message || "Network error"}`,
+        );
       }
       return null;
     } finally {
@@ -221,186 +241,279 @@ function BillCollector() {
 
   // ---------- Print Effect Hook ----------
   useEffect(() => {
-    if (printData && printType === 'thermal' && printInvoiceRef.current) {
-      setTimeout(() => {
-        printInvoiceRef.current?.print();
-        setPrintData(null);
-        setPrintType(null);
-      }, 300);
+    if (printData && printType === "thermal") {
+      console.log(
+        "Print effect: printData and printType set, printInvoiceRef:",
+        printInvoiceRef.current,
+      );
+      if (printInvoiceRef.current) {
+        setTimeout(() => {
+          try {
+            printInvoiceRef.current.print();
+            console.log("PrintInvoice print() called");
+          } catch (err) {
+            console.error("PrintInvoice print() error:", err);
+          }
+          // Delay clearing state to ensure print completes
+          setTimeout(() => {
+            setPrintData(null);
+            setPrintType(null);
+          }, 1000);
+        }, 300);
+      } else {
+        console.warn("PrintInvoice ref not set or not available.");
+      }
     }
   }, [printData, printType]);
-
   // ---------- Print Handlers ----------
-  const handleThermalPrint = useCallback(async (voucherNo) => {
-    const details = await fetchBillDetails(voucherNo);
-    if (!details) return;
-    
-    // Prepare bill data for PrintInvoice
-    const customer = details.customerDetails?.[0] || {};
-    
-    // Transform denominations: Initialize all denominations with default receive/issue structure
-    const transformedDenominations = {};
-    const denominationValues = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-    
-    // Initialize all denominations with receive: 0, issue: 0
-    denominationValues.forEach(denom => {
-      transformedDenominations[denom] = { receive: 0, issue: 0 };
-    });
-    
-    // Calculate cash amount: sum of (receive count * denomination value)
-    let calculatedCashAmount = 0;
-    
-    // Map API denominations (with underscore prefix like _500) to numeric keys
-    if (details.denominations) {
-      Object.entries(details.denominations).forEach(([key, value]) => {
-        // Convert _500 to 500
-        const numericKey = parseInt(key.replace('_', ''), 10);
-        if (denominationValues.includes(numericKey)) {
-          const receiveCount = value?.receive || 0;
-          transformedDenominations[numericKey] = {
-            receive: receiveCount,
-            issue: value?.issue || 0
-          };
-          // Calculate cash: count * denomination value
-          calculatedCashAmount += receiveCount * numericKey;
-        }
-      });
-    }
-    
-    // Extract payment amounts from API response
-    const upiAmount = parseFloat(customer.upiBank) || 0;
-    const cardAmount = parseFloat(customer.cardBank) || 0;
-    const balanceAmount = parseFloat(customer.balanceAMT) || parseFloat(customer.creditaMT) || 0;
-    
-    // Prepare mode of payment array
-    const modeofPayment = [];
-    if (calculatedCashAmount > 0) {
-      modeofPayment.push({ method: 'CASH', amount: calculatedCashAmount });
-    }
-    if (upiAmount > 0) {
-      modeofPayment.push({ method: 'UPI', amount: upiAmount });
-    }
-    if (cardAmount > 0) {
-      modeofPayment.push({ method: 'CARD', amount: cardAmount });
-    }
-    if (balanceAmount > 0) {
-      modeofPayment.push({ method: 'BALANCE', amount: balanceAmount });
-    }
-    
-    const billData = {
-      voucherNo: customer.voucherNo || voucherNo,
-      voucherDate: customer.voucherDate,
-      customerName: customer.customerName,
-      customerMobile: customer.customerMobile,
-      salesmanName: customer.salesmanName,
-      billAmount: (customer.billAmount || 0) + (customer.discount || 0),
-      discount: customer.discount,
-      netAmount: customer.billAmount,
-      items: details.items || [],
-      modeofPayment: modeofPayment,
-      denominations: transformedDenominations,
-      servicechrgeAmt: customer.serviceChargeAmount || 0,
-    };
-    
-    // Set print data and trigger thermal print
-    setPrintData(billData);
-    setPrintType('thermal');
-  }, [fetchBillDetails]);
+  const handleThermalPrint = useCallback(
+    async (voucherNo) => {
+      const details = await fetchBillDetails(voucherNo);
+      if (!details) return;
+      const customer = details.customerDetails?.[0] || {};
 
-  const handleA4Print = useCallback(async (voucherNo) => {
-    const details = await fetchBillDetails(voucherNo);
-    if (!details) return;
-    
-    // Transform denominations: Initialize all denominations with default receive/issue structure
-    const transformedDenominations = {};
-    const denominationValues = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-    
-    // Initialize all denominations with receive: 0, issue: 0
-    denominationValues.forEach(denom => {
-      transformedDenominations[denom] = { receive: 0, issue: 0 };
-    });
-    
-    // Calculate cash amount: sum of (receive count * denomination value)
-    let calculatedCashAmount = 0;
-    
-    // Map API denominations (with underscore prefix like _500) to numeric keys
-    if (details.denominations) {
-      Object.entries(details.denominations).forEach(([key, value]) => {
-        // Convert _500 to 500
-        const numericKey = parseInt(key.replace('_', ''), 10);
-        if (denominationValues.includes(numericKey)) {
-          const receiveCount = value?.receive || 0;
-          transformedDenominations[numericKey] = {
-            receive: receiveCount,
-            issue: value?.issue || 0
-          };
-          // Calculate cash: count * denomination value
-          calculatedCashAmount += receiveCount * numericKey;
-        }
+      // -----------------------------
+      // DENOMINATIONS
+      // -----------------------------
+      const denominationValues = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+      const transformedDenominations = {};
+
+      denominationValues.forEach((d) => {
+        transformedDenominations[d] = { receive: 0, issue: 0 };
       });
-    }
-    
-    // Extract payment amounts from API response
-    const customer = details.customerDetails?.[0] || {};
-    const upiAmount = parseFloat(customer.upiBank) || 0;
-    const cardAmount = parseFloat(customer.cardBank) || 0;
-    const balanceAmount = parseFloat(customer.balanceAMT) || parseFloat(customer.creditaMT) || 0;
-    
-    // Prepare mode of payment array with string amounts
-    const modeofPayment = [];
-    if (calculatedCashAmount > 0) {
-      modeofPayment.push({ method: 'CASH', amount: String(calculatedCashAmount) });
-    }
-    if (upiAmount > 0) {
-      modeofPayment.push({ method: 'UPI', amount: String(upiAmount) });
-    }
-    if (cardAmount > 0) {
-      modeofPayment.push({ method: 'CARD', amount: String(cardAmount) });
-    }
-    if (balanceAmount > 0) {
-      modeofPayment.push({ method: 'BALANCE', amount: String(balanceAmount) });
-    }
-    
-    // Prepare bill data with all values as strings where needed
-    const billData = {
-      voucherNo: String(customer.voucherNo || voucherNo),
-      voucherDate: customer.voucherDate,
-      customerName: customer.customerName || '',
-      customerMobile: customer.customerMobile || '',
-      salesmanName: customer.salesmanName || '',
-      billAmount: String(customer.billAmount || 0),
-      discount: String(customer.discount || 0),
-      netAmount: String(customer.netAmount || 0),
-      servicechrgeAmt: String(customer.serviceChargeAmount || 0),
-      items: (details.items || []).map(item => ({
-        itemName: item.itemName || '',
-        qty: String(item.qty || 0),
-        rate: String(item.rate || 0),
-        amount: String(item.amount || 0),
-        hsn: String(item.hsn || ''),
-        tax: String(item.tax || 0),
-        description: item.description || ''
-      })),
-      modeofPayment: modeofPayment,
-      denominations: transformedDenominations,
-    };
-    
-    // Trigger A4 print directly via PrintTaxInvoice component
-    generateTenderA4PDF({ billData }).catch(err => {
-      console.error('PDF generation error:', err);
-      alert('Failed to generate PDF');
-    });
-  }, [fetchBillDetails]);
+
+      let calculatedCashAmount = 0;
+
+      if (details.denominations) {
+        Object.entries(details.denominations).forEach(([key, value]) => {
+          const numericKey = parseInt(key.replace("_", ""), 10);
+          if (denominationValues.includes(numericKey)) {
+            const receive = Number(value?.receive) || 0;
+            const issue = Number(value?.issue) || 0;
+
+            transformedDenominations[numericKey] = { receive, issue };
+            calculatedCashAmount += receive * numericKey;
+          }
+        });
+      }
+
+      // -----------------------------
+      // PAYMENT
+      // -----------------------------
+      const upiAmount = parseFloat(customer.upiBank) || 0;
+      const cardAmount = parseFloat(customer.cardBank) || 0;
+      const creditAmount = parseFloat(customer.creditaMT) || 0;
+      const balanceAmount = parseFloat(customer.balanceAMT) || 0;
+
+      const modeofPayment = [];
+
+      if (calculatedCashAmount > 0)
+        modeofPayment.push({ method: "CASH", amount: calculatedCashAmount });
+
+      if (upiAmount > 0)
+        modeofPayment.push({ method: "UPI", amount: upiAmount });
+
+      if (cardAmount > 0)
+        modeofPayment.push({ method: "CARD", amount: cardAmount });
+
+      if (creditAmount > 0)
+        modeofPayment.push({ method: "CREDIT", amount: creditAmount });
+
+      if (balanceAmount > 0)
+        modeofPayment.push({ method: "BALANCE", amount: balanceAmount });
+
+      // -----------------------------
+      // PREPARE BILL DATA (MATCH PRINT COMPONENT)
+      // -----------------------------
+      const billData = {
+        voucherNo: customer.voucherNo || voucherNo,
+        voucherDate: customer.voucherDate || "",
+        billTime: customer.time || "",
+
+        // Important: used inside table
+        Type: customer.saleType || "",
+
+        customerName: customer.customerName || "",
+        customerMobile: customer.customerMobile || "",
+        salesmanName: customer.salesmanName || "",
+
+        billAmount: Number(customer.billAmount || 0),
+        discount: Number(customer.discount || 0),
+        discountPercent: Number(customer.discountPercent || 0),
+        netAmount: Number(customer.netAmount || 0),
+
+        roundOff: Number(customer.roundOff || 0), // fixed typo
+        salesReturnAmount: Number(customer.salesReturnAmount || 0),
+        scrapAmount: Number(customer.scrapAmount || 0),
+        freightCharge: Number(customer.freightCharge || 0),
+
+        serviceChargeAmount: Number(customer.serviceChargeAmount || 0),
+        servicechrg: Number(customer.serviceChargeAmount || 0), // for UI compatibility
+        servicechrgper: Number(customer.serviceChargePercent || 0),
+
+        transportNo: customer.transportNo || "",
+        fTransport: customer.transportName || "",
+
+        items: (details.items || []).map((item) => {
+          const taxPercent = Number(item.tax || 0);
+          const amount = Number(item.amount || 0);
+
+          const taxrs = amount - amount / (1 + taxPercent / 100);
+
+          return {
+            itemName: item.itemName || "",
+            qty: Number(item.qty || 0),
+            rate: Number(item.rate || 0),
+            amount: amount,
+            hsn: item.hsn || "",
+            tax: taxPercent,
+
+            // ✅ Calculated GST (Inclusive Method)
+            taxrs: Number(taxrs.toFixed(2)),
+
+            description: item.description || "",
+            mrp: Number(item.rate || 0),
+          };
+        }),
+
+        modeofPayment,
+        denominations: transformedDenominations,
+      };
+
+      setPrintData(billData);
+      setPrintType("thermal");
+    },
+    [fetchBillDetails],
+  );
+
+  const handleA4Print = useCallback(
+    async (voucherNo) => {
+      const details = await fetchBillDetails(voucherNo);
+      if (!details) return;
+
+      const customer = details.customerDetails?.[0] || {};
+      const denominationValues = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+      const transformedDenominations = {};
+      denominationValues.forEach((denom) => {
+        transformedDenominations[denom] = { receive: 0, issue: 0 };
+      });
+      let calculatedCashAmount = 0;
+      if (details.denominations) {
+        Object.entries(details.denominations).forEach(([key, value]) => {
+          const numericKey = parseInt(key.replace("_", ""), 10);
+          if (denominationValues.includes(numericKey)) {
+            const receive = Number(value?.receive) || 0;
+            const issue = Number(value?.issue) || 0;
+            transformedDenominations[numericKey] = { receive, issue };
+            calculatedCashAmount += receive * numericKey;
+          }
+        });
+      }
+      const upiAmount = parseFloat(customer.upiBank) || 0;
+      const cardAmount = parseFloat(customer.cardBank) || 0;
+      const creditAmount = parseFloat(customer.creditaMT) || 0;
+      const balanceAmount = parseFloat(customer.balanceAMT) || 0;
+      const modeofPayment = [];
+      if (calculatedCashAmount > 0)
+        modeofPayment.push({
+          method: "CASH",
+          amount: String(calculatedCashAmount),
+        });
+      if (upiAmount > 0)
+        modeofPayment.push({ method: "UPI", amount: String(upiAmount) });
+      if (cardAmount > 0)
+        modeofPayment.push({ method: "CARD", amount: String(cardAmount) });
+      if (creditAmount > 0)
+        modeofPayment.push({ method: "CREDIT", amount: String(creditAmount) });
+      if (balanceAmount > 0)
+        modeofPayment.push({
+          method: "BALANCE",
+          amount: String(balanceAmount),
+        });
+      const billData = {
+        voucherNo: String(customer.voucherNo || voucherNo),
+        voucherDate: customer.voucherDate || "",
+        billTime: customer.time || "",
+        saleType: customer.saleType || "",
+        customerName: customer.customerName || "",
+        customerMobile: customer.customerMobile || "",
+        customerGst: customer.customerGst || "",
+        customerAddress1: customer.customerAddress1 || "",
+        customerAddress2: customer.customerAddress2 || "",
+        customerAddress3: customer.customerAddress3 || "",
+        salesmanName: customer.salesmanName || "",
+        billAmount: String(customer.billAmount || 0),
+        discount: String(customer.discount || 0),
+        discountPercent: String(customer.discountPercent || 0),
+        netAmount: String(customer.netAmount || 0),
+        serviceChargePercent: String(customer.serviceChargePercent || 0),
+        serviceChargeAmount: String(customer.serviceChargeAmount || 0),
+        isServiceCharge: String(customer.isServiceCharge || 0),
+        freightCharge: String(customer.freightCharge || 0),
+        roundOff: String(customer.roundOff || 0),
+        salesReturnAmount: String(customer.salesReturnAmount || 0),
+        scrapAmount: String(customer.scrapAmount || 0),
+        creditAmount: String(creditAmount),
+        balanceAmount: String(balanceAmount),
+        fTransport: customer.transportName || "",
+        transportNo: customer.transportNo || "",
+         items: (details.items || []).map((item) => {
+          const taxPercent = Number(item.tax || 0);
+          const amount = Number(item.amount || 0);
+
+          const taxrs = amount - amount / (1 + taxPercent / 100);
+
+          return {
+            itemName: item.itemName || "",
+            qty: Number(item.qty || 0),
+            rate: Number(item.rate || 0),
+            amount: amount,
+            hsn: item.hsn || "",
+            tax: taxPercent,
+
+            // ✅ Calculated GST (Inclusive Method)
+            taxrs: Number(taxrs.toFixed(2)),
+
+            description: item.description || "",
+            mrp: Number(item.rate || 0),
+          };
+        }),
+        modeofPayment,
+        denominations: transformedDenominations,
+        calculatedCashAmount: String(calculatedCashAmount),
+      };
+      // Log billData before PDF generation
+      console.log("A4 Print billData:", billData);
+      try {
+        if (!billData || !billData.items || billData.items.length === 0) {
+          alert("Bill data is incomplete. Cannot generate PDF.");
+          return;
+        }
+        generateTenderA4PDF({ billData })
+          .then(() => {
+            console.log("PDF generated successfully.");
+          })
+          .catch((err) => {
+            console.error("PDF generation error:", err);
+            alert("Failed to generate PDF: " + (err?.message || err));
+          });
+      } catch (err) {
+        console.error("PDF generation error:", err);
+        alert("Failed to generate PDF: " + (err?.message || err));
+      }
+    },
+    [fetchBillDetails],
+  );
 
   // ---------- Thermal Receipt Print Function ----------
   const printThermalReceipt = (details, voucherNo) => {
     const customer = details.customerDetails?.[0] || {};
     const items = details.items || [];
     const denominations = details.denominations || {};
-    
+
     const billAmount = details.grossAmt || customer.grossAmt || 0;
     const netAmount = details.amount || customer.amount || "0";
-    
+
     const printContent = `
       SHANKARAPANDIAN STORES
       123 Main Street, City, State
@@ -411,41 +524,54 @@ function BillCollector() {
       =================================
       Bill No: ${voucherNo}
       Date: ${formatDate(details.date || customer.date || new Date())}
-      Customer: ${details.customer || customer.customer || 'N/A'}
-      Mobile: ${details.mobile || customer.mobile || 'N/A'}
-      Salesman: ${details.salesman || customer.salesman || 'N/A'}
+      Customer: ${details.customer || customer.customer || "N/A"}
+      Mobile: ${details.mobile || customer.mobile || "N/A"}
+      Salesman: ${details.salesman || customer.salesman || "N/A"}
       =================================
       Item                 Qty   Rate   Amount
       =================================
-      ${items.map(item => `
-      ${truncateText(item.itemName || item.productName || 'Item', 16)}
+      ${items
+        .map(
+          (item) => `
+      ${truncateText(item.itemName || item.productName || "Item", 16)}
       ${item.qty || item.quantity || 0}     ${item.rate || item.price || 0}   ${item.amount || item.total || 0}
-      HSN: ${item.hsn || item.hsnCode || ''} 
+      HSN: ${item.hsn || item.hsnCode || ""} 
       Tax: ${item.tax || item.taxRate || 0}%
-      ${item.description ? `Desc: ${item.description}` : ''}
-      `).join('')}
+      ${item.description ? `Desc: ${item.description}` : ""}
+      `,
+        )
+        .join("")}
       =================================
       Bill Amount: ₹${Number(billAmount).toFixed(2)}
       =================================
       NET AMOUNT: ₹${netAmount}
       =================================
-      ${denominations ? `
+      ${
+        denominations
+          ? `
       Cash Denomination:
-      ${Object.entries(denominations).map(([denom, count]) => {
-        if (count && count > 0) {
-          const value = denom.replace('_', '');
-          return `₹${value}: ${count}`;
-        }
-        return '';
-      }).filter(Boolean).join('\n      ')}
+      ${Object.entries(denominations)
+        .map(([denom, count]) => {
+          if (count && count > 0) {
+            const value = denom.replace("_", "");
+            return `₹${value}: ${count}`;
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join("\n      ")}
       =================================
-      ` : ''}
+      `
+          : ""
+      }
       Thank you for your business!
       This is computer generated invoice
     `;
-    
-    const printWindow = window.open('', '_blank', 'height=600,width=400');
-    printWindow.document.write(`<pre style="font-family: monospace; font-size: 12px; padding: 10px; max-width: 300px;">${printContent}</pre>`);
+
+    const printWindow = window.open("", "_blank", "height=600,width=400");
+    printWindow.document.write(
+      `<pre style="font-family: monospace; font-size: 12px; padding: 10px; max-width: 300px;">${printContent}</pre>`,
+    );
     printWindow.document.write(`
       <div style="position:fixed; bottom:20px; right:20px; display:flex; gap:10px;">
         <button onclick="window.print()" style="padding:10px 20px; background:#28a745; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">🖨️ Print Thermal</button>
@@ -460,23 +586,23 @@ function BillCollector() {
     const customer = details.customerDetails?.[0] || {};
     const items = details.items || [];
     const denominations = details.denominations || {};
-    
+
     const billAmount = details.grossAmt || customer.grossAmt || 0;
     const netAmount = details.amount || customer.amount || "0";
-    
+
     // Calculate total cash from denominations
     let totalCash = 0;
     if (denominations) {
       Object.entries(denominations).forEach(([denom, count]) => {
         if (count && count > 0) {
-          const value = parseInt(denom.replace('_', '')) || 0;
+          const value = parseInt(denom.replace("_", "")) || 0;
           totalCash += count * value;
         }
       });
     }
-    
-    const printWindow = window.open('', '_blank', 'height=600,width=800');
-    
+
+    const printWindow = window.open("", "_blank", "height=600,width=800");
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -615,13 +741,13 @@ function BillCollector() {
           </div>
           <div class="bill-info-right">
             <div class="bill-row">
-              <div><strong>Customer:</strong> ${details.customer || customer.customer || 'N/A'}</div>
+              <div><strong>Customer:</strong> ${details.customer || customer.customer || "N/A"}</div>
             </div>
             <div class="bill-row">
-              <div><strong>Mobile:</strong> ${details.mobile || customer.mobile || 'N/A'}</div>
+              <div><strong>Mobile:</strong> ${details.mobile || customer.mobile || "N/A"}</div>
             </div>
             <div class="bill-row">
-              <div><strong>Customer Code:</strong> ${details.customercode || customer.customercode || 'N/A'}</div>
+              <div><strong>Customer Code:</strong> ${details.customercode || customer.customercode || "N/A"}</div>
             </div>
           </div>
         </div>
@@ -639,20 +765,24 @@ function BillCollector() {
             </tr>
           </thead>
           <tbody>
-            ${items.map((item, index) => `
+            ${items
+              .map(
+                (item, index) => `
               <tr>
                 <td>${index + 1}</td>
                 <td>
-                  ${item.itemName || item.productName || ''}
-                  ${item.description ? `<br/><small style="color: #666;">${item.description}</small>` : ''}
+                  ${item.itemName || item.productName || ""}
+                  ${item.description ? `<br/><small style="color: #666;">${item.description}</small>` : ""}
                 </td>
-                <td>${item.hsn || item.hsnCode || ''}</td>
+                <td>${item.hsn || item.hsnCode || ""}</td>
                 <td>${item.tax || item.taxRate || 0}%</td>
                 <td>${item.qty || item.quantity || 0}</td>
                 <td>₹${Number(item.rate || item.price || 0).toFixed(2)}</td>
                 <td>₹${Number(item.amount || item.total || 0).toFixed(2)}</td>
               </tr>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </tbody>
         </table>
         
@@ -667,26 +797,32 @@ function BillCollector() {
           </div>
         </div>
         
-        ${denominations && Object.keys(denominations).length > 0 ? `
+        ${
+          denominations && Object.keys(denominations).length > 0
+            ? `
         <div class="denomination-section">
           <div><strong>Cash Denomination:</strong></div>
           <div style="margin-bottom: 5px;">Total Cash: ₹${totalCash.toFixed(2)}</div>
           <div class="denomination-grid">
-            ${Object.entries(denominations).map(([denom, count]) => {
-              if (count && count > 0) {
-                const value = denom.replace('_', '');
-                return `
+            ${Object.entries(denominations)
+              .map(([denom, count]) => {
+                if (count && count > 0) {
+                  const value = denom.replace("_", "");
+                  return `
                   <div class="denom-item">
                     <span>₹${value}:</span>
                     <span>${count} × ${value} = ₹${count * parseInt(value)}</span>
                   </div>
                 `;
-              }
-              return '';
-            }).join('')}
+                }
+                return "";
+              })
+              .join("")}
           </div>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <div class="footer">
           <div>Thank you for your business!</div>
@@ -700,7 +836,7 @@ function BillCollector() {
       </body>
       </html>
     `;
-    
+
     printWindow.document.write(printContent);
     printWindow.document.close();
   };
@@ -708,142 +844,156 @@ function BillCollector() {
   // ---------- Helper Functions ----------
   const formatDate = (dateString) => {
     try {
-      if (!dateString) return '-';
+      if (!dateString) return "-";
       if (dateString instanceof Date) {
-        return dateString.toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        }).replace(/\//g, '-');
+        return dateString
+          .toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })
+          .replace(/\//g, "-");
       }
-      if (dateString.includes('T')) {
+      if (dateString.includes("T")) {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        }).replace(/\//g, '-');
+        return date
+          .toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })
+          .replace(/\//g, "-");
       }
-      if (dateString.includes('-')) {
-        const parts = dateString.split(' ')[0].split('-');
+      if (dateString.includes("-")) {
+        const parts = dateString.split(" ")[0].split("-");
         if (parts.length === 3) {
           return `${parts[2]}-${parts[1]}-${parts[0]}`;
         }
       }
       return dateString;
     } catch (error) {
-      return dateString || '-';
+      return dateString || "-";
     }
   };
 
   const truncateText = (text, maxLength) => {
-    if (!text) return '';
+    if (!text) return "";
     if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength - 3) + '...';
+    return text.substring(0, maxLength - 3) + "...";
   };
 
   // ---------- Pagination Component ----------
   const Pagination = ({ currentPage, totalCount, pageSize, onPageChange }) => {
     const totalPages = Math.ceil(totalCount / pageSize);
-    
+
     if (totalPages <= 1) return null;
-    
+
     const getPageNumbers = () => {
       const pageNumbers = [];
       const maxVisible = isMobile ? 3 : 5;
-      
+
       if (totalPages <= maxVisible) {
         for (let i = 1; i <= totalPages; i++) {
           pageNumbers.push(i);
         }
       } else {
         pageNumbers.push(1);
-        
+
         if (currentPage > 3) {
-          pageNumbers.push('...');
+          pageNumbers.push("...");
         }
-        
+
         const start = Math.max(2, currentPage - 1);
         const end = Math.min(totalPages - 1, currentPage + 1);
-        
+
         for (let i = start; i <= end; i++) {
           pageNumbers.push(i);
         }
-        
+
         if (currentPage < totalPages - 2) {
-          pageNumbers.push('...');
+          pageNumbers.push("...");
         }
-        
+
         pageNumbers.push(totalPages);
       }
-      
+
       return pageNumbers;
     };
 
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: isMobile ? '6px' : '10px',
-        padding: isMobile ? '12px 0' : '16px 0',
-        flexWrap: 'wrap'
-      }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: isMobile ? "6px" : "10px",
+          padding: isMobile ? "12px 0" : "16px 0",
+          flexWrap: "wrap",
+        }}
+      >
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           style={{
-            padding: isMobile ? '6px 12px' : '8px 16px',
-            backgroundColor: currentPage === 1 ? '#e0e0e0' : '#1B91DA',
-            color: currentPage === 1 ? '#666' : 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '600',
-            transition: 'all 0.2s'
+            padding: isMobile ? "6px 12px" : "8px 16px",
+            backgroundColor: currentPage === 1 ? "#e0e0e0" : "#1B91DA",
+            color: currentPage === 1 ? "#666" : "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: currentPage === 1 ? "not-allowed" : "pointer",
+            fontSize: isMobile ? "12px" : "14px",
+            fontWeight: "600",
+            transition: "all 0.2s",
           }}
         >
           ← Previous
         </button>
-        
-        {getPageNumbers().map((page, index) => (
-          page === '...' ? (
-            <span key={`ellipsis-${index}`} style={{ padding: '0 4px', color: '#666' }}>...</span>
+
+        {getPageNumbers().map((page, index) =>
+          page === "..." ? (
+            <span
+              key={`ellipsis-${index}`}
+              style={{ padding: "0 4px", color: "#666" }}
+            >
+              ...
+            </span>
           ) : (
             <button
               key={page}
               onClick={() => onPageChange(page)}
               style={{
-                padding: isMobile ? '6px 10px' : '8px 14px',
-                backgroundColor: currentPage === page ? '#1B91DA' : 'white',
-                color: currentPage === page ? 'white' : '#333',
-                border: currentPage === page ? '1px solid #1B91DA' : '1px solid #d1d5db',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: isMobile ? '12px' : '14px',
-                fontWeight: currentPage === page ? '600' : '400',
-                transition: 'all 0.2s'
+                padding: isMobile ? "6px 10px" : "8px 14px",
+                backgroundColor: currentPage === page ? "#1B91DA" : "white",
+                color: currentPage === page ? "white" : "#333",
+                border:
+                  currentPage === page
+                    ? "1px solid #1B91DA"
+                    : "1px solid #d1d5db",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: isMobile ? "12px" : "14px",
+                fontWeight: currentPage === page ? "600" : "400",
+                transition: "all 0.2s",
               }}
             >
               {page}
             </button>
-          )
-        ))}
-        
+          ),
+        )}
+
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           style={{
-            padding: isMobile ? '6px 12px' : '8px 16px',
-            backgroundColor: currentPage === totalPages ? '#e0e0e0' : '#1B91DA',
-            color: currentPage === totalPages ? '#666' : 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '600',
-            transition: 'all 0.2s'
+            padding: isMobile ? "6px 12px" : "8px 16px",
+            backgroundColor: currentPage === totalPages ? "#e0e0e0" : "#1B91DA",
+            color: currentPage === totalPages ? "#666" : "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+            fontSize: isMobile ? "12px" : "14px",
+            fontWeight: "600",
+            transition: "all 0.2s",
           }}
         >
           Next →
@@ -855,33 +1005,37 @@ function BillCollector() {
   // ---------- Page Size Selector ----------
   const PageSizeSelector = ({ pageSize, onPageSizeChange }) => {
     const pageSizes = [10, 20, 50, 100];
-    
+
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        fontSize: isMobile ? '12px' : '14px'
-      }}>
-        <span style={{ color: '#666' }}>Show:</span>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          fontSize: isMobile ? "12px" : "14px",
+        }}
+      >
+        <span style={{ color: "#666" }}>Show:</span>
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
           style={{
-            padding: isMobile ? '6px 10px' : '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '4px',
-            fontSize: isMobile ? '12px' : '14px',
-            backgroundColor: 'white',
-            cursor: 'pointer',
-            outline: 'none'
+            padding: isMobile ? "6px 10px" : "8px 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: "4px",
+            fontSize: isMobile ? "12px" : "14px",
+            backgroundColor: "white",
+            cursor: "pointer",
+            outline: "none",
           }}
         >
-          {pageSizes.map(size => (
-            <option key={size} value={size}>{size}</option>
+          {pageSizes.map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
           ))}
         </select>
-        <span style={{ color: '#666' }}>entries</span>
+        <span style={{ color: "#666" }}>entries</span>
       </div>
     );
   };
@@ -911,7 +1065,7 @@ function BillCollector() {
     justifyContent: "space-between",
     gap: isMobile ? "12px" : "16px",
     border: "1px solid #e5e7eb",
-    borderBottom: "none"
+    borderBottom: "none",
   };
 
   const searchSection = {
@@ -919,7 +1073,7 @@ function BillCollector() {
     flexDirection: isMobile ? "column" : "row",
     alignItems: isMobile ? "stretch" : "center",
     gap: isMobile ? "8px" : "16px",
-    flex: 1
+    flex: 1,
   };
 
   const billNoBox = {
@@ -930,39 +1084,39 @@ function BillCollector() {
     width: isMobile ? "100%" : "300px",
     transition: "all 0.25s",
     outline: "none",
-    backgroundColor: "#ffffff"
+    backgroundColor: "#ffffff",
   };
 
   const billNoBoxFocus = {
     ...billNoBox,
     borderColor: "#307AC8",
     boxShadow: "0 0 0 2px rgba(48, 122, 200, 0.08)",
-    backgroundColor: "#f0f8ff"
+    backgroundColor: "#f0f8ff",
   };
 
   const tableContainer = {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 10,
-    overflowX: 'auto',
-    overflowY: 'auto',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    border: '1px solid #e0e0e0',
-    margin: isMobile ? '6px' : '16px',
-    marginTop: isMobile ? '6px' : '16px',
-    marginBottom: isMobile ? '6px' : '16px',
-    WebkitOverflowScrolling: 'touch',
-    width: isMobile ? 'calc(100% - 12px)' : 'calc(100% - 32px)',
-    boxSizing: 'border-box',
-    flex: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    maxHeight: isMobile ? '60vh' : '70vh',
+    overflowX: "auto",
+    overflowY: "auto",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    border: "1px solid #e0e0e0",
+    margin: isMobile ? "6px" : "16px",
+    marginTop: isMobile ? "6px" : "16px",
+    marginBottom: isMobile ? "6px" : "16px",
+    WebkitOverflowScrolling: "touch",
+    width: isMobile ? "calc(100% - 12px)" : "calc(100% - 32px)",
+    boxSizing: "border-box",
+    flex: "none",
+    display: "flex",
+    flexDirection: "column",
+    maxHeight: isMobile ? "60vh" : "70vh",
   };
 
   const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    tableLayout: 'auto',
+    width: "100%",
+    borderCollapse: "collapse",
+    tableLayout: "auto",
   };
 
   const thStyle = {
@@ -970,18 +1124,18 @@ function BillCollector() {
     fontSize: isMobile ? "10px" : "13px",
     fontWeight: "700",
     lineHeight: "1.2",
-    backgroundColor: '#1B91DA',
-    color: 'white',
-    padding: isMobile ? '10px 4px' : '12px 8px',
-    textAlign: 'center',
-    letterSpacing: '0.5px',
-    position: 'sticky',
+    backgroundColor: "#1B91DA",
+    color: "white",
+    padding: isMobile ? "10px 4px" : "12px 8px",
+    textAlign: "center",
+    letterSpacing: "0.5px",
+    position: "sticky",
     top: 0,
     zIndex: 10,
-    border: '1px solid white',
-    borderBottom: '2px solid white',
-    whiteSpace: 'nowrap',
-    verticalAlign: 'middle',
+    border: "1px solid white",
+    borderBottom: "2px solid white",
+    whiteSpace: "nowrap",
+    verticalAlign: "middle",
   };
 
   const tdStyle = {
@@ -989,56 +1143,56 @@ function BillCollector() {
     fontSize: isMobile ? "11px" : "13px",
     fontWeight: "500",
     lineHeight: "1.4",
-    padding: isMobile ? '10px 5px' : '12px 8px',
-    textAlign: 'center',
-    border: '1px solid #e0e0e0',
-    color: '#333',
-    verticalAlign: 'middle',
+    padding: isMobile ? "10px 5px" : "12px 8px",
+    textAlign: "center",
+    border: "1px solid #e0e0e0",
+    color: "#333",
+    verticalAlign: "middle",
   };
 
   const selectedRowStyle = {
     ...tdStyle,
-    backgroundColor: '#e3f2fd'
+    backgroundColor: "#e3f2fd",
   };
 
   const printButtonContainer = {
-    display: 'flex',
-    gap: '4px',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexWrap: 'wrap'
+    display: "flex",
+    gap: "4px",
+    justifyContent: "center",
+    alignItems: "center",
+    flexWrap: "wrap",
   };
 
   const thermalButton = {
-    backgroundColor: '#28a745',
-    color: 'white',
-    border: 'none',
-    padding: isMobile ? '5px 8px' : '6px 12px',
-    borderRadius: '4px',
-    fontSize: isMobile ? '10px' : '11px',
-    cursor: 'pointer',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.2s'
+    backgroundColor: "#28a745",
+    color: "white",
+    border: "none",
+    padding: isMobile ? "5px 8px" : "6px 12px",
+    borderRadius: "4px",
+    fontSize: isMobile ? "10px" : "11px",
+    cursor: "pointer",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    whiteSpace: "nowrap",
+    transition: "all 0.2s",
   };
 
   const a4Button = {
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    padding: isMobile ? '5px 8px' : '6px 12px',
-    borderRadius: '4px',
-    fontSize: isMobile ? '10px' : '11px',
-    cursor: 'pointer',
-    fontWeight: '600',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.2s'
+    backgroundColor: "#dc3545",
+    color: "white",
+    border: "none",
+    padding: isMobile ? "5px 8px" : "6px 12px",
+    borderRadius: "4px",
+    fontSize: isMobile ? "10px" : "11px",
+    cursor: "pointer",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    whiteSpace: "nowrap",
+    transition: "all 0.2s",
   };
 
   // ---------- Render Component ----------
@@ -1085,9 +1239,13 @@ function BillCollector() {
 
       <div style={billNoContainer}>
         <div style={searchSection}>
-          <div style={{ fontWeight: "700", color: "#1f2937", fontSize: "17px" }}>Search Bill:</div>
-          <input 
-            type="text" 
+          <div
+            style={{ fontWeight: "700", color: "#1f2937", fontSize: "17px" }}
+          >
+            Search Bill:
+          </div>
+          <input
+            type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onFocus={() => setIsFocused(true)}
@@ -1096,90 +1254,122 @@ function BillCollector() {
             style={isFocused ? billNoBoxFocus : billNoBox}
           />
           {searchInput !== debouncedSearch && (
-            <span style={{ color: '#666', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <div className="loading-spinner" style={{ width: '14px', height: '14px' }}></div>
+            <span
+              style={{
+                color: "#666",
+                fontSize: "12px",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+              }}
+            >
+              <div
+                className="loading-spinner"
+                style={{ width: "14px", height: "14px" }}
+              ></div>
               Searching...
             </span>
           )}
         </div>
-        <PageSizeSelector pageSize={pageSize} onPageSizeChange={handlePageSizeChange} />
+        <PageSizeSelector
+          pageSize={pageSize}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
 
       {printLoading && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          backgroundColor: 'rgba(0,0,0,0.85)',
-          color: 'white',
-          padding: '20px 30px',
-          borderRadius: '12px',
-          zIndex: 1000,
-          fontSize: '16px',
-          fontWeight: 'bold',
-          animation: 'fadeIn 0.3s',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '15px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-        }}>
-          <div className="loading-spinner" style={{ width: '24px', height: '24px', borderWidth: '4px' }}></div>
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: "rgba(0,0,0,0.85)",
+            color: "white",
+            padding: "20px 30px",
+            borderRadius: "12px",
+            zIndex: 1000,
+            fontSize: "16px",
+            fontWeight: "bold",
+            animation: "fadeIn 0.3s",
+            display: "flex",
+            alignItems: "center",
+            gap: "15px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+          }}
+        >
+          <div
+            className="loading-spinner"
+            style={{ width: "24px", height: "24px", borderWidth: "4px" }}
+          ></div>
           📄 Loading bill details for printing...
         </div>
       )}
 
       <div style={tableContainer}>
         {loading ? (
-          <div style={{ 
-            display: "flex", 
-            flexDirection: "column",
-            justifyContent: "center", 
-            alignItems: "center", 
-            height: "300px", 
-            color: "#6b7280",
-            fontSize: "16px",
-            fontWeight: "500",
-            gap: "20px"
-          }}>
-            <div className="loading-spinner" style={{ width: '40px', height: '40px', borderWidth: '4px' }}></div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "300px",
+              color: "#6b7280",
+              fontSize: "16px",
+              fontWeight: "500",
+              gap: "20px",
+            }}
+          >
+            <div
+              className="loading-spinner"
+              style={{ width: "40px", height: "40px", borderWidth: "4px" }}
+            ></div>
             <span>Loading bills...</span>
           </div>
         ) : bills.length === 0 ? (
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "center", 
-            alignItems: "center", 
-            height: "300px", 
-            color: "#6b7280",
-            fontSize: "16px",
-            fontWeight: "500",
-            flexDirection: 'column',
-            gap: '15px'
-          }}>
-            <span style={{ fontSize: '48px', marginBottom: '10px' }}>📄</span>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "300px",
+              color: "#6b7280",
+              fontSize: "16px",
+              fontWeight: "500",
+              flexDirection: "column",
+              gap: "15px",
+            }}
+          >
+            <span style={{ fontSize: "48px", marginBottom: "10px" }}>📄</span>
             {debouncedSearch ? (
               <>
                 <div>No bills found for "{debouncedSearch}"</div>
-                <div style={{ fontSize: '14px', color: '#9ca3af' }}>Try searching with different keywords</div>
+                <div style={{ fontSize: "14px", color: "#9ca3af" }}>
+                  Try searching with different keywords
+                </div>
               </>
             ) : (
               <>
                 <div>No bills found</div>
-                <div style={{ fontSize: '14px', color: '#9ca3af' }}>Start searching to view bills</div>
+                <div style={{ fontSize: "14px", color: "#9ca3af" }}>
+                  Start searching to view bills
+                </div>
               </>
             )}
             {apiError && (
-              <div style={{ 
-                fontSize: '12px', 
-                color: '#dc3545', 
-                maxWidth: '80%', 
-                textAlign: 'center',
-                backgroundColor: '#fee',
-                padding: '10px 20px',
-                borderRadius: '6px',
-                marginTop: '10px'
-              }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#dc3545",
+                  maxWidth: "80%",
+                  textAlign: "center",
+                  backgroundColor: "#fee",
+                  padding: "10px 20px",
+                  borderRadius: "6px",
+                  marginTop: "10px",
+                }}
+              >
                 Error: {apiError}
               </div>
             )}
@@ -1205,69 +1395,111 @@ function BillCollector() {
 
             <tbody>
               {bills.map((row, index) => (
-                <tr 
+                <tr
                   key={row.voucherNo || index}
                   onClick={() => setSelectedRow(index)}
-                  style={{ 
-                    backgroundColor: selectedRow === index ? '#e3f2fd' : (index % 2 === 0 ? '#ffffff' : '#fafafa'),
+                  style={{
+                    backgroundColor:
+                      selectedRow === index
+                        ? "#e3f2fd"
+                        : index % 2 === 0
+                          ? "#ffffff"
+                          : "#fafafa",
                     transition: "all 0.2s",
-                    cursor: "pointer"
+                    cursor: "pointer",
                   }}
                 >
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
-                    {((currentPage - 1) * pageSize) + index + 1}
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
+                    {(currentPage - 1) * pageSize + index + 1}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
                     {formatDate(row.voucherDate)}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
                     <div style={{ color: "#1B91DA", fontWeight: "bold" }}>
-                      {row.voucherNo || '-'}
+                      {row.voucherNo || "-"}
                     </div>
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
-                    {row.customerCode || '-'}
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
+                    {row.customerCode || "-"}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
-                    {row.customerName || '-'}
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
+                    {row.customerName || "-"}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
                     {row.customerMobile || "-"}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
-                    {row.itemCount || '0'}
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
+                    {row.itemCount || "0"}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
-                    {row.totalQty || '0'}
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
+                    {row.totalQty || "0"}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
-                    ₹{Number(row.billAmount || 0).toLocaleString('en-IN')}
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
+                    ₹{Number(row.billAmount || 0).toLocaleString("en-IN")}
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
                     <div style={{ fontWeight: "bold", color: "#28a745" }}>
-                      ₹{Number(row.netAmount || 0).toLocaleString('en-IN')}
+                      ₹{Number(row.netAmount || 0).toLocaleString("en-IN")}
                     </div>
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
-                    <div style={{ 
-                      fontWeight: "bold", 
-                      color: row.balance > 0 ? '#dc3545' : '#28a745' 
-                    }}>
-                      ₹{Number(row.balance || 0).toLocaleString('en-IN')}
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        color: row.balance > 0 ? "#dc3545" : "#28a745",
+                      }}
+                    >
+                      ₹{Number(row.balance || 0).toLocaleString("en-IN")}
                       {row.balanceType && (
-                        <span style={{ fontSize: '10px', marginLeft: '2px' }}>
+                        <span style={{ fontSize: "10px", marginLeft: "2px" }}>
                           {row.balanceType}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td style={selectedRow === index ? selectedRowStyle : tdStyle}>
+                  <td
+                    style={selectedRow === index ? selectedRowStyle : tdStyle}
+                  >
                     <div style={printButtonContainer}>
-                      <button 
-                        style={printLoading ? {...thermalButton, opacity: 0.6} : thermalButton}
+                      <button
+                        style={
+                          printLoading
+                            ? { ...thermalButton, opacity: 0.6 }
+                            : thermalButton
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
+                          console.log(
+                            "Thermal print button clicked for voucherNo:",
+                            row.voucherNo,
+                            "printLoading:",
+                            printLoading,
+                          );
                           if (!printLoading) {
+                            console.log("inside");
                             handleThermalPrint(row.voucherNo);
                           }
                         }}
@@ -1276,8 +1508,12 @@ function BillCollector() {
                       >
                         <FaPrint /> Thermal
                       </button>
-                      <button 
-                        style={printLoading ? {...a4Button, opacity: 0.6} : a4Button}
+                      <button
+                        style={
+                          printLoading
+                            ? { ...a4Button, opacity: 0.6 }
+                            : a4Button
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!printLoading) {
@@ -1299,7 +1535,7 @@ function BillCollector() {
       </div>
 
       {/* Hidden Print Components */}
-      {printData && printType === 'thermal' && (
+      {printData && printType === "thermal" && (
         <PrintInvoice
           ref={printInvoiceRef}
           billData={printData}
@@ -1309,24 +1545,29 @@ function BillCollector() {
 
       {/* Pagination Controls */}
       {bills.length > 0 && !loading && (
-        <div style={{
-          backgroundColor: 'white',
-          padding: isMobile ? '12px 16px' : '16px 24px',
-          borderTop: '1px solid #e0e0e0',
-          margin: isMobile ? '6px 16px 16px' : '0 32px 20px',
-          borderRadius: '0 0 8px 8px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-        }}>
-          <div style={{ 
-            fontSize: isMobile ? '12px' : '14px', 
-            color: '#666',
-            fontWeight: '500',
-            marginBottom: '12px',
-            textAlign: 'center'
-          }}>
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} bills
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: isMobile ? "12px 16px" : "16px 24px",
+            borderTop: "1px solid #e0e0e0",
+            margin: isMobile ? "6px 16px 16px" : "0 32px 20px",
+            borderRadius: "0 0 8px 8px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: isMobile ? "12px" : "14px",
+              color: "#666",
+              fontWeight: "500",
+              marginBottom: "12px",
+              textAlign: "center",
+            }}
+          >
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, totalCount)} of {totalCount} bills
           </div>
-          <Pagination 
+          <Pagination
             currentPage={currentPage}
             totalCount={totalCount}
             pageSize={pageSize}
