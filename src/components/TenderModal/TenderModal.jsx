@@ -1267,10 +1267,8 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
         balanceAmt: Number(formData.balance) || 0,
         servicechrgeAmt: Number(formData.serviceCharge) || 0,
         fdisAmt: Number(formData.billDiscAmt) || 0,
-        fFreight: Number(formData.freightCharge) || 0,
-        fTRans: formData.isTransportCharge
-          ? Number(formData.transport) || 0
-          : 0,
+        fFreight: Number(formData.freightCharge) || 0,       
+        fTRans:  formData.isTransportCharge && selectedTransport ? selectedTransport.fCode : "",
         fCardchrg: formData.isServiceCharge
           ? Number(formData.serviceChargeAmount)
           : 0,
@@ -1559,7 +1557,7 @@ const TenderModal = ({ isOpen, onClose, billData, onSaveSuccess }) => {
           modeofPayment: modeOfPaymentData,
         };
 
-        console.log("Final print data:", printData);
+        console.log("Final print data:", JSON.stringify(printData));
         setPrintBillData(printData);
       } else {
         console.warn("No data found in API response");
