@@ -42,6 +42,92 @@ const DailyReport = () => {
   const [companyLoading, setCompanyLoading] = useState(false);
   const [companySearchTerm, setCompanySearchTerm] = useState('');
 
+
+  const renderSideBySideSection = (
+  leftTitle,
+  leftData,
+  leftAmountKey,
+  rightTitle,
+  rightData,
+  rightAmountKey
+) => {
+
+  const maxLength = Math.max(leftData?.length || 0, rightData?.length || 0);
+
+  if (maxLength === 0) return null;
+
+  return (
+    <>
+      {/* ===== SECTION TITLE ROW ===== */}
+      <tr>
+        <td colSpan={4} style={{
+          ...styles.td,
+          fontWeight: 'bold',
+          backgroundColor: '#e3f2fd',
+          textAlign: 'center'
+        }}>
+          {leftTitle}
+        </td>
+
+        <td colSpan={4} style={{
+          ...styles.td,
+          fontWeight: 'bold',
+          backgroundColor: '#bbdefb',
+          textAlign: 'center'
+        }}>
+          {rightTitle}
+        </td>
+      </tr>
+
+      {/* ===== DATA ROWS ===== */}
+      {Array.from({ length: maxLength }).map((_, index) => {
+        const left = leftData?.[index];
+        const right = rightData?.[index];
+
+        return (
+          <tr key={index}>
+            {/* LEFT SIDE */}
+            <td style={styles.td}>{left?.voucherNo || '-'}</td>
+            <td style={styles.td}>{left?.partyName || left?.refName || '-'}</td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              {left?.qty ?? '-'}
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              {left ? formatCurrency(left[leftAmountKey] || 0) : '-'}
+            </td>
+
+            {/* RIGHT SIDE */}
+            <td style={styles.td}>{right?.voucherNo || right?.vouchNo || '-'}</td>
+            <td style={styles.td}>{right?.partyName || right?.refName || '-'}</td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              {right?.qty ?? '-'}
+            </td>
+            <td style={{ ...styles.td, textAlign: 'right' }}>
+              {right ? formatCurrency(right[rightAmountKey] || 0) : '-'}
+            </td>
+          </tr>
+        );
+      })}
+
+      {/* ===== TOTAL ROW ===== */}
+      <tr style={styles.totalRow}>
+        <td colSpan={3} style={styles.td}><strong>Total</strong></td>
+        <td style={{ ...styles.td, textAlign: 'right' }}>
+          <strong>
+            {formatCurrency(calculateSectionTotal(leftData, leftAmountKey))}
+          </strong>
+        </td>
+
+        <td colSpan={3} style={styles.td}><strong>Total</strong></td>
+        <td style={{ ...styles.td, textAlign: 'right' }}>
+          <strong>
+            {formatCurrency(calculateSectionTotal(rightData, rightAmountKey))}
+          </strong>
+        </td>
+      </tr>
+    </>
+  );
+};
   // Fetch company list when popup opens
   useEffect(() => {
     if (showCompanyPopup) {
@@ -1852,423 +1938,98 @@ const DailyReport = () => {
              
               </h2>
 
-              {/* Main Table with Left and Right Sections */}
-              <div style={{
-                display: 'flex',
-                gap: '20px',
-                flexDirection: screenSize.isMobile ? 'column' : 'row',
-                maxHeight: 'calc(100vh - 450px)',
-                minHeight: '400px'
-              }}>
-                
-                {/* LEFT SIDE: Transaction Data */}
-                <div style={{ flex: 1, overflowY: 'auto' }}>
-                  <table style={{...styles.table, width: '100%'}}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Voucher No</th>
-                        <th style={styles.th}>Party Name</th>
-                        <th style={styles.th}>Qty</th>
-                        <th style={styles.th}>Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      
-                      {/* Sales Entry Section */}
-                      {reportData.salesEntryData && reportData.salesEntryData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e3f2fd'}}>
-                              SALES ENTRY
-                            </td>
-                          </tr>
-                          {reportData.salesEntryData.map((item, index) => (
-                            <tr key={`sales-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Sales Entry Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesEntryData, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+              
+             <div style={{
+  width: '100%',
+  overflowY: 'auto',
+  maxHeight: 'calc(100vh - 450px)',
+  minHeight: '400px'
+}}>
+  <table style={{ ...styles.table, width: '100%' }}>
 
-                      {/* Sales Return Data Section */}
-                      {reportData.salesReturnData && reportData.salesReturnData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fff3e0'}}>
-                              SALES RETURNS
-                            </td>
-                          </tr>
-                          {reportData.salesReturnData.map((item, index) => (
-                            <tr key={`salesReturn-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Sales Return Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnData, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+    {/* ===== HEADER ===== */}
+    <thead>
+      <tr>
+        <th style={styles.th}>Voucher No</th>
+        <th style={styles.th}>Party Name</th>
+        <th style={styles.th}>Qty</th>
+        <th style={styles.th}>Amount</th>
 
-                      {/* Purchase Data Section */}
-                      {reportData.purchaseData && reportData.purchaseData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e8f5e9'}}>
-                              PURCHASE DATA
-                            </td>
-                          </tr>
-                          {reportData.purchaseData.map((item, index) => (
-                            <tr key={`purchase-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Purchase Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseData, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+        <th style={styles.th}>Voucher No</th>
+        <th style={styles.th}>Party Name</th>
+        <th style={styles.th}>Qty</th>
+        <th style={styles.th}>Amount</th>
+      </tr>
+    </thead>
 
-                      {/* Purchase Return Data Section */}
-                      {reportData.purchaseReturnData && reportData.purchaseReturnData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fce4ec'}}>
-                              PURCHASE RETURNS
-                            </td>
-                          </tr>
-                          {reportData.purchaseReturnData.map((item, index) => (
-                            <tr key={`purchaseReturn-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}  }>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Purchase Return Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseReturnData, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+    <tbody>
 
-                      {/* Scrap Procurement Section */}
-                      {reportData.scrapprocurement && reportData.scrapprocurement.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#f3e5f5'}}>
-                              SCRAP PROCUREMENT
-                            </td>
-                          </tr>
-                          {reportData.scrapprocurement.map((item, index) => (
-                            <tr key={`scrap-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || 0}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Scrap Procurement Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.scrapprocurement, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+      {renderSideBySideSection(
+        "SALES ENTRY",
+        reportData.salesEntryData,
+        "amount",
+        "SALES ENTRY BALANCE",
+        reportData.salesEntrybalance,
+        "cashAmt"
+      )}
 
-                      {/* Payment Vouchers Section */}
-                      {reportData.paymentData && reportData.paymentData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#ffebee'}}>
-                              PAYMENT VOUCHERS
-                            </td>
-                          </tr>
-                          {reportData.paymentData.map((item, index) => (
-                            <tr key={`payment-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.billAmount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Payment Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.paymentData, 'billAmount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+      {renderSideBySideSection(
+        "SALES RETURN",
+        reportData.salesReturnData,
+        "amount",
+        "SALES RETURN BALANCE",
+        reportData.salesReturnbalance,
+        "amount"
+      )}
 
-                      {/* Receipt Vouchers Section */}
-                      {reportData.receiptData && reportData.receiptData.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e0f2f1'}}>
-                              RECEIPT VOUCHERS
-                            </td>
-                          </tr>
-                          {reportData.receiptData.map((item, index) => (
-                            <tr key={`receipt-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.billAmount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Receipt Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.receiptData, 'billAmount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+      {renderSideBySideSection(
+        "PURCHASE",
+        reportData.purchaseData,
+        "amount",
+        "PURCHASE BALANCE",
+        reportData.purchasebalance,
+        "amount"
+      )}
 
-                      {/* Show message if no left-side data */}
-                      {(!reportData.salesEntryData || reportData.salesEntryData.length === 0) &&
-                       (!reportData.paymentData || reportData.paymentData.length === 0) &&
-                       (!reportData.receiptData || reportData.receiptData.length === 0) &&
-                       (!reportData.purchaseData || reportData.purchaseData.length === 0) &&
-                       (!reportData.purchaseReturnData || reportData.purchaseReturnData.length === 0) &&
-                       (!reportData.salesReturnData || reportData.salesReturnData.length === 0) &&
-                       (!reportData.scrapprocurement || reportData.scrapprocurement.length === 0) && (
-                        <tr>
-                          <td colSpan={4} style={styles.emptyMsg}>No transaction data found</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+      {renderSideBySideSection(
+        "PURCHASE RETURN",
+        reportData.purchaseReturnData,
+        "amount",
+        "PURCHASE RETURN BALANCE",
+        reportData.purchaseReturnbalance,
+        "amount"
+      )}
 
-                {/* RIGHT SIDE: Balance & Credit Data */}
-                <div style={{ flex: 1, overflowY: 'auto' }}>
-                  <table style={{...styles.table, width: '100%'}}>
-                    <thead>
-                      <tr>
-                        <th style={styles.th}>Voucher No</th>
-                        <th style={styles.th}>Party Name</th>
-                        <th style={styles.th}>Qty</th>
-                        <th style={styles.th}>Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      
-                      {/* Sales Entry Balance Section */}
-                      {reportData.salesEntrybalance && reportData.salesEntrybalance.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e3f2fd'}}>
-                              SALES ENTRY BALANCE
-                            </td>
-                          </tr>
-                          {reportData.salesEntrybalance.map((item, index) => (
-                            <tr key={`salesBalance-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.cashAmt || item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Sales Balance Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesEntrybalance, 'cashAmt') || calculateSectionTotal(reportData.salesEntrybalance, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+      {renderSideBySideSection(
+        "SCRAP PROCUREMENT",
+        reportData.scrapprocurement,
+        "amount",
+        "SCRAP BALANCE",
+        reportData.scrapbalance,
+        "amount"
+      )}
 
-                      {/* Sales Return Balance Section */}
-                      {reportData.salesReturnbalance && reportData.salesReturnbalance.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fff3e0'}}>
-                              SALES RETURN BALANCE
-                            </td>
-                          </tr>
-                          {reportData.salesReturnbalance.map((item, index) => (
-                            <tr key={`salesReturnBalance-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Sales Return Balance Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.salesReturnbalance, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+      {renderSideBySideSection(
+        "PAYMENT VOUCHERS",
+        reportData.paymentData,
+        "billAmount",
+        "PAYMENT CREDIT",
+        reportData.paymnetcredit,
+        "debitAMt"
+      )}
 
-                      {/* Purchase Balance Section */}
-                      {reportData.purchasebalance && reportData.purchasebalance.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e8f5e9'}}>
-                              PURCHASE BALANCE
-                            </td>
-                          </tr>
-                          {reportData.purchasebalance.map((item, index) => (
-                            <tr key={`purchaseBalance-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                               <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Purchase Balance Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchasebalance, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
+      {renderSideBySideSection(
+        "RECEIPT VOUCHERS",
+        reportData.receiptData,
+        "billAmount",
+        "RECEIPT CREDIT",
+        reportData.receiptcredit,
+        "creditAmount"
+      )}
 
-                      {/* Purchase Return Balance Section */}
-                      {reportData.purchaseReturnbalance && reportData.purchaseReturnbalance.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#fce4ec'}}>
-                              PURCHASE RETURN BALANCE
-                            </td>
-                          </tr>
-                          {reportData.purchaseReturnbalance.map((item, index) => (
-                            <tr key={`purchaseReturnBalance-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.refName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Purchase Return Balance Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.purchaseReturnbalance, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
-
-                      {/* Scrap Balance Section */}
-                      {reportData.scrapbalance && reportData.scrapbalance.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#f3e5f5'}}>
-                              SCRAP BALANCE
-                            </td>
-                          </tr>
-                          {reportData.scrapbalance.map((item, index) => (
-                            <tr key={`scrapBalance-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.voucherNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{item.qty || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.amount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Scrap Balance Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.scrapbalance, 'amount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
-
-                      {/* Payment Credit Section */}
-                      {reportData.paymnetcredit && reportData.paymnetcredit.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#ffebee'}}>
-                              PAYMENT CREDIT
-                            </td>
-                          </tr>
-                          {reportData.paymnetcredit.map((item, index) => (
-                            <tr key={`paymentCredit-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.vouchNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.debitAMt || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Payment Credit Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.paymnetcredit, 'debitAMt'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
-
-                      {/* Receipt Credit Section */}
-                      {reportData.receiptcredit && reportData.receiptcredit.length > 0 && (
-                        <>
-                          <tr>
-                            <td colSpan={4} style={{...styles.td, fontWeight: 'bold', textAlign: 'left', fontSize: TYPOGRAPHY.fontSize.lg, backgroundColor: '#e0f2f1'}}>
-                              RECEIPT CREDIT
-                            </td>
-                          </tr>
-                          {reportData.receiptcredit.map((item, index) => (
-                            <tr key={`receiptCredit-${index}`}>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.vouchNo || 'N/A'}</td>
-                              <td style={{...styles.td, textAlign: 'left'}}>{item.partyName || '-'}</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>-</td>
-                              <td style={{...styles.td, textAlign: 'right'}}>{formatCurrency(item.creditAmount || 0)}</td>
-                            </tr>
-                          ))}
-                          <tr style={styles.totalRow}>
-                            <td style={styles.td} colSpan={3}><strong>Receipt Credit Total</strong></td>
-                            <td style={{...styles.td, textAlign: 'right'}}>
-                              <strong>{formatCurrency(calculateSectionTotal(reportData.receiptcredit, 'creditAmount'))}</strong>
-                            </td>
-                          </tr>
-                        </>
-                      )}
-
-                      {/* Show message if no right-side data */}
-                      {(!reportData.salesEntrybalance || reportData.salesEntrybalance.length === 0) &&
-                       (!reportData.salesReturnbalance || reportData.salesReturnbalance.length === 0) &&
-                       (!reportData.purchasebalance || reportData.purchasebalance.length === 0) &&
-                       (!reportData.purchaseReturnbalance || reportData.purchaseReturnbalance.length === 0) &&
-                       (!reportData.scrapbalance || reportData.scrapbalance.length === 0) &&
-                       (!reportData.paymnetcredit || reportData.paymnetcredit.length === 0) &&
-                       (!reportData.receiptcredit || reportData.receiptcredit.length === 0) && (
-                        <tr>
-                          <td colSpan={4} style={styles.emptyMsg}>No balance/credit data found</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+    </tbody>
+  </table>
+</div>
 
               {/* TENDER DATA - Full Width Section */}
               {reportData.tenderData && reportData.tenderData.length > 0 && (

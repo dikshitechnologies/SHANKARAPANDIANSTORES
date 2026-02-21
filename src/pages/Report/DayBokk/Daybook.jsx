@@ -228,149 +228,92 @@ const DayBook = () => {
     setBranchSearchTerm(''); // Clear search term when popup closes
   };
 
-  const handleSearch = async () => {
-    if (!fromDate || !toDate || selectedBranches.length === 0) {
-      toast.warning('Please fill all fields: From Date, To Date, and select at least one branch', {
-        autoClose: 2000,
-      });
-      return;
+ const handleSearch = async () => {
+  if (!fromDate || !toDate || selectedBranches.length === 0) {
+    toast.warning(
+      "Please fill all fields: From Date, To Date, and select at least one branch",
+      { autoClose: 2000 }
+    );
+    return;
+  }
+
+  console.log("Searching DayBook with:", {
+    fromDate,
+    toDate,
+    selectedBranches,
+  });
+
+  setIsLoading(true);
+
+  try {
+    // Determine company code
+    let compCode = defaultCompCode;
+
+    if (selectedBranches.includes("ALL")) {
+      const allCodes = allBranches
+        .filter((b) => b.compCode !== "ALL")
+        .map((b) => b.compCode);
+
+      compCode = allCodes.join(",");
+    } else if (selectedBranches.length > 0) {
+      compCode = selectedBranches[0];
     }
-    
-    console.log('Searching DayBook with:', {
-      fromDate,
-      toDate,
-      selectedBranches
-    });
-    
-    setIsLoading(true);
-    
-    try {
-      // Use compCode from selected branches or default to defaultCompCode
-      let compCode = defaultCompCode;
-      if (selectedBranches.includes('ALL')) {
-        // Send all company codes except 'ALL', joined by comma
-        const allCodes = allBranches.filter(b => b.compCode !== 'ALL').map(b => b.compCode);
-        compCode = allCodes.join(',');
-      } else if (selectedBranches.length > 0) {
-        compCode = selectedBranches[0];
-      }
-      const apiFromDate = formatDateForAPI(fromDate);
-      const apiToDate = formatDateForAPI(toDate);
-      console.log('API Request:', {
-        compCode,
-        apiFromDate,
-        apiToDate,
-        url: `${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, apiFromDate, apiToDate)}`
-      });
-      const response = await fetch(`${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(compCode, apiFromDate, apiToDate)}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('API Response:', data);
-      
-      // Transform API response to match your table structure
-      const transformedData = [];
-      
-      // Add opening balance if exists
-      if (data.openingDebit > 0 || data.openingCredit > 0) {
-        transformedData.push({
-          accName: "Opening Balance",
-          receipts: data.openingDebit > 0 ? data.openingDebit.toFixed(2) : "",
-          payments: data.openingCredit > 0 ? data.openingCredit.toFixed(2) : "",
-          isTotal: false
-        });
-      }
-      
-      // Add OPG entry if exists in API response
-      const opgEntry = data.entries?.find(entry => entry.accName?.includes('OPG ON'));
-      if (opgEntry) {
-        transformedData.push({
-          accName: opgEntry.accName,
-          receipts: "",
-          payments: "",
-          isTotal: false
-        });
-      }
-      
-      // Add all other entries (excluding OPG and CLG)
-      if (data.entries && Array.isArray(data.entries)) {
-        data.entries.forEach(entry => {
-          // Skip OPG and CLG entries as they are handled separately
-          if (entry.accName && (entry.accName.includes('OPG ON') || entry.accName.includes('CLG ON'))) {
-            return;
-          }
-          
-          // Handle empty account names (these are the actual transaction entries)
-          if (!entry.accName || entry.accName.trim() === '') {
-            transformedData.push({
-              accName: "", // Empty for blank rows
-              receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "", // Debit = Receipts
-              payments: entry.credit > 0 ? entry.credit.toFixed(2) : "", // Credit = Payments
-              isTotal: false
-            });
-          } 
-          // Handle Total entry
-          else if (entry.accName === "Total") {
-            transformedData.push({
-              accName: "Total",
-              receipts: entry.debit > 0 ? entry.debit.toFixed(2) : "",
-              payments: entry.credit > 0 ? entry.credit.toFixed(2) : "",
-              isTotal: true
-            });
-          }
-        });
-      }
-      
-      // Add closing balance if exists
-      const clgEntry = data.entries?.find(entry => entry.accName?.includes('CLG ON'));
-      if (clgEntry) {
-        transformedData.push({
-          accName: clgEntry.accName,
-          receipts: "",
-          payments: "",
-          isTotal: false
-        });
-      }
-      
-      // Add closing balance totals
-      if (data.closingDebit > 0 || data.closingCredit > 0) {
-        transformedData.push({
-          accName: "Closing Balance",
-          receipts: data.closingDebit > 0 ? data.closingDebit.toFixed(2) : "",
-          payments: data.closingCredit > 0 ? data.closingCredit.toFixed(2) : "",
-          isTotal: false
-        });
-      }
-      
-      console.log('Transformed Data:', transformedData);
-      
-      if (transformedData.length === 0) {
-        toast.info('No records found for the selected date range');
-      } else {
-        toast.success(`Loaded ${transformedData.length} records`);
-      }
-      
-      setDayBookData(transformedData);
-      setApiTotals({
-        totalDebit: data.totalDebit || 0,
-        totalCredit: data.totalCredit || 0,
-        openingDebit: data.openingDebit || 0,
-        openingCredit: data.openingCredit || 0,
-        closingDebit: data.closingDebit || 0,
-        closingCredit: data.closingCredit || 0
-      });
-      setTableLoaded(true);
-      
-    } catch (error) {
-      console.error('Error fetching daybook data:', error);
-      toast.error('Failed to load daybook data. Please try again.');
+
+    const apiFromDate = formatDateForAPI(fromDate);
+    const apiToDate = formatDateForAPI(toDate);
+
+    const requestUrl = `${API_BASE}${API_ENDPOINTS.DAYBOOK.GET_DAY_BOOK(
+      compCode,
+      apiFromDate,
+      apiToDate
+    )}`;
+
+    console.log("API Request URL:", requestUrl);
+
+    const response = await fetch(requestUrl);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    console.log("API Response:", data);
+
+    // ✅ Keep API data as it is (NO TRANSFORMATION)
+    if (!data || !data.entries || !Array.isArray(data.entries)) {
+      toast.info("No records found for the selected date range");
       setDayBookData([]);
       setTableLoaded(false);
-    } finally {
-      setIsLoading(false);
+      return;
     }
-  };
+
+    // Directly set API entries
+    setDayBookData(data.entries);
+
+    // Store totals separately if needed
+    setApiTotals({
+      totalDebit: data.totalDebit || 0,
+      totalCredit: data.totalCredit || 0,
+      openingDebit: data.openingDebit || 0,
+      openingCredit: data.openingCredit || 0,
+      closingDebit: data.closingDebit || 0,
+      closingCredit: data.closingCredit || 0,
+    });
+
+    setTableLoaded(true);
+
+    toast.success(`Loaded ${data.entries.length} records`);
+  } catch (error) {
+    console.error("Error fetching daybook data:", error);
+    toast.error("Failed to load daybook data. Please try again.");
+
+    setDayBookData([]);
+    setTableLoaded(false);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleRefresh = () => {
     setTableLoaded(false);
@@ -1329,67 +1272,93 @@ const DayBook = () => {
                 <th style={{ ...styles.th, minWidth: '150px', width: '150px', maxWidth: '150px' }}>Payments</th>
               </tr>
             </thead>
-            <tbody>
-              {tableLoaded ? (
-                dayBookData.length > 0 ? (
-                  dayBookData.map((row, index) => (
-                    <tr key={index} style={{ 
-                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#ffffff',
-                      ...(row.isTotal ? { backgroundColor: '#f0f8ff' } : {})
-                    }}>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '200px', 
-                        width: '200px', 
-                        maxWidth: '200px',
-                        textAlign: 'left',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.accName}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '150px', 
-                        width: '150px', 
-                        maxWidth: '150px',
-                        textAlign: 'right',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.receipts ? `₹${parseFloat(row.receipts || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}` : ''}
-                      </td>
-                      <td style={{ 
-                        ...styles.td, 
-                        minWidth: '150px', 
-                        width: '150px', 
-                        maxWidth: '150px',
-                        textAlign: 'right',
-                        color: row.isTotal ? '#1565c0' : '#333'
-                      }}>
-                        {row.payments ? `₹${parseFloat(row.payments || 0).toLocaleString('en-IN', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}` : ''}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                      No records found
-                    </td>
-                  </tr>
-                )
-              ) : (
-                <tr>
-                  <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                    {/* Enter search criteria and click "Search" to view day book entries */}
-                  </td>
-                </tr>
-              )}
-            </tbody>
+          <tbody>
+  {tableLoaded ? (
+    dayBookData.length > 0 ? (
+      dayBookData.map((row, index) => {
+        const debit = Number(row.debit || 0);
+        const credit = Number(row.credit || 0);
+
+        return (
+          <tr
+            key={index}
+            style={{
+              backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#ffffff",
+              ...(row.accName === "Total"
+                ? { backgroundColor: "#f0f8ff" }
+                : {}),
+            }}
+          >
+            {/* Account Name */}
+            <td
+              style={{
+                ...styles.td,
+                minWidth: "200px",
+                width: "200px",
+                maxWidth: "200px",
+                textAlign: "left",
+                color: row.accName === "Total" ? "#1565c0" : "#333",
+              }}
+            >
+              {row.accName}
+            </td>
+
+            {/* Debit (Receipts) */}
+            <td
+              style={{
+                ...styles.td,
+                minWidth: "150px",
+                width: "150px",
+                maxWidth: "150px",
+                textAlign: "right",
+                color: row.accName === "Total" ? "#1565c0" : "#333",
+              }}
+            >
+              {debit > 0
+                ? `₹${debit.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : ""}
+            </td>
+
+            {/* Credit (Payments) */}
+            <td
+              style={{
+                ...styles.td,
+                minWidth: "150px",
+                width: "150px",
+                maxWidth: "150px",
+                textAlign: "right",
+                color: row.accName === "Total" ? "#1565c0" : "#333",
+              }}
+            >
+              {credit > 0
+                ? `₹${credit.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : ""}
+            </td>
+          </tr>
+        );
+      })
+    ) : (
+      <tr>
+        <td
+          colSpan="3"
+          style={{ textAlign: "center", padding: "20px", color: "#666" }}
+        >
+          No records found
+        </td>
+      </tr>
+    )
+  ) : (
+    <tr>
+      <td colSpan="3"></td>
+    </tr>
+  )}
+</tbody>
           </table>
         </div>
       </div>
