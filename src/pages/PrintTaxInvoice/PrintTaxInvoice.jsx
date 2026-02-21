@@ -155,7 +155,6 @@ export const generateTenderA4PDF = async ({ billData }) => {
     const marginLeft = 10;
     const marginRight = 10;
     let y = 10;
-    let pageNumber = 1;
 
     // Add overall border
     doc.setLineWidth(0.5);
@@ -263,13 +262,13 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     
-    const colWidths = [10, 85, 20, 20, 25, 30];
-    const headers = ['S.No', 'Item Name', 'HSN', 'Qty', 'Rate', 'Amount'];
+    const colWidths = [10, 70, 15, 15, 15, 15, 20, 30];
+    const headers = ['S.No', 'Item Name', 'HSN', 'MRP', 'Qty', 'Rate', 'Tax', 'Amount'];
     
     let x = marginLeft;
     
     headers.forEach((h, i) => {
-      if (h === 'Qty' || h === 'Rate' || h === 'Amount') {
+      if (h === 'Qty' || h === 'Rate' || h === 'Amount' || h === 'MRP' || h === 'Tax') {
         doc.text(h, x + (colWidths[i] / 2), y + 4.5, { align: 'center' });
       } else {
         const offset = h === 'S.No' ? colWidths[i] / 2 : 2;
@@ -282,193 +281,53 @@ export const generateTenderA4PDF = async ({ billData }) => {
     y += 9;
     doc.setTextColor(0, 0, 0);
     
-    // Items Rows
+    // Items Rows - ALL ITEMS on the same page
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
 
-    // Calculate total height needed for items
-    let totalHeight = y;
-    items.forEach((item) => {
-      const tempNameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-      const rowHeight = Math.max(6, tempNameLines.length * 2.5);
-      totalHeight += rowHeight;
-    });
-
-    // Check if items need to be split across pages
-    if (totalHeight > pageHeight - 50) {
-      // Items for page 1
-      let page1Y = y;
-      let itemsOnPage1 = 0;
+    items.forEach((item, idx) => {
+      const nameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
+      const rowHeight = Math.max(6, nameLines.length * 2.5);
       
-      for (let idx = 0; idx < items.length; idx++) {
-        const item = items[idx];
-        const tempNameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-        const rowHeight = Math.max(6, tempNameLines.length * 2.5);
-        
-        if (page1Y + rowHeight > pageHeight - 50 && itemsOnPage1 > 0) {
-          break;
-        }
-        
-        // Draw item on page 1
-        if (idx % 2 === 0) {
-          doc.setFillColor(240, 248, 255);
-          doc.rect(marginLeft, page1Y, pageWidth - marginLeft - marginRight, rowHeight, 'F');
-        }
-        
-        x = marginLeft;
-        
-        doc.text(String(idx + 1), x + (colWidths[0] / 2), page1Y + rowHeight / 2, { align: 'center' });
-        x += colWidths[0];
-        
-        const nameLines1 = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-        doc.text(nameLines1, x + 2, page1Y + 2, { maxWidth: colWidths[1] - 4 });
-        x += colWidths[1];
-        
-        doc.text(item.hsn || '-', x + (colWidths[2] / 2), page1Y + rowHeight / 2, { align: 'center' });
-        x += colWidths[2];
-        
-        doc.text(formatCurrencyq(item.qty), x + (colWidths[3] / 2), page1Y + rowHeight / 2, { align: 'right' });
-        x += colWidths[3];
-        
-        doc.text(formatCurrency(item.rate), x + (colWidths[4] / 2), page1Y + rowHeight / 2, { align: 'right' });
-        x += colWidths[4];
-        
-        doc.text(formatCurrency(item.amount || (item.qty * item.rate)), 
-                 x + (colWidths[5] / 2) + 4, page1Y + rowHeight / 2, { align: 'right' });
-        
-        page1Y += rowHeight;
-        itemsOnPage1++;
+      if (idx % 2 === 0) {
+        doc.setFillColor(240, 248, 255);
+        doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, rowHeight, 'F');
       }
       
-      y = page1Y + 5;
-      
-      // Add page 1 totals
-      const itemsPage1 = items.slice(0, itemsOnPage1);
-      const totalAmountPage1 = itemsPage1.reduce((sum, i) => sum + Number(i.amount || (i.qty * i.rate) || 0), 0);
-      const totalQtyPage1 = itemsPage1.reduce((sum, item) => sum + (item.qty || 0), 0);
-      
-      const summaryWidth = pageWidth - marginLeft - marginRight;
-      const leftWidth = summaryWidth * 0.66;
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Total Items: ${itemsPage1.length}`, marginLeft, y);
-      doc.text(`Total Qty: ${totalQtyPage1}`, marginLeft + 50, y);
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('Page Total:', marginLeft + leftWidth - 30, y);
-      doc.text(`${formatCurrency(totalAmountPage1)}`, marginLeft + leftWidth + 20, y, { align: 'right' });
-      
-      // Add page number
-      doc.setFontSize(8);
-      doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-      
-      // New page for remaining items
-      doc.addPage();
-      pageNumber++;
-      y = 20;
-      
-      // Add header on new page
-      doc.setFillColor(27, 145, 218);
-      doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, 7, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      
       x = marginLeft;
-      headers.forEach((h, i) => {
-        if (h === 'Qty' || h === 'Rate' || h === 'Amount') {
-          doc.text(h, x + (colWidths[i] / 2), y + 4.5, { align: 'center' });
-        } else {
-          const offset = h === 'S.No' ? colWidths[i] / 2 : 2;
-          const align = h === 'S.No' ? 'center' : 'left';
-          doc.text(h, x + offset, y + 4.5, { align: align });
-        }
-        x += colWidths[i];
-      });
       
-      y += 9;
-      doc.setTextColor(0, 0, 0);
+      doc.text(String(idx + 1), x + (colWidths[0] / 2), y + rowHeight / 2, { align: 'center' });
+      x += colWidths[0];
       
-      // Draw remaining items
-      const remainingItems = items.slice(itemsOnPage1);
-      remainingItems.forEach((item, idx) => {
-        const nameLines2 = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-        const rowHeight = Math.max(6, nameLines2.length * 2.5);
-        
-        if ((idx + itemsOnPage1) % 2 === 0) {
-          doc.setFillColor(240, 248, 255);
-          doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, rowHeight, 'F');
-        }
-        
-        x = marginLeft;
-        
-        doc.text(String(idx + itemsOnPage1 + 1), x + (colWidths[0] / 2), y + rowHeight / 2, { align: 'center' });
-        x += colWidths[0];
-        
-        const nameLines3 = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-        doc.text(nameLines3, x + 2, y + 2, { maxWidth: colWidths[1] - 4 });
-        x += colWidths[1];
-        
-        doc.text(item.hsn || '-', x + (colWidths[2] / 2), y + rowHeight / 2, { align: 'center' });
-        x += colWidths[2];
-        
-        doc.text(formatCurrencyq(item.qty), x + (colWidths[3] / 2), y + rowHeight / 2, { align: 'right' });
-        x += colWidths[3];
-        
-        doc.text(formatCurrency(item.rate), x + (colWidths[4] / 2), y + rowHeight / 2, { align: 'right' });
-        x += colWidths[4];
-        
-        doc.text(formatCurrency(item.amount || (item.qty * item.rate)), 
-                 x + (colWidths[5] / 2) + 4, y + rowHeight / 2, { align: 'right' });
-        
-        y += rowHeight;
-      });
+      const nameLinesItem = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
+      doc.text(nameLinesItem, x + 2, y + 2, { maxWidth: colWidths[1] - 4 });
+      x += colWidths[1];
       
-      y += 5;
+      doc.text(item.hsn || '-', x + (colWidths[2] / 2), y + rowHeight / 2, { align: 'center' });
+      x += colWidths[2];
       
-    } else {
-      // All items fit on first page
-      items.forEach((item, idx) => {
-        const nameLines = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-        const rowHeight = Math.max(6, nameLines.length * 2.5);
-        
-        if (idx % 2 === 0) {
-          doc.setFillColor(240, 248, 255);
-          doc.rect(marginLeft, y, pageWidth - marginLeft - marginRight, rowHeight, 'F');
-        }
-        
-        x = marginLeft;
-        
-        doc.text(String(idx + 1), x + (colWidths[0] / 2), y + rowHeight / 2, { align: 'center' });
-        x += colWidths[0];
-        
-        const nameLinesItem = doc.splitTextToSize(item.itemName || 'N/A', colWidths[1] - 4);
-        doc.text(nameLinesItem, x + 2, y + 2, { maxWidth: colWidths[1] - 4 });
-        x += colWidths[1];
-        
-        doc.text(item.hsn || '-', x + (colWidths[2] / 2), y + rowHeight / 2, { align: 'center' });
-        x += colWidths[2];
-        
-        doc.text(formatCurrencyq(item.qty), x + (colWidths[3] / 2), y + rowHeight / 2, { align: 'right' });
-        x += colWidths[3];
-        
-        doc.text(formatCurrency(item.rate), x + (colWidths[4] / 2), y + rowHeight / 2, { align: 'right' });
-        x += colWidths[4];
-        
-        doc.text(formatCurrency(item.amount || (item.qty * item.rate)), 
-                 x + (colWidths[5] / 2) + 4, y + rowHeight / 2, { align: 'right' });
-        
-        y += rowHeight;
-      });
+      doc.text(item.mrp || '-', x + (colWidths[3] / 2), y + rowHeight / 2, { align: 'center' });
+      x += colWidths[3];
       
-      y += 5;
-    }
+      doc.text(formatCurrencyq(item.qty), x + (colWidths[4] / 2), y + rowHeight / 2, { align: 'right' });
+      x += colWidths[4];
+      
+      doc.text(formatCurrency(item.rate), x + (colWidths[5] / 2), y + rowHeight / 2, { align: 'right' });
+      x += colWidths[5];
+      
+      doc.text(`${item.tax || 0}%`, x + (colWidths[6] / 2), y + rowHeight / 2, { align: 'center' });
+      x += colWidths[6];
+      
+      doc.text(formatCurrency(item.amount || (item.qty * item.rate)), 
+               x + (colWidths[7] / 2) + 4, y + rowHeight / 2, { align: 'right' });
+      
+      y += rowHeight;
+    });
+    
+    y += 5;
 
     // Total Items, Total Qty, Grand Total in a single row
     const summaryWidth = pageWidth - marginLeft - marginRight;
-    const leftWidth = summaryWidth * 0.66; // 2/3 of the width
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -477,23 +336,16 @@ export const generateTenderA4PDF = async ({ billData }) => {
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.text('Grand Total:', marginLeft + leftWidth - 20, y);
-    doc.text(`${formatCurrency(totalAmount)}`, marginLeft + leftWidth + 30, y, { align: 'right' });
+    doc.text('Grand Total:', pageWidth - 70, y, { align: 'right' });
+    doc.text(`${formatCurrency(totalAmount)}`, pageWidth - marginRight, y, { align: 'right' });
     
     y += 10;
 
-    // Check if we need a new page for the remaining content
-    if (y > pageHeight - 100) {
-      doc.addPage();
-      pageNumber++;
-      y = 20;
-    }
-
     /* ---------- ROW 1: Three columns (1:1:1 ratio) ---------- */
     
-    const colWidth = (summaryWidth - 20) / 3; // 20mm for gaps between columns
+    const colWidth = (summaryWidth - 20) / 3;
     
-    // Column 1: Tax Box (with colors)
+    // Column 1: Tax Box
     const col1X = marginLeft;
     
     // Tax Box Header
@@ -505,33 +357,28 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.text('TAX BOX', col1X + 2, y + 2);
     doc.setTextColor(0, 0, 0);
     
-    // Tax Box Table with borders
+    // Tax Box Table
     let taxY = y + 8;
     doc.setFontSize(8);
     
-    // Tax Box Headers with borders
     const taxColWidth = colWidth / 4;
     let taxX = col1X;
     
-    // Draw borders for headers
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.1);
     
-    // Draw outer border for header row
     doc.rect(taxX, taxY - 3, taxColWidth * 4, 5);
-    
-    // Draw vertical lines between columns
-    for (let i = 1; i < 4; i++) {
-      doc.line(taxX + (i * taxColWidth), taxY - 3, taxX + (i * taxColWidth), taxY + 2);
-    }
+    doc.line(taxX + (2 * taxColWidth), taxY - 3, taxX + (2 * taxColWidth), taxY + 2);
     
     doc.setFont('helvetica', 'bold');
     doc.text('CGST', taxX + taxColWidth, taxY, { align: 'center' });
-    doc.text('SGST', taxX + (taxColWidth * 3), taxY, { align: 'center' });
+    doc.text('SGST', taxX + taxColWidth * 3, taxY, { align: 'center' });
     taxY += 4;
     
-    // Tax Box Rows with borders
     doc.setFont('helvetica', 'normal');
+    for (let i = 1; i < 4; i++) {
+      doc.line(taxX + (i * taxColWidth), taxY - 3, taxX + (i * taxColWidth), taxY + 2);
+    }
     
     const taxRows = Object.entries(taxSummary)
       .filter(([tax]) => Number(tax) > 0)
@@ -544,15 +391,10 @@ export const generateTenderA4PDF = async ({ billData }) => {
     if (taxRows.length > 0) {
       taxRows.forEach((row) => {
         taxX = col1X;
-        
-        // Draw outer border for the row
         doc.rect(taxX, taxY - 3, taxColWidth * 4, 4);
-        
-        // Draw vertical lines between columns
         for (let i = 1; i < 4; i++) {
           doc.line(taxX + (i * taxColWidth), taxY - 3, taxX + (i * taxColWidth), taxY + 1);
         }
-        
         doc.text(`${row.halfTax}%`, taxX + taxColWidth / 2, taxY, { align: 'center' });
         taxX += taxColWidth;
         doc.text(formatCurrency(row.halfTaxrs), taxX + taxColWidth / 2, taxY, { align: 'center' });
@@ -568,7 +410,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
       taxY += 4;
     }
     
-    // Column 2: Transport Details (no colors, no borders)
+    // Column 2: Transport Details
     const col2X = col1X + colWidth + 10;
     
     doc.setTextColor(0, 0, 0);
@@ -580,7 +422,6 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFontSize(9);
     let transportY = y + 8;
     
-    // Transport details without backgrounds
     doc.setFont('helvetica', 'bold');
     doc.text('Transport Name:', col2X + 2, transportY);
     transportY += 4;
@@ -601,16 +442,14 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFont('helvetica', 'normal');
     doc.text(formatCurrency(billData.servicechrg || 0), col2X + 2, transportY);
     
-    // Column 3: Summary Section (starting from here)
+    // Column 3: Summary Section
     const col3X = col2X + colWidth + 10;
     
-    // Summary items with bold text, no header, no table format
-    let summaryY = y + 2; // Start at same level as tax box header
+    let summaryY = y + 2;
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     
-    // Summary items aligned right
     const summaryItems = [
       { label: `Dis ${billData.discountPercent || ''}%`, value: discount },
       { label: 'Round Off', value: roundOff },
@@ -628,39 +467,28 @@ export const generateTenderA4PDF = async ({ billData }) => {
       summaryY += 5;
     });
     
-    // Net Amount in Summary
     doc.setFontSize(11);
     doc.text('Net Amt', col3X + 2, summaryY);
     doc.text(formatCurrency(netAmount), col3X + colWidth - 5, summaryY, { align: 'right' });
     
-    // Update y to the maximum height of the three columns
     y = Math.max(taxY, transportY, summaryY + 5) + 5;
 
-    /* ---------- ROW 2: Payment Mode and Cash Note (below Transport Details) ---------- */
+    /* ---------- ROW 2: Payment Mode and Cash Note ---------- */
     
-    // Column 1: Empty (tax box continuity space)
-    // No content in column 1
-    
-    // Column 2: Payment Mode and Cash Note with borders
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('PAYMENT MODE', col2X + 2, y + 2);
     
-    // Payment Table with borders
     let paymentY = y + 8;
     doc.setFontSize(9);
     
-    // Payment Table Header with borders
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.1);
     
     const paymentColWidth = colWidth / 4;
     
-    // Draw outer border for header row
     doc.rect(col2X, paymentY - 3, paymentColWidth * 4, 5);
-    
-    // Draw vertical lines between columns
     for (let i = 1; i < 4; i++) {
       doc.line(col2X + (i * paymentColWidth), paymentY - 3, col2X + (i * paymentColWidth), paymentY + 2);
     }
@@ -672,10 +500,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.text('Bal', col2X + paymentColWidth*3.5, paymentY, { align: 'center' });
     paymentY += 4;
     
-    // Payment Table Values with borders
     doc.rect(col2X, paymentY - 3, paymentColWidth * 4, 5);
-    
-    // Draw vertical lines between columns
     for (let i = 1; i < 4; i++) {
       doc.line(col2X + (i * paymentColWidth), paymentY - 3, col2X + (i * paymentColWidth), paymentY + 2);
     }
@@ -686,7 +511,6 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.text(formatWithoutDecimals(cardAmount), col2X + paymentColWidth*2.5, paymentY, { align: 'center' });
     doc.text(formatWithoutDecimals(balanceAmount), col2X + paymentColWidth*3.5, paymentY, { align: 'center' });
     
-    // Cash Note with borders
     let cashNoteY = paymentY + 8;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
@@ -698,90 +522,71 @@ export const generateTenderA4PDF = async ({ billData }) => {
     
     if (billData.denominations) {
       const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-      
-      // Calculate column width for cash note (10 columns: CA + 9 denominations)
       const cashColWidth = colWidth / 10;
       
-      // Header row with borders
       doc.rect(col2X, cashNoteY - 3, cashColWidth * 10, 4);
-      
-      // Draw vertical lines between columns
       for (let i = 1; i < 10; i++) {
         doc.line(col2X + (i * cashColWidth), cashNoteY - 3, col2X + (i * cashColWidth), cashNoteY + 1);
       }
       
       doc.setFont('helvetica', 'bold');
-      
-      // Position each denomination with proper centering
       doc.text('CA', col2X + cashColWidth/2, cashNoteY, { align: 'center' });
-      
       denominations.forEach((denom, i) => {
         const xPos = col2X + cashColWidth * (i + 1) + cashColWidth/2;
         doc.text(denom.toString(), xPos, cashNoteY, { align: 'center' });
       });
       cashNoteY += 3;
       
-      // Receive row with borders
       doc.rect(col2X, cashNoteY - 3, cashColWidth * 10, 4);
-      
-      // Draw vertical lines between columns
       for (let i = 1; i < 10; i++) {
         doc.line(col2X + (i * cashColWidth), cashNoteY - 3, col2X + (i * cashColWidth), cashNoteY + 1);
       }
       
       doc.setFont('helvetica', 'normal');
       doc.text('RE', col2X + cashColWidth/2, cashNoteY, { align: 'center' });
-      
       denominations.forEach((denom, i) => {
         const xPos = col2X + cashColWidth * (i + 1) + cashColWidth/2;
         doc.text((billData.denominations[denom]?.receive || '').toString(), xPos, cashNoteY, { align: 'center' });
       });
       cashNoteY += 3;
       
-      // Issue row with borders
       doc.rect(col2X, cashNoteY - 3, cashColWidth * 10, 4);
-      
-      // Draw vertical lines between columns
       for (let i = 1; i < 10; i++) {
         doc.line(col2X + (i * cashColWidth), cashNoteY - 3, col2X + (i * cashColWidth), cashNoteY + 1);
       }
       
       doc.text('IS', col2X + cashColWidth/2, cashNoteY, { align: 'center' });
-      
       denominations.forEach((denom, i) => {
         const xPos = col2X + cashColWidth * (i + 1) + cashColWidth/2;
         doc.text((billData.denominations[denom]?.issue || '').toString(), xPos, cashNoteY, { align: 'center' });
       });
     }
     
-    y = Math.max(paymentY, cashNoteY) + 15;
+    y = Math.max(paymentY, cashNoteY) + 5;
 
-    /* ---------- ROW 3: Amount Received, Balance, Net Amount (1:1:1 ratio) ---------- */
+    /* ---------- ROW 3: Amount Received, Balance, Net Amount ---------- */
     
     const row3Y = y;
     
-    // Column 1: Amount Received
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
-    doc.text('Amount Received:', col1X + 2, row3Y);
+    doc.text('Amt Received:', col1X - 4, row3Y);
     doc.text(formatCurrency(amountReceived), col1X + colWidth - 5, row3Y, { align: 'right' });
     
-    // Column 2: Balance
     doc.text('Balance:', col2X + 2, row3Y);
     doc.text(formatCurrency(balanceAmount), col2X + colWidth - 5, row3Y, { align: 'right' });
     
-    // Column 3: Net Amount
     doc.setFontSize(16);
-    doc.text('Net Amount:', col3X + 2, row3Y);
+    doc.text('Net Amt:', col3X + 2, row3Y);
     doc.text(formatCurrency(netAmount), col3X + colWidth - 5, row3Y, { align: 'right' });
     
     y = row3Y + 5;
 
-    /* ---------- ROW 4: Three columns (1:1:1 ratio) ---------- */
+    /* ---------- ROW 4: Footer (Terms, Bank, Rupees) ---------- */
     
     const row4Y = y;
     
-    // Column 1: Terms and Conditions (no colors, no borders)
+    // Column 1: Terms and Conditions
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('TERMS AND CONDITIONS', col1X + 2, row4Y + 2);
@@ -790,7 +595,6 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFontSize(8);
     let termsY = row4Y + 8;
     
-    // Terms without backgrounds
     doc.text('1. Without bill there is No Exchange', col1X + 2, termsY);
     termsY += 4;
     doc.text('   Available.', col1X + 2, termsY);
@@ -807,7 +611,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     termsY += 4;
     doc.text('   PRODUCTS ***', col1X + 2, termsY);
     
-    // Column 2: Bank Details (no colors, no borders)
+    // Column 2: Bank Details
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('BANK DETAILS', col2X + 2, row4Y + 2);
@@ -816,7 +620,6 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFontSize(8);
     let bankY = row4Y + 8;
     
-    // Bank details without backgrounds
     doc.setFont('helvetica', 'bold');
     doc.text('Account Name:', col2X + 2, bankY);
     bankY += 3;
@@ -844,7 +647,7 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFont('helvetica', 'normal');
     doc.text('ICIC Bank', col2X + 2, bankY);
     
-    // Column 3: Rupees in Words and Signature with space to sign
+    // Column 3: Rupees in Words and Signature
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('AMOUNT IN WORDS', col3X + 2, row4Y + 2);
@@ -853,25 +656,17 @@ export const generateTenderA4PDF = async ({ billData }) => {
     doc.setFontSize(8);
     let wordsY = row4Y + 8;
     
-    // Rupees in words
     const words = numberToWords(netAmount);
     const wordsLines = doc.splitTextToSize(words, colWidth - 4);
     doc.text(wordsLines, col3X + 2, wordsY);
-    wordsY += wordsLines.length * 3 + 8;
+    wordsY += wordsLines.length * 3 + 12;
     
-    // Signature section with space
     doc.setFont('helvetica', 'bold');
     doc.text('For R. SANKARAPANDIAN STORES', col3X + 2, wordsY);
-    wordsY += 8; // Space for signature
+    wordsY += 5;
     doc.text('Authorised Signatory', col3X + 2, wordsY);
     
     y = Math.max(termsY, bankY, wordsY) + 10;
-
-    // Add page number on last page
-    doc.setFontSize(8);
-    doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-
-    /* ---------- END OF DOCUMENT ---------- */
 
     /* ---------- PRINT ---------- */
 
