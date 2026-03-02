@@ -2773,7 +2773,8 @@ const fetchGroupNameItems = async (pageNum = 1, search = '') => {
 
   let finalVoucherNo = voucherNo;
 
-// 🔥 Always fetch fresh voucher number in ADD mode
+// 🔥 Always fetch fresh voucher number and barcode in ADD mode
+let freshBarcode = autoBarcode;
 if (!isEditMode) {
   try {
     const url = API_ENDPOINTS.PURCHASE_INVOICE.GET_PURCHASE_INVOICES(userData.companyCode);
@@ -2793,12 +2794,25 @@ if (!isEditMode) {
     toast.error("Failed to generate voucher number");
     return;
   }
+
+  // 🔥 Always fetch fresh barcode in ADD mode
+  try {
+    const barcodeResponse = await axiosInstance.get(
+      API_ENDPOINTS.PURCHASE_INVOICE.AUTO_GENERATE_BARCODE
+    );
+    if (barcodeResponse?.data?.barcode) {
+      freshBarcode = barcodeResponse.data.barcode;
+      console.log('Fetched fresh barcode for save:', freshBarcode);
+    }
+  } catch (err) {
+    console.warn('Failed to fetch fresh barcode, using existing:', err);
+  }
 }
 
 
 
 
-      const nextBarcode = createBarcodeGenerator(autoBarcode);
+      const nextBarcode = createBarcodeGenerator(freshBarcode);
 
       const payload = {
         bledger: {
