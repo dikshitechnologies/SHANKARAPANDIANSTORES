@@ -359,7 +359,7 @@ PAYMENTVOUCHER: {
   POST_PAYMENT_VOUCHER: (selectType = true) => `PaymentVoucher/PaymentVoucherPost?selectType1=${selectType}`,
   DELETE_PAYMENT_VOUCHER: (voucherNo) => `PaymentVoucher/DeletePaymentVoucher?voucherNo=${voucherNo}`,
   GET_PAYMENT_VOUCHER_DETAILS: (voucherNo) => `PaymentVoucher/GetpaymentVoucherDetails?voucherNo=${voucherNo}`,
-  GET_PARTY_BALANCE: (partyCode) => `PaymentVoucher/GetPartyBalance?partyCode=${partyCode}`,
+  GET_PARTY_BALANCE: (partyCode) => `ReceiptVoucher/GetPartyBalance?partyCode=${partyCode}`,
   GET_CLOSING_BALANCE: `PaymentVoucher/GetClosingBalance`
 },
 

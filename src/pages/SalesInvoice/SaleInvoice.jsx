@@ -608,7 +608,7 @@ const fetchItems = useCallback(async (type = 'FG') => {
     setError("");
     
     // Use getItemsByType endpoint with FG type
-    const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getItemsByType(type, 1, 100);
+    const endpoint = API_ENDPOINTS.SALES_INVOICE_ENDPOINTS.getItemsByType(type, 1, 1000000);
     
     const response = await axiosInstance.get(endpoint);
     
