@@ -63,6 +63,8 @@ import AccountReceivables from './pages/Report/AccountReceivables/AccountReceiva
 import AccountPayables from './pages/Report/AccountPayables/AccountPayables';
 import DaySales from './pages/Report/DaySales/DaySales'
 import Itemwisestock from './pages/Report/Itemwisestock/Itemwisestock';
+
+import Estimate from './pages/Estimate/Estimate'
 // import TestPage from './pages/TestPage/TestPage';
 
 // Protected Route Component
@@ -118,6 +120,7 @@ function App() {
       <Route path="/test4" element={<ProtectedRoute><LayoutWithNavbar><TestPage4 /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/company-creation" element={<ProtectedRoute><LayoutWithNavbar><Company /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/sales-invoice" element={<ProtectedRoute><LayoutWithNavbar><SalesInvoice /></LayoutWithNavbar></ProtectedRoute>} />
+          <Route path="/transactions/estimate" element={<ProtectedRoute><LayoutWithNavbar><Estimate /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ledger-creation" element={<ProtectedRoute><LayoutWithNavbar><LedgerCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/ledger-group-creation" element={<ProtectedRoute><LayoutWithNavbar><LedgerGroupCreation /></LayoutWithNavbar></ProtectedRoute>} />
           <Route path="/masters/User-creation" element={<ProtectedRoute><LayoutWithNavbar><UserCreation /></LayoutWithNavbar></ProtectedRoute>} />

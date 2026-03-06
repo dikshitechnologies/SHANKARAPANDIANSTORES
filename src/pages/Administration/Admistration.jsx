@@ -65,10 +65,10 @@ const TRANSACTION_ITEMS = [
   { label: "Sales Return", dbName: "SALES_RETURN" },
  
   { label: "Scrap Rate Fix", dbName: "SCRAP_RATE_FIX" },
-  { label: "Scrap Procurement", dbName: "SCRAP_PROCUREMENT" },
-  // { label: "Tender", dbName: "TENDER" },
+  { label: "Scrap Procurement", dbName: "SCRAP_PROCUREMENT" },  
+  { label: "Estimate", dbName: "ESTIMATE" },
   { label: "Bill Collector", dbName: "BILL_COLLECTOR" },
-  // { label: "Amount Issue", dbName: "AMOUNT_ISSUE" },
+  
  
 ];
 

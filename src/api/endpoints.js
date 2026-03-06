@@ -290,6 +290,32 @@ CATEGORY: {
    getLastBillNoByCustomer: (customerCode) =>
     `Salesinvoices/GetLastBillNo?customerCode=${customerCode}`,
 },
+  ESTIMATE: {
+  getNextBillNo: (compCode) =>
+    `Estimate/GetEstimateNextBillno?fCompCode=${compCode}`,
+  CREATE_SALES: "Estimate/EstimateCreation?salesType=true",   // Insert
+  UPDATE_SALES: "Estimate/EstimateCreation?salesType=false",  // Update
+  getBillList: (compCode, page = 1, pageSize = 20,search) =>`Estimate/GetEstimateBillList?compCode=${compCode}&search=${search}&page=${page}&pageSize=${pageSize}`,
+  deleteBillNumber: (voucher, compCode) =>`Estimate/DeleteEstimateBillNo?voucherNo=${voucher}&compCode=${compCode}`,
+  getStockByItemName: (billType, itemcode) =>`Salesinvoices/GetStockByItemName?billType=${billType}&itemcode=${itemcode}`,
+  getVoucherDetails: (voucherNo) =>`Estimate/GetEstimateVoucherDetails?voucherNo=${voucherNo}`,
+  getItemTypes: () =>`Salesinvoices/GetItemTypes`,
+  getItemsByType: (type, page = 1, pageSize = 100) =>
+    `Salesinvoices/GetItemsByType?type=${type}&page=${page}&pageSize=${pageSize}`,
+  getStockByItemName1: (itemcode) =>`Salesinvoices/GetStockByItemName1?itemcode=${itemcode}`,
+  getSalesman: () =>`SalesmanCreation/GetSalesman`,
+   getCustomers: (pageNumber = 1, pageSize = 10) =>
+    `Salesinvoices/GetPartyByParent?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  getPurchaseStockDetailsByBarcode: (barcode) =>
+    `Salesinvoices/GetpurchaseStockDetails?barcode=${barcode}`,
+
+  getTaxList: (page = 1, pageSize = 10) =>
+  `TaxCreation/gettaxlist?page=${page}&pageSize=${pageSize}`,
+
+   getLastBillNoByCustomer: (customerCode) =>
+    `Salesinvoices/GetLastBillNo?customerCode=${customerCode}`,
+},
+
 
   Scrap_Procurement: {
     GET_VOUCHER_NO: (compCode) => `ScrapProcurement/GetMaxVoucherNo?compCode=${compCode}`,

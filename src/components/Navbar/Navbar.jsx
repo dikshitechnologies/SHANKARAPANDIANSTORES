@@ -145,14 +145,12 @@ const Navbar = () => {
       permission: "CATEGORY_CREATION",
     },
 
-     {
+    {
       name: "Transport Creation",
       path: "/masters/Transport-creation",
       icon: <BuildOutlined />,
       permission: "TRANSPORT_CREATION",
     },
-   
-    
 
     {
       name: "Design Creation",
@@ -196,14 +194,27 @@ const Navbar = () => {
       icon: <UserOutlined />,
       permission: "SALESMAN_CREATION",
     },
-     
-   
-    // { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
-        { name: 'User Creation', path: '/masters/User-creation', icon: <BuildOutlined />, permission: 'USER_CREATION' },
-        { name: 'Administration', path: '/Administration', icon: <BuildOutlined />, permission: 'ADMINISTRATION' },
-    { name: 'Tax Creation', path: '/masters/Tax-Creation', icon: <BuildOutlined />, permission: 'TAX_CREATION' },
 
-     
+    // { name: 'Scrap Creation', path: '/masters/scrap-page', icon: <BuildOutlined />, permission: 'SCRAP_CREATION' },
+    {
+      name: "User Creation",
+      path: "/masters/User-creation",
+      icon: <BuildOutlined />,
+      permission: "USER_CREATION",
+    },
+    {
+      name: "Administration",
+      path: "/Administration",
+      icon: <BuildOutlined />,
+      permission: "ADMINISTRATION",
+    },
+    {
+      name: "Tax Creation",
+      path: "/masters/Tax-Creation",
+      icon: <BuildOutlined />,
+      permission: "TAX_CREATION",
+    },
+
     // {
     //   name: "DayClose",
     //   path: "/masters/DayClose",
@@ -213,7 +224,7 @@ const Navbar = () => {
   ];
 
   const transactionItems = [
-     {
+    {
       name: "Voucher",
       icon: <MoneyCollectOutlined />,
       isGroup: true,
@@ -232,7 +243,7 @@ const Navbar = () => {
         },
       ],
     },
-      {
+    {
       name: "Purchase",
       icon: <DollarOutlined />,
       isGroup: true,
@@ -276,8 +287,7 @@ const Navbar = () => {
         },
       ],
     },
-  
-   
+
     {
       name: "Scrap RateFix",
       path: "/mastersScrapRateFix/",
@@ -290,12 +300,18 @@ const Navbar = () => {
       icon: <BuildOutlined />,
       permission: "SCRAP_PROCUREMENT",
     },
-     {
-          name: "Bill Re-Print",
-          path: "/transactions/bill-print",
-          icon: <MoneyCollectOutlined />,
-          permission: "BILL_PRINT",
-        },
+    {
+      name: "Estimate",
+      path: "/transactions/estimate",
+      icon: <MoneyCollectOutlined />,
+      permission: "ESTIMATE",
+    },
+    {
+      name: "Bill Re-Print",
+      path: "/transactions/bill-print",
+      icon: <MoneyCollectOutlined />,
+      permission: "BILL_PRINT",
+    },
     // {
     //   name: "Tag Print",
     //   path: "/transactions/Tag-Print",
@@ -304,14 +320,12 @@ const Navbar = () => {
     // },
   ];
 
-  const reportItems = [ 
+  const reportItems = [
     {
       name: "A/C Book",
       icon: <DatabaseOutlined />,
       isGroup: true,
       children: [
-
-
         {
           name: "Day Book",
           path: "/reports/day-book",
@@ -320,15 +334,13 @@ const Navbar = () => {
           printPermission: "DAY_BOOK",
         },
 
-
-         {
+        {
           name: "Daily Report",
           path: "/reports/DailyReport",
           icon: <FileTextOutlined />,
           permission: "DAILY_REPORT",
           printPermission: "DAILY_REPORT",
         },
-
 
         {
           name: "Bill Collector Report",
@@ -338,7 +350,7 @@ const Navbar = () => {
           printPermission: "BILL_COLLECTOR_REPORT",
         },
 
-         {
+        {
           name: "Ledger",
           path: "/reports/ledger",
           icon: <FileTextOutlined />,
@@ -360,11 +372,7 @@ const Navbar = () => {
           permission: "ACCOUNT_RECEIVABLE",
           printPermission: "ACCOUNT_RECEIVABLE",
         },
-        
-        
-       
-       
-      ]
+      ],
     },
     {
       name: "Purchase Report",
@@ -392,7 +400,7 @@ const Navbar = () => {
           permission: "SCRAP_PURCHASE",
           printPermission: "SCRAP_PURCHASE",
         },
-      ]
+      ],
     },
     {
       name: "Sales Report",
@@ -413,7 +421,7 @@ const Navbar = () => {
           permission: "SALES_RETURN_REGISTER",
           printPermission: "SALES_RETURN_REGISTER",
         },
-      ]
+      ],
     },
     {
       name: "Stock",
@@ -448,49 +456,53 @@ const Navbar = () => {
         //   permission: "PREFIX_HISTORY",
         //   printPermission: "PREFIX_HISTORY",
         // },
-      ]
+      ],
     },
   ];
 
   // Filter items based on permissions
   const filteredMasterItems = useMemo(() => {
     return masterItems.filter(
-      (item) => !item.permission || hasPermission(item.permission)
+      (item) => !item.permission || hasPermission(item.permission),
     );
   }, [hasPermission]);
 
   const filteredTransactionItems = useMemo(() => {
-    return transactionItems.map(group => {
-      if (group.isGroup && group.children) {
-        const filteredChildren = group.children.filter(
-          (item) => !item.permission || hasPermission(item.permission)
-        );
-        return { ...group, children: filteredChildren };
-      }
-      return group;
-    }).filter(group => {
-      if (group.isGroup) {
-        return group.children && group.children.length > 0;
-      }
-      return !group.permission || hasPermission(group.permission);
-    });
+    return transactionItems
+      .map((group) => {
+        if (group.isGroup && group.children) {
+          const filteredChildren = group.children.filter(
+            (item) => !item.permission || hasPermission(item.permission),
+          );
+          return { ...group, children: filteredChildren };
+        }
+        return group;
+      })
+      .filter((group) => {
+        if (group.isGroup) {
+          return group.children && group.children.length > 0;
+        }
+        return !group.permission || hasPermission(group.permission);
+      });
   }, [hasPermission]);
 
   const filteredReportItems = useMemo(() => {
-    return reportItems.map(group => {
-      if (group.isGroup && group.children) {
-        const filteredChildren = group.children.filter(
-          (item) => !item.permission || hasPermission(item.permission)
-        );
-        return { ...group, children: filteredChildren };
-      }
-      return group;
-    }).filter(group => {
-      if (group.isGroup) {
-        return group.children && group.children.length > 0;
-      }
-      return !group.permission || hasPermission(group.permission);
-    });
+    return reportItems
+      .map((group) => {
+        if (group.isGroup && group.children) {
+          const filteredChildren = group.children.filter(
+            (item) => !item.permission || hasPermission(item.permission),
+          );
+          return { ...group, children: filteredChildren };
+        }
+        return group;
+      })
+      .filter((group) => {
+        if (group.isGroup) {
+          return group.children && group.children.length > 0;
+        }
+        return !group.permission || hasPermission(group.permission);
+      });
   }, [hasPermission]);
 
   // Desktop hover handlers
@@ -524,7 +536,7 @@ const Navbar = () => {
 
   const closeMobileMenu = () => {
     setIsMenuOpen(false);
-    setMobileMenuState({ 
+    setMobileMenuState({
       masters: false,
       transactions: false,
       sales: false,
@@ -601,21 +613,18 @@ const Navbar = () => {
                   "/reports/Billcollectorreport": "Bill Collector Report",
                   "/reports/StockBarcodeWise": "Stock Barcode Wise",
                   "/reports/DailyReport": "Daily Report",
-                   "/reports/Groupwisestock": "Groupwise Stock",
-                   "/reports/Itemwisestock": "Itemwise Stock",
-                   "/reports/ledger": "Ledger Report",
-                   "/reports/PrefixHistory": "Prefix History",
-                   "/reports/purchase-register": "Purchase Register",
-                   "/reports/PurchaseReturnregister": "Purchase Return Register",
-                   "/reports/SalesReturnregister": "Sales Return Register",
-                    "/ScrapProcurement": "Scrap Procurement",
-                    "/masters/DayClose": "Day Close",
-                    "/masters/SalesmanCreation": "Salesman Creation",
-                     "/masters/Statecreation": "State Creation",
-                     "/transactions/bill-print":"Bill Re - Print"
-
-               
-               
+                  "/reports/Groupwisestock": "Groupwise Stock",
+                  "/reports/Itemwisestock": "Itemwise Stock",
+                  "/reports/ledger": "Ledger Report",
+                  "/reports/PrefixHistory": "Prefix History",
+                  "/reports/purchase-register": "Purchase Register",
+                  "/reports/PurchaseReturnregister": "Purchase Return Register",
+                  "/reports/SalesReturnregister": "Sales Return Register",
+                  "/ScrapProcurement": "Scrap Procurement",
+                  "/masters/DayClose": "Day Close",
+                  "/masters/SalesmanCreation": "Salesman Creation",
+                  "/masters/Statecreation": "State Creation",
+                  "/transactions/bill-print": "Bill Re - Print",
                 };
 
                 // if path is predefined in map
@@ -703,7 +712,9 @@ const Navbar = () => {
                     </span>
                   </button>
                   {activeDropdown === "transactions" && (
-                    <div className={`${styles["dropdown-container"]} ${styles.masters}`}>
+                    <div
+                      className={`${styles["dropdown-container"]} ${styles.masters}`}
+                    >
                       <DropdownMenu
                         items={filteredTransactionItems}
                         onItemClick={() => setActiveDropdown(null)}
@@ -742,7 +753,9 @@ const Navbar = () => {
                   </button>
 
                   {activeDropdown === "reports" && (
-                    <div className={`${styles["dropdown-container"]} ${styles.masters}`}>
+                    <div
+                      className={`${styles["dropdown-container"]} ${styles.masters}`}
+                    >
                       <DropdownMenu
                         items={filteredReportItems}
                         onItemClick={() => setActiveDropdown(null)}
@@ -894,9 +907,15 @@ const Navbar = () => {
                     >
                       {filteredTransactionItems.map((item, index) => {
                         if (item.isGroup && item.children) {
-                          const groupKey = item.name.toLowerCase().replace(/\s+/g, '').replace(/\//g, '');
+                          const groupKey = item.name
+                            .toLowerCase()
+                            .replace(/\s+/g, "")
+                            .replace(/\//g, "");
                           return (
-                            <div key={index} className={styles["mobile-nested-group"]}>
+                            <div
+                              key={index}
+                              className={styles["mobile-nested-group"]}
+                            >
                               <div
                                 className={`${styles["mobile-nested-header"]} ${
                                   mobileMenuState[groupKey] ? styles.active : ""
@@ -924,7 +943,9 @@ const Navbar = () => {
                                     key={child.path}
                                     to={child.path}
                                     className={`${styles["mobile-nested-item"]} ${
-                                      location.pathname === child.path ? styles.active : ""
+                                      location.pathname === child.path
+                                        ? styles.active
+                                        : ""
                                     }`}
                                     onClick={closeMobileMenu}
                                   >
@@ -940,7 +961,9 @@ const Navbar = () => {
                             key={item.path}
                             to={item.path}
                             className={`${styles["mobile-dropdown-item"]} ${
-                              location.pathname === item.path ? styles.active : ""
+                              location.pathname === item.path
+                                ? styles.active
+                                : ""
                             }`}
                             onClick={closeMobileMenu}
                           >
@@ -978,9 +1001,15 @@ const Navbar = () => {
                     >
                       {filteredReportItems.map((item, index) => {
                         if (item.isGroup && item.children) {
-                          const groupKey = item.name.toLowerCase().replace(/\s+/g, '').replace(/\//g, '');
+                          const groupKey = item.name
+                            .toLowerCase()
+                            .replace(/\s+/g, "")
+                            .replace(/\//g, "");
                           return (
-                            <div key={index} className={styles["mobile-nested-group"]}>
+                            <div
+                              key={index}
+                              className={styles["mobile-nested-group"]}
+                            >
                               <div
                                 className={`${styles["mobile-nested-header"]} ${
                                   mobileMenuState[groupKey] ? styles.active : ""
@@ -1008,7 +1037,9 @@ const Navbar = () => {
                                     key={child.path}
                                     to={child.path}
                                     className={`${styles["mobile-nested-item"]} ${
-                                      location.pathname === child.path ? styles.active : ""
+                                      location.pathname === child.path
+                                        ? styles.active
+                                        : ""
                                     }`}
                                     onClick={closeMobileMenu}
                                   >
@@ -1024,7 +1055,9 @@ const Navbar = () => {
                             key={item.path}
                             to={item.path}
                             className={`${styles["mobile-dropdown-item"]} ${
-                              location.pathname === item.path ? styles.active : ""
+                              location.pathname === item.path
+                                ? styles.active
+                                : ""
                             }`}
                             onClick={closeMobileMenu}
                           >
